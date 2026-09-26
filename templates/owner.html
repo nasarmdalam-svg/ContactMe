@@ -232,8 +232,23 @@
       showToast('🔊 Alarm siren started! Repeating 6 times...');
     });
 
-    // Check if notification already granted
-    if (window.Notification && Notification.permission === 'granted') {
+    // Check if running inside native ParkBuzz Android App
+    if (window.ParkBuzzApp && window.ParkBuzzApp.isParkBuzzApp()) {
+      notifStatusBadge.textContent = 'App Service Active';
+      notifStatusBadge.className = 'badge badge-success';
+      const notifDesc = document.querySelector('.card p');
+      if (notifDesc) {
+        notifDesc.textContent = '⚡ ParkBuzz native background monitor is running. Your phone will play a loud siren and show a screen pop-up even if this app is closed or your phone is locked.';
+      }
+      const btnNotif = document.getElementById('btnEnableNotifications');
+      if (btnNotif) {
+        btnNotif.textContent = '⚡ Alarm Service Running';
+        btnNotif.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
+        btnNotif.onclick = () => {
+          showToast('✅ ParkBuzz native background service is running 24/7 on your phone!');
+        };
+      }
+    } else if (window.Notification && Notification.permission === 'granted') {
       notifStatusBadge.textContent = 'Active & Protected';
       notifStatusBadge.className = 'badge badge-success';
     }

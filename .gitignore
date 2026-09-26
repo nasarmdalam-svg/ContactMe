@@ -5,3 +5,7 @@ vapid_keys.json
 cartag.db
 stickers_output/
 .DS_Store
+private_key.pem
+android/**/build/
+android/.gradle/
+android/local.properties

@@ -33,8 +33,8 @@ def create_sticker_image(tag_id: str, base_url: str) -> str:
     draw.rectangle([(10, 10), (width - 10, 110)], fill=(15, 23, 42, 255)) # Dark navy header
 
     # Header Text
-    draw.text((width // 2, 42), "CAR CONTACT TAG", fill=(255, 255, 255, 255), anchor="mm")
-    draw.text((width // 2, 80), "PARKED & BLOCKING? SCAN BELOW", fill=(56, 189, 248, 255), anchor="mm")
+    draw.text((width // 2, 42), "PARKBUZZ", fill=(255, 255, 255, 255), anchor="mm")
+    draw.text((width // 2, 80), "VEHICLE BLOCKED? SCAN TO ALERT OWNER", fill=(56, 189, 248, 255), anchor="mm")
 
     # Paste QR Code in center
     qr_w, qr_h = qr_img.size

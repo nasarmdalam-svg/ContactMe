@@ -34,30 +34,29 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.5.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.6.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v1.5-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.5.apk
+          name: ParkBuzz-v1.6-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.6.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.5
-          name: ParkBuzz Android App v1.5
+          tag_name: v1.6
+          name: ParkBuzz Android App v1.6
           body: |
-            ## ⚡ ParkBuzz v1.5
-            - **Download Printable Sticker Fix:** Integrated Android native DownloadListener to save printable sticker PNG directly to device Downloads folder.
-            - **Edit Details & Active/Inactive Switch:** Fixed JavaScript syntax issue in dashboard so editing vehicle/owner info and toggling Active/Inactive works immediately on tap.
-            - **One-Card Permission Setup:** Single calm setup card on first open (notifications, background activity, microphone) without shocking the user with multiple popups.
-            - **Permanent Signing Keystore:** App is signed with a permanent release key — future updates install cleanly in 1 tap without uninstalling.
-            - **Single Clean Embedded Sound:** Packaged chime audio directly in APK without duplicate sirens.
+            ## ⚡ ParkBuzz v1.6
+            - **Silent Background (No Status Bar Icon):** Set keeper notification channel to MIN priority so ParkBuzz sits silently in the background with zero icons on the top notification bar.
+            - **Removed Battery Saver & Setup Popups:** Opens instantly and cleanly without throwing battery saver dialogs or onboarding cards.
+            - **Eliminated Bizarre Synth Sound:** Removed harsh sawtooth Web Audio synth completely. Only the clean car chime (tit-tit-tit) plays.
+            - **Seamless 1-Tap Upgrade:** Signed with the permanent keystore so users update directly without uninstalling.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v1.5.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v1.6.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

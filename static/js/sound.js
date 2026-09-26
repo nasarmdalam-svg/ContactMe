@@ -19,58 +19,27 @@ class SoundManager {
     }
   }
 
-  // Plays a repeating urgent car horn / alarm siren until stopped or after 8 cycles
-  playAlertSound(repeat = 6) {
-    this.init();
-    if (!this.ctx) return;
-    this.stopAlarm();
+  // Plays the clean chime audio file (tit-tit-tit)
+  playAlertSound() {
+    // If inside the ParkBuzz Android app, the native app plays chime.wav natively!
+    // NEVER play here to prevent duplicate or bizarre sounds.
+    if (window.ParkBuzzApp) return;
 
-    let count = 0;
-    const playHornCycle = () => {
-      if (count >= repeat) {
-        this.stopAlarm();
-        return;
+    try {
+      if (!this.audio) {
+        this.audio = new Audio('/static/audio/chime.wav');
       }
-      count++;
-
-      const now = this.ctx.currentTime;
-      const playBeep = (freq, offset, duration) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(freq, now + offset);
-
-        gain.gain.setValueAtTime(0.35, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + duration);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        osc.start(now + offset);
-        osc.stop(now + offset + duration);
-      };
-
-      // Urgent dual-tone car horn burst: HONK - HONK - HONK
-      playBeep(850, 0.00, 0.22);
-      playBeep(1100, 0.00, 0.22);
-
-      playBeep(850, 0.28, 0.22);
-      playBeep(1100, 0.28, 0.22);
-
-      playBeep(950, 0.56, 0.35);
-      playBeep(1200, 0.56, 0.35);
-
-      this.alarmLoop = setTimeout(playHornCycle, 1400);
-    };
-
-    playHornCycle();
+      this.audio.currentTime = 0;
+      this.audio.play().catch(e => console.log('Audio play error:', e));
+    } catch(e) {}
   }
 
   stopAlarm() {
-    if (this.alarmLoop) {
-      clearTimeout(this.alarmLoop);
-      this.alarmLoop = null;
+    if (this.audio) {
+      try {
+        this.audio.pause();
+        this.audio.currentTime = 0;
+      } catch(e) {}
     }
   }
 

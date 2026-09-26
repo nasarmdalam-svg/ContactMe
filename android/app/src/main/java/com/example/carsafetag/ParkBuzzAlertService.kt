@@ -35,8 +35,8 @@ class ParkBuzzAlertService : Service() {
 
     companion object {
         const val TAG = "ParkBuzzService"
-        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v4"
-        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v4"
+        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v5"
+        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v5"
         const val KEEPER_NOTIF_ID = 8801
     }
 
@@ -103,14 +103,17 @@ class ParkBuzzAlertService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // 1. Silent keeper channel (no sound, no vibration)
+            // 1. Silent keeper channel (MIN importance = NO status bar icon, completely silent)
             val keeperChannel = NotificationChannel(
                 SILENT_KEEPER_CHANNEL_ID,
                 "ParkBuzz Background Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN
             ).apply {
-                description = "Keeps ParkBuzz connected to receive alerts when app is closed"
+                description = "Keeps ParkBuzz connected silently in background"
                 setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
+                setSound(null, null)
             }
             nm.createNotificationChannel(keeperChannel)
 
@@ -138,11 +141,12 @@ class ParkBuzzAlertService : Service() {
 
         return NotificationCompat.Builder(this, SILENT_KEEPER_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("ParkBuzz Active")
-            .setContentText("Monitoring $tagId for instant parking alerts")
+            .setContentTitle("App Service Active")
+            .setContentText("Monitoring in background")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .build()
     }
 

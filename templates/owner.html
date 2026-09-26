@@ -9,30 +9,19 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <div class="logo-badge">🚗</div>
-      <h1>{{ tag.vehicle_name if tag.vehicle_name else 'Vehicle Dashboard' }}</h1>
-      <p>Sticker ID: <strong>{{ tag.tag_id }}</strong> <span class="badge badge-success">Active</span></p>
-    </div>
-
-    <!-- Alert Sound Status Card -->
-    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <span style="font-weight: 600; font-size: 15px;">🔔 Sound & Notifications</span>
-        <span id="notifStatusBadge" class="badge badge-warning">Setup Needed</span>
+    <div class="header" style="position: relative;">
+      <div class="logo-badge">⚡</div>
+      <h1 id="headingVehicleName">{{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}</h1>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
+        <span class="badge badge-success">● App Service Active</span>
+        <span style="font-size: 12px; color: var(--text-secondary);">Tag: {{ tag.tag_id }}</span>
       </div>
-      <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 14px;">
-        Enable Web Push notifications so your phone rings loudly even when your screen is locked.
-      </p>
-      <div style="display: flex; gap: 10px;">
-        <button id="btnEnableNotifications" class="btn-primary" style="padding: 10px; font-size: 14px; flex: 1;">
-          🔔 Enable Push & Sound
+      <div style="margin-top: 14px;">
+        <button id="btnOpenEdit" class="alert-btn" style="margin: 0 auto; width: auto; font-size: 13px; padding: 7px 16px; border-color: rgba(255,255,255,0.25);">
+          ✏️ Edit Vehicle & Owner Details
         </button>
-        <button id="btnTestSound" class="alert-btn" style="padding: 10px; font-size: 14px; width: auto; justify-content: center;">
-          🔊 Test Siren
-        </button>
-        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; padding: 10px; font-size: 14px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
-          🔕 Silence
+        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; margin: 10px auto 0; padding: 8px 16px; font-size: 13px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
+          🔕 Silence Alarm
         </button>
       </div>
     </div>
@@ -74,6 +63,38 @@
     <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
   </div>
 
+  <!-- Edit Details Modal -->
+  <div id="editModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #1e293b; border: 1px solid var(--border-color); border-radius: 16px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div style="font-weight: 700; font-size: 17px; color: white;">✏️ Edit Vehicle & Owner Details</div>
+        <button id="btnCloseEdit" type="button" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      
+      <form id="editForm">
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Vehicle Name / Number Plate</label>
+          <input type="text" id="inputVehicleName" value="{{ tag.vehicle_name }}" placeholder="e.g. DL3CCM4468 or Black Activa" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Owner / Display Name (Optional)</label>
+          <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Nasar or Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Custom Note for Scanners (Optional)</label>
+          <textarea id="inputCustomNote" rows="2" placeholder="e.g. Doctor on call. Will move in 5 mins." style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">{{ tag.custom_note if tag.custom_note else '' }}</textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btnCancelEdit" class="alert-btn" style="flex: 1; justify-content: center; padding: 10px;">Cancel</button>
+          <button type="submit" id="btnSaveEdit" class="btn-primary" style="flex: 1; padding: 10px;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Incoming Call Modal -->
   <div class="call-overlay" id="incomingCallOverlay">
     <div class="pulse-avatar" style="background: #10b981;">📞</div>
@@ -113,145 +134,68 @@
       setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
-    // Convert VAPID base64url to Uint8Array
-    function urlBase64ToUint8Array(base64String) {
-      const padding = '='.repeat((4 - base64String.length % 4) % 4);
-      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
+    // Edit Profile Modal Logic
+    const editModal = document.getElementById('editModal');
+    const btnOpenEdit = document.getElementById('btnOpenEdit');
+    const btnCloseEdit = document.getElementById('btnCloseEdit');
+    const btnCancelEdit = document.getElementById('btnCancelEdit');
+    const editForm = document.getElementById('editForm');
+    const headingVehicleName = document.getElementById('headingVehicleName');
+
+    btnOpenEdit.addEventListener('click', () => {
+      editModal.style.display = 'flex';
+    });
+
+    function closeEditModal() {
+      editModal.style.display = 'none';
     }
 
-    // Service Worker & Push Notification Registration
-    async function registerPush() {
-      const btn = document.getElementById('btnEnableNotifications');
-      btn.textContent = '⏳ Enabling...';
-      btn.disabled = true;
+    btnCloseEdit.addEventListener('click', closeEditModal);
+    btnCancelEdit.addEventListener('click', closeEditModal);
 
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert('Push notifications are not supported in this browser mode. Please open in Google Chrome or Safari directly (not incognito/private mode).');
-        btn.textContent = '🔔 Enable Push & Sound';
-        btn.disabled = false;
-        return;
-      }
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btnSaveEdit');
+      saveBtn.textContent = 'Saving...';
+      saveBtn.disabled = true;
 
-      if (window.Notification && Notification.permission === 'denied') {
-        alert('⚠️ Notifications are blocked in your browser settings for this site.\n\nTo fix:\n1. Tap the 🔒 or settings icon in your browser address bar next to the website URL\n2. Tap Permissions -> Notifications -> Allow\n3. Refresh and try again!');
-        btn.textContent = '🔔 Blocked in Settings';
-        btn.disabled = false;
-        return;
-      }
+      const vehicleName = document.getElementById('inputVehicleName').value.trim();
+      const ownerName = document.getElementById('inputOwnerName').value.trim();
+      const customNote = document.getElementById('inputCustomNote').value.trim();
 
       try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          alert('⚠️ Notification permission was not granted. Please tap "Allow" when prompted.');
-          btn.textContent = '🔔 Enable Push & Sound';
-          btn.disabled = false;
-          return;
-        }
-
-        const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-
-        // Wait for service worker to finish installing and become fully active
-        if (!registration.active) {
-          await new Promise((resolve) => {
-            const sw = registration.installing || registration.waiting;
-            if (sw) {
-              sw.addEventListener('statechange', function onState() {
-                if (this.state === 'activated' || registration.active) {
-                  sw.removeEventListener('statechange', onState);
-                  resolve();
-                }
-              });
-            } else {
-              navigator.serviceWorker.ready.then(resolve);
-            }
-          });
-        }
-
-        const activeReg = await navigator.serviceWorker.ready;
-        let subscription = await activeReg.pushManager.getSubscription();
-        if (subscription) {
-          try {
-            await subscription.unsubscribe();
-          } catch (e) {
-            console.log('Unsubscribe error:', e);
-          }
-        }
-        subscription = await activeReg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-        });
-
-        // Send subscription to server
-        const resp = await fetch(`/api/subscribe/${tagId}`, {
+        const resp = await fetch(`/api/tag/${tagId}/update`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subscription)
+          body: JSON.stringify({
+            vehicle_name: vehicleName,
+            owner_name: ownerName,
+            custom_note: customNote
+          })
         });
 
         if (resp.ok) {
-          notifStatusBadge.textContent = 'Active & Protected';
-          notifStatusBadge.className = 'badge badge-success';
-          btn.textContent = '✅ Notifications Active';
-          btn.style.background = '#10b981';
-          showToast('✅ Push Notifications & Sound activated!');
-          alert('🎉 Success! Push Notifications & Sound are now active on your phone. You can lock your phone screen now.');
-          window.soundManager.playAlertSound(2);
+          headingVehicleName.textContent = vehicleName;
+          closeEditModal();
+          showToast('✅ Vehicle & Contact details updated!');
         } else {
-          alert('Server error saving subscription. Please try again.');
-          btn.textContent = '🔔 Enable Push & Sound';
-          btn.disabled = false;
+          alert('Failed to update details. Please try again.');
         }
       } catch (err) {
-        console.error('Error registering push:', err);
-        alert('Push Setup Error: ' + err.name + ': ' + err.message);
-        btn.textContent = '🔔 Enable Push & Sound';
-        btn.disabled = false;
+        alert('Network error updating details: ' + err.message);
+      } finally {
+        saveBtn.textContent = 'Save Changes';
+        saveBtn.disabled = false;
       }
-    }
-
-    document.getElementById('btnEnableNotifications').addEventListener('click', registerPush);
+    });
 
     const btnSilence = document.getElementById('btnSilenceAlarm');
-
     btnSilence.addEventListener('click', () => {
       window.soundManager.stopAlarm();
       window.soundManager.stopRingtone();
       btnSilence.style.display = 'none';
       showToast('🔕 Alarm silenced');
     });
-
-    document.getElementById('btnTestSound').addEventListener('click', () => {
-      window.soundManager.playAlertSound(6);
-      btnSilence.style.display = 'inline-flex';
-      showToast('🔊 Alarm siren started! Repeating 6 times...');
-    });
-
-    // Check if running inside native ParkBuzz Android App
-    if (window.ParkBuzzApp && window.ParkBuzzApp.isParkBuzzApp()) {
-      notifStatusBadge.textContent = 'App Service Active';
-      notifStatusBadge.className = 'badge badge-success';
-      const notifDesc = document.querySelector('.card p');
-      if (notifDesc) {
-        notifDesc.textContent = '⚡ ParkBuzz native background monitor is running. Your phone will play a loud siren and show a screen pop-up even if this app is closed or your phone is locked.';
-      }
-      const btnNotif = document.getElementById('btnEnableNotifications');
-      if (btnNotif) {
-        btnNotif.textContent = '⚡ Alarm Service Running';
-        btnNotif.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
-        btnNotif.onclick = () => {
-          showToast('✅ ParkBuzz native background service is running 24/7 on your phone!');
-        };
-      }
-    } else if (window.Notification && Notification.permission === 'granted') {
-      notifStatusBadge.textContent = 'Active & Protected';
-      notifStatusBadge.className = 'badge badge-success';
-    }
 
     // Auto ring if opened from notification click
     if (window.location.search.includes('autoring=1')) {

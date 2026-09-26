@@ -100,11 +100,7 @@ class MainActivity : ComponentActivity() {
         val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
             putExtra("TAG_ID", "CAR-D3AEED")
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
+        startService(serviceIntent)
     }
 
     private fun createLoudNotificationChannel() {

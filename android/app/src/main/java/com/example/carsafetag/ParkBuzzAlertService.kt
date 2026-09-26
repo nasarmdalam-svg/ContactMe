@@ -1,6 +1,6 @@
 package com.example.carsafetag
 
-import android.app.Notification
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,16 +31,14 @@ class ParkBuzzAlertService : Service() {
     private var tagId = "CAR-D3AEED"
 
     companion object {
-        const val FOREGROUND_CHANNEL_ID = "parkbuzz_service_channel"
         const val ALERT_CHANNEL_ID = "car_emergency_alerts"
-        const val FOREGROUND_NOTIF_ID = 9001
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        createChannels()
+        createAlertNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,8 +46,7 @@ class ParkBuzzAlertService : Service() {
             if (it.isNotBlank()) tagId = it
         }
 
-        startForeground(FOREGROUND_NOTIF_ID, buildForegroundNotification())
-
+        // Run SILENTLY in the background - NO status bar notification icon!
         if (!isRunning) {
             isRunning = true
             connectWebSocket()
@@ -57,28 +55,35 @@ class ParkBuzzAlertService : Service() {
         return START_STICKY
     }
 
-    private fun createChannels() {
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // If user swipes app away from recents, silently restart within 1 second
+        try {
+            val restartIntent = Intent(applicationContext, ParkBuzzAlertService::class.java).apply {
+                putExtra("TAG_ID", tagId)
+            }
+            val pendingIntent = PendingIntent.getService(
+                this, 101, restartIntent,
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.set(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 1000,
+                pendingIntent
+            )
+        } catch (_: Exception) {}
+        super.onTaskRemoved(rootIntent)
+    }
+
+    private fun createAlertNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            // 1. Silent persistent channel for foreground service
-            val serviceChannel = NotificationChannel(
-                FOREGROUND_CHANNEL_ID,
-                "ParkBuzz Background Monitor",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps ParkBuzz connected to receive alerts when your phone is locked"
-                setShowBadge(false)
-            }
-            nm.createNotificationChannel(serviceChannel)
-
-            // 2. High priority alarm channel with siren
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
                 "ParkBuzz Urgent Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Loud alarm siren sound and screen pop-up when someone scans your vehicle sticker"
+                description = "Loud siren and screen pop-up when someone scans your vehicle sticker"
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 1000)
@@ -95,39 +100,23 @@ class ParkBuzzAlertService : Service() {
         }
     }
 
-    private fun buildForegroundNotification(): Notification {
-        val openIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Builder(this, FOREGROUND_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("ParkBuzz Active")
-            .setContentText("Monitoring $tagId for instant parking alerts")
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-    }
-
     private fun connectWebSocket() {
         Thread {
             okHttpClient = OkHttpClient.Builder()
                 .readTimeout(0, TimeUnit.MILLISECONDS)
-                .pingInterval(20, TimeUnit.SECONDS)
+                .pingInterval(25, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
                 .build()
 
             val wsUrl = "wss://contactme-go9v.onrender.com/ws/$tagId/owner"
             val request = Request.Builder().url(wsUrl).build()
 
-            while (isRunning) {
+            fun openConnection() {
+                if (!isRunning) return
                 try {
                     webSocket = okHttpClient?.newWebSocket(request, object : WebSocketListener() {
                         override fun onOpen(ws: WebSocket, response: Response) {
-                            // Connected!
+                            // Connected silently
                         }
 
                         override fun onMessage(ws: WebSocket, text: String) {
@@ -143,27 +132,34 @@ class ParkBuzzAlertService : Service() {
                         }
 
                         override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                            // Connection dropped; loop will reconnect
+                            // Reconnect after 5 seconds if connection fails
+                            if (isRunning) {
+                                try { Thread.sleep(5000) } catch (_: Exception) {}
+                                openConnection()
+                            }
                         }
 
                         override fun onClosed(ws: WebSocket, code: Int, reason: String) {
-                            // Closed; loop will reconnect
+                            if (isRunning) {
+                                try { Thread.sleep(3000) } catch (_: Exception) {}
+                                openConnection()
+                            }
                         }
                     })
-
-                    // Wait 10 seconds before checking / reconnecting if dropped
-                    Thread.sleep(10000)
-                } catch (e: InterruptedException) {
-                    break
                 } catch (_: Exception) {
-                    try { Thread.sleep(5000) } catch (_: Exception) {}
+                    if (isRunning) {
+                        try { Thread.sleep(5000) } catch (_: Exception) {}
+                        openConnection()
+                    }
                 }
             }
+
+            openConnection()
         }.start()
     }
 
     private fun fireEmergencyPopUp(alertType: String, message: String) {
-        // 1. Wake up the screen if phone is locked in pocket
+        // 1. Wake up screen immediately
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             @Suppress("DEPRECATION")
@@ -171,10 +167,10 @@ class ParkBuzzAlertService : Service() {
                 PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
                 "ParkBuzz:AlertWakeLock"
             )
-            wakeLock.acquire(10000) // Keep screen awake for 10 seconds
+            wakeLock.acquire(10000)
         } catch (_: Exception) {}
 
-        // 2. Play the loud alarm sound immediately
+        // 2. Play the loud siren audio immediately
         try {
             val soundUri = Uri.parse("android.resource://$packageName/${R.raw.alarm}")
             val mediaPlayer = MediaPlayer().apply {
@@ -191,7 +187,7 @@ class ParkBuzzAlertService : Service() {
             mediaPlayer.setOnCompletionListener { it.release() }
         } catch (_: Exception) {}
 
-        // 3. Build Heads-Up Full Screen Pop-up Notification
+        // 3. Show Heads-Up Screen Pop-Up
         val openIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("ALERT_POPUP", true)
@@ -208,12 +204,13 @@ class ParkBuzzAlertService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("🚨 ParkBuzz: ${alertType.uppercase()} ALERT")
             .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("🚨 $message\n\nPlease move or check your vehicle immediately!"))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("🚨 $message\n\nPlease check or move your vehicle!"))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSound(soundUri)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 1000))
-            .setFullScreenIntent(fullScreenPendingIntent, true) // POP-UP ON SCREEN!
+            .setFullScreenIntent(fullScreenPendingIntent, true) // SCREEN POP-UP!
             .setContentIntent(fullScreenPendingIntent)
             .setAutoCancel(true)
             .build()

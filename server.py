@@ -76,6 +76,11 @@ class ActivateRequest(BaseModel):
     vehicle_name: str
     custom_note: Optional[str] = ""
 
+class UpdateProfileRequest(BaseModel):
+    vehicle_name: str
+    owner_name: Optional[str] = ""
+    custom_note: Optional[str] = ""
+
 class AlertRequest(BaseModel):
     alert_type: str
     message: Optional[str] = ""
@@ -184,6 +189,16 @@ def activate_page(tag_id: str, request: Request):
 def api_activate(tag_id: str, data: ActivateRequest):
     owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note)
     return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
+
+@app.post("/api/tag/{tag_id}/update")
+def api_update_tag(tag_id: str, data: UpdateProfileRequest):
+    database.update_tag_profile(
+        tag_id=tag_id,
+        vehicle_name=data.vehicle_name,
+        owner_name=data.owner_name or "",
+        custom_note=data.custom_note or ""
+    )
+    return {"status": "ok", "vehicle_name": data.vehicle_name, "owner_name": data.owner_name, "custom_note": data.custom_note}
 
 # Owner dashboard
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)

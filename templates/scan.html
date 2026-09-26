@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contact Car Owner - SafeTag</title>
+  <title>Contact Vehicle Owner - ParkBuzz</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-badge">🚗</div>
-      <h1>Contact Car Owner</h1>
+      <div class="logo-badge">⚡</div>
+      <h1>Contact Vehicle Owner</h1>
       <p>Vehicle: <strong>{{ tag.vehicle_name if tag.vehicle_name else 'Registered Vehicle' }}</strong> (ID: {{ tag.tag_id }})</p>
+      {% if tag.owner_name %}
+      <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Owner / Contact: <strong>{{ tag.owner_name }}</strong></div>
+      {% endif %}
     </div>
 
     <div class="privacy-banner">

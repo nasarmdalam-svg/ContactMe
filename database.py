@@ -18,10 +18,15 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 activated INTEGER DEFAULT 0,
                 vehicle_name TEXT DEFAULT '',
+                owner_name TEXT DEFAULT '',
                 owner_token TEXT,
                 custom_note TEXT DEFAULT ''
             );
         """)
+        try:
+            conn.execute("ALTER TABLE tags ADD COLUMN owner_name TEXT DEFAULT ''")
+        except Exception:
+            pass
         conn.execute("""
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,6 +100,18 @@ def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "") -> Optio
             )
             conn.commit()
         return owner_token
+
+def update_tag_profile(tag_id: str, vehicle_name: str, owner_name: str = "", custom_note: str = ""):
+    with get_db() as conn:
+        conn.execute(
+            """
+            UPDATE tags 
+            SET vehicle_name = ?, owner_name = ?, custom_note = ?
+            WHERE tag_id = ?
+            """,
+            (vehicle_name, owner_name, custom_note, tag_id)
+        )
+        conn.commit()
 
 def save_subscription(tag_id: str, endpoint: str, p256dh: str, auth: str):
     with get_db() as conn:

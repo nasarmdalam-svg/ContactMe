@@ -4,7 +4,7 @@ import io
 import asyncio
 from typing import Dict, List, Optional
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -20,6 +20,15 @@ app = FastAPI(title="Car SafeTag System")
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+@app.get("/sw.js")
+def service_worker():
+    sw_path = os.path.join(BASE_DIR, "static", "sw.js")
+    return FileResponse(
+        sw_path,
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
+    )
 
 vapid_keys = vapid_manager.get_or_create_vapid_keys()
 

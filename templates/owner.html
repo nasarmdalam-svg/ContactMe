@@ -154,8 +154,7 @@
           return;
         }
 
-        const registration = await navigator.serviceWorker.register('/static/sw.js');
-        await navigator.serviceWorker.ready;
+        const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
         let subscription = await registration.pushManager.getSubscription();
         if (!subscription) {

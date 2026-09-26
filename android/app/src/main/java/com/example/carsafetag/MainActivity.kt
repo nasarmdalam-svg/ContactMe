@@ -99,20 +99,38 @@ class MainActivity : ComponentActivity() {
 
     private fun checkIntentForAlert(intent: Intent?) {
         if (intent?.getBooleanExtra("ALERT_POPUP", false) == true) {
+            val alertType = intent.getStringExtra("ALERT_TYPE") ?: ""
             val msg = intent.getStringExtra("ALERT_MSG") ?: "Someone needs you to move your vehicle!"
-            AlertDialog.Builder(this)
-                .setTitle("🚨 URGENT PARKING ALERT")
-                .setMessage(msg)
-                .setPositiveButton("I Am On My Way") { d, _ ->
-                    webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
-                    d.dismiss()
-                }
-                .setNegativeButton("Dismiss") { d, _ ->
-                    webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
-                    d.dismiss()
-                }
-                .setCancelable(false)
-                .show()
+
+            if (alertType.equals("incoming_call", ignoreCase = true) || alertType.contains("call", ignoreCase = true)) {
+                AlertDialog.Builder(this)
+                    .setTitle("📞 Incoming Voice Call")
+                    .setMessage("A bystander near your vehicle is calling you live!")
+                    .setPositiveButton("🟢 Accept Call") { d, _ ->
+                        webViewInstance?.evaluateJavascript("if (document.getElementById('btnAcceptCall')) { document.getElementById('btnAcceptCall').click(); }", null)
+                        d.dismiss()
+                    }
+                    .setNegativeButton("🔴 Decline") { d, _ ->
+                        webViewInstance?.evaluateJavascript("if (document.getElementById('btnRejectCall')) { document.getElementById('btnRejectCall').click(); }", null)
+                        d.dismiss()
+                    }
+                    .setCancelable(false)
+                    .show()
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle("🚨 URGENT PARKING ALERT")
+                    .setMessage(msg)
+                    .setPositiveButton("I Am On My Way") { d, _ ->
+                        webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
+                        d.dismiss()
+                    }
+                    .setNegativeButton("Dismiss") { d, _ ->
+                        webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
+                        d.dismiss()
+                    }
+                    .setCancelable(false)
+                    .show()
+            }
         }
     }
 

@@ -205,6 +205,11 @@ def api_toggle_active(tag_id: str):
     new_state = database.toggle_tag_active(tag_id)
     return {"status": "ok", "is_active": new_state}
 
+@app.post("/api/tag/{tag_id}/clear-alerts")
+def api_clear_alerts(tag_id: str):
+    database.clear_alerts(tag_id)
+    return {"status": "ok"}
+
 # Owner dashboard
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)
 def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):

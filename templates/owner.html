@@ -49,7 +49,12 @@
     </div>
 
     <!-- Recent Alerts History -->
-    <div class="section-title">Recent Alerts History</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div class="section-title" style="margin-bottom: 0;">Recent Alerts History</div>
+      <button id="btnClearHistory" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+        🗑️ Clear
+      </button>
+    </div>
     <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 8px;">
       {% if recent_alerts %}
         {% for a in recent_alerts %}
@@ -150,11 +155,24 @@
     const editForm = document.getElementById('editForm');
     const headingVehicleName = document.getElementById('headingVehicleName');
 
+    // Auto-open mandatory setup modal if vehicle details are missing
+    const initialVehicleName = "{{ tag.vehicle_name if tag.vehicle_name else '' }}";
+    if (!initialVehicleName) {
+      editModal.style.display = 'flex';
+      btnCloseEdit.style.display = 'none';
+      btnCancelEdit.style.display = 'none';
+    }
+
     btnOpenEdit.addEventListener('click', () => {
       editModal.style.display = 'flex';
     });
 
     function closeEditModal() {
+      // Don't allow closing if vehicle details are still empty
+      if (!headingVehicleName.textContent || headingVehicleName.textContent === 'My Vehicle') {
+        alert('Vehicle details are required to activate your parking sticker!');
+        return;
+      }
       editModal.style.display = 'none';
     }
 
@@ -184,7 +202,9 @@
 
         if (resp.ok) {
           headingVehicleName.textContent = vehicleName;
-          closeEditModal();
+          btnCloseEdit.style.display = 'inline-block';
+          btnCancelEdit.style.display = 'inline-block';
+          editModal.style.display = 'none';
           showToast('✅ Vehicle & Contact details updated!');
         } else {
           alert('Failed to update details. Please try again.');
@@ -233,6 +253,20 @@
       window.soundManager.stopRingtone();
       btnSilence.style.display = 'none';
       showToast('🔕 Alarm silenced');
+    });
+
+    const btnClearHistory = document.getElementById('btnClearHistory');
+    btnClearHistory.addEventListener('click', async () => {
+      if (!confirm('Clear all alerts history?')) return;
+      try {
+        const resp = await fetch(`/api/tag/${tagId}/clear-alerts`, { method: 'POST' });
+        if (resp.ok) {
+          document.getElementById('alertsHistory').innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">No alerts received yet. Your sticker is ready!</div>';
+          showToast('🗑️ Alerts history cleared!');
+        }
+      } catch (e) {
+        alert('Error clearing history: ' + e.message);
+      }
     });
 
     // Auto ring if opened from notification click

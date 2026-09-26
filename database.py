@@ -160,6 +160,11 @@ def get_recent_alerts(tag_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         )
         return [dict(row) for row in cursor.fetchall()]
 
+def clear_alerts(tag_id: str) -> None:
+    with get_db() as conn:
+        conn.execute("DELETE FROM alerts WHERE tag_id = ?", (tag_id,))
+        conn.commit()
+
 def get_admin_stats() -> Dict[str, Any]:
     with get_db() as conn:
         total_tags = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]

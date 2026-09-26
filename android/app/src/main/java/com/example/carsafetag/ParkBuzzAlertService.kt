@@ -257,11 +257,15 @@ class ParkBuzzAlertService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val isCall = alertType.equals("incoming_call", ignoreCase = true) || alertType.contains("call", ignoreCase = true)
+        val notifTitle = if (isCall) "📞 Incoming Voice Call" else "🚨 ParkBuzz: ${alertType.uppercase()} ALERT"
+        val notifBigText = if (isCall) "📞 A bystander near your vehicle is calling you live.\n\nTap to Answer or Decline." else "🚨 $message\n\nTap to open app and silence."
+
         val notif = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("🚨 ParkBuzz: ${alertType.uppercase()} ALERT")
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("🚨 $message\n\nTap to open app and silence."))
+            .setContentTitle(notifTitle)
+            .setContentText(if (isCall) "Incoming Voice Call..." else message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(notifBigText))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

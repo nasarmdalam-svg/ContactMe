@@ -156,9 +156,27 @@
 
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
-        let subscription = await registration.pushManager.getSubscription();
+        // Wait for service worker to finish installing and become fully active
+        if (!registration.active) {
+          await new Promise((resolve) => {
+            const sw = registration.installing || registration.waiting;
+            if (sw) {
+              sw.addEventListener('statechange', function onState() {
+                if (this.state === 'activated' || registration.active) {
+                  sw.removeEventListener('statechange', onState);
+                  resolve();
+                }
+              });
+            } else {
+              navigator.serviceWorker.ready.then(resolve);
+            }
+          });
+        }
+
+        const activeReg = await navigator.serviceWorker.ready;
+        let subscription = await activeReg.pushManager.getSubscription();
         if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
+          subscription = await activeReg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
           });

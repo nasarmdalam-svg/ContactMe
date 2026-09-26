@@ -71,6 +71,13 @@ class MainActivity : ComponentActivity() {
 
                             @JavascriptInterface
                             fun getTagId(): String = "CAR-D3AEED"
+
+                            @JavascriptInterface
+                            fun onCallEnded() {
+                                runOnUiThread {
+                                    ongoingCallDialog?.dismiss()
+                                }
+                            }
                         }, "ParkBuzzApp")
 
                         setDownloadListener { url, _, _, _, _ ->
@@ -91,6 +98,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private var webViewInstance: WebView? = null
+    private var ongoingCallDialog: AlertDialog? = null
+
+    private fun showOngoingCallDialog() {
+        runOnUiThread {
+            ongoingCallDialog?.dismiss()
+            ongoingCallDialog = AlertDialog.Builder(this)
+                .setTitle("📞 Active Voice Call")
+                .setMessage("Speaking live with bystander near your vehicle.")
+                .setPositiveButton("🔴 Disconnect / End Call") { d, _ ->
+                    webViewInstance?.evaluateJavascript("if (document.getElementById('btnHangupCall')) { document.getElementById('btnHangupCall').click(); }", null)
+                    d.dismiss()
+                }
+                .setCancelable(false)
+                .show()
+        }
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -109,6 +132,7 @@ class MainActivity : ComponentActivity() {
                     .setPositiveButton("🟢 Accept Call") { d, _ ->
                         webViewInstance?.evaluateJavascript("if (document.getElementById('btnAcceptCall')) { document.getElementById('btnAcceptCall').click(); }", null)
                         d.dismiss()
+                        showOngoingCallDialog()
                     }
                     .setNegativeButton("🔴 Decline") { d, _ ->
                         webViewInstance?.evaluateJavascript("if (document.getElementById('btnRejectCall')) { document.getElementById('btnRejectCall').click(); }", null)

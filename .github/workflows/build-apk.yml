@@ -34,29 +34,29 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.7.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.8.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v1.7-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.7.apk
+          name: ParkBuzz-v1.8-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.8.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.7
-          name: ParkBuzz Android App v1.7
+          tag_name: v1.8
+          name: ParkBuzz Android App v1.8
           body: |
-            ## ⚡ ParkBuzz v1.7
-            - **Incoming Voice Call Accept/Decline:** Screen pop-up now differentiates voice calls, offering `Accept Call` to talk live and `Decline` to decline.
-            - **Mandatory Vehicle Setup Gate:** Requires vehicle number plate or model before activating sticker so scanners know which vehicle they are contacting.
-            - **Clear Alerts History:** Added `Clear` button to easily wipe old alert history logs anytime.
-            - **Silent Background & Clean Chime:** Zero status bar icons in background, and single clean car chime audio.
+            ## ⚡ ParkBuzz v1.8
+            - **Closed-App Alerts Restored:** Service upgraded to LOW importance with partial wake lock so Android 14/15 keeps the background connection alive 24/7 even when phone is locked or app is closed.
+            - **Active Call Disconnect Screen:** When owner accepts a call, a clear persistent dialog with a prominent red "🔴 Disconnect / End Call" button is displayed to easily end the call.
+            - **Silent Foreground Service:** Zero sound, vibration, or peeking notifications from the background monitoring service.
+            - **Seamless 1-Tap Upgrade:** Signed with the permanent keystore so users update directly without uninstalling.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v1.7.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v1.8.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

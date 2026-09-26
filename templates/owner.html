@@ -119,8 +119,10 @@
       <button class="action-circle-btn btn-hangup" id="btnRejectCall" title="Decline Call">✕</button>
     </div>
 
-    <div class="call-controls" id="activeControls" style="display: none;">
-      <button class="action-circle-btn btn-hangup" id="btnHangupCall" title="End Call">✕</button>
+    <div class="call-controls" id="activeControls" style="display: none; flex-direction: column; align-items: center; gap: 14px; margin-top: 15px;">
+      <button class="btn-primary" id="btnHangupCall" style="background: #ef4444; border-color: #dc2626; color: white; padding: 14px 32px; font-size: 16px; font-weight: bold; border-radius: 30px; display: inline-flex; align-items: center; gap: 8px;">
+        🔴 Disconnect / End Call
+      </button>
     </div>
   </div>
 
@@ -295,6 +297,9 @@
         } else if (state === 'call_ended' || state === 'idle') {
           window.soundManager.stopRingtone();
           incomingCallOverlay.classList.remove('active');
+          if (window.ParkBuzzApp && window.ParkBuzzApp.onCallEnded) {
+            window.ParkBuzzApp.onCallEnded();
+          }
         }
       },
       (remoteStream) => {

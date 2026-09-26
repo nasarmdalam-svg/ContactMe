@@ -10,8 +10,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -25,7 +25,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
-import kotlin.math.sin
 
 class ParkBuzzAlertService : Service() {
 
@@ -223,9 +222,24 @@ class ParkBuzzAlertService : Service() {
             wakeLock.acquire(10000)
         } catch (_: Exception) {}
 
-        // 2. Play our clean synthesized dual-tone horn chime (850Hz & 1100Hz) natively!
-        // Works 100% reliably even when app is closed and phone is locked
-        playDualToneChime(cycles = 4)
+        // 2. Play the clean chime audio file embedded inside the app (res/raw/chime.wav)
+        try {
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+            val mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .build()
+                )
+                setDataSource(applicationContext, soundUri)
+                prepare()
+                start()
+            }
+            mediaPlayer.setOnCompletionListener { it.release() }
+        } catch (e: Exception) {
+            Log.e(TAG, "Chime playback error: ${e.message}")
+        }
 
         // 3. Show Heads-Up Screen Pop-Up Notification
         val openIntent = Intent(this, MainActivity::class.java).apply {
@@ -255,62 +269,6 @@ class ParkBuzzAlertService : Service() {
 
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify((System.currentTimeMillis() % 10000).toInt(), notif)
-    }
-
-    // Pure synthesized dual-tone horn chime (exact match to web sound.js 850Hz + 1100Hz)
-    private fun playDualToneChime(cycles: Int = 4) {
-        Thread {
-            try {
-                val sampleRate = 44100
-                val freq1 = 850.0
-                val freq2 = 1100.0
-                val burstDurationMs = 220
-                val silenceDurationMs = 120
-
-                val burstSamples = (sampleRate * burstDurationMs / 1000)
-                val buffer = ShortArray(burstSamples)
-
-                for (i in 0 until burstSamples) {
-                    val angle1 = 2.0 * Math.PI * i / (sampleRate / freq1)
-                    val angle2 = 2.0 * Math.PI * i / (sampleRate / freq2)
-                    // Mix the dual tones cleanly
-                    val sample = ((sin(angle1) + sin(angle2)) * 0.5 * Short.MAX_VALUE * 0.75).toInt()
-                    buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-                }
-
-                val audioAttributes = AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .build()
-
-                val audioFormat = AudioFormat.Builder()
-                    .setSampleRate(sampleRate)
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-
-                val track = AudioTrack.Builder()
-                    .setAudioAttributes(audioAttributes)
-                    .setAudioFormat(audioFormat)
-                    .setBufferSizeInBytes(buffer.size * 2)
-                    .setTransferMode(AudioTrack.MODE_STATIC)
-                    .build()
-
-                track.write(buffer, 0, buffer.size)
-
-                for (c in 0 until cycles) {
-                    track.stop()
-                    track.reloadStaticData()
-                    track.play()
-                    Thread.sleep(burstDurationMs.toLong())
-                    Thread.sleep(silenceDurationMs.toLong())
-                }
-
-                track.release()
-            } catch (e: Exception) {
-                Log.e(TAG, "AudioTrack chime error: ${e.message}")
-            }
-        }.start()
     }
 
     override fun onDestroy() {

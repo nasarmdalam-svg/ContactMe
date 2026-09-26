@@ -20,11 +20,16 @@ def init_db():
                 vehicle_name TEXT DEFAULT '',
                 owner_name TEXT DEFAULT '',
                 owner_token TEXT,
-                custom_note TEXT DEFAULT ''
+                custom_note TEXT DEFAULT '',
+                is_active INTEGER DEFAULT 1
             );
         """)
         try:
             conn.execute("ALTER TABLE tags ADD COLUMN owner_name TEXT DEFAULT ''")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE tags ADD COLUMN is_active INTEGER DEFAULT 1")
         except Exception:
             pass
         conn.execute("""
@@ -112,6 +117,15 @@ def update_tag_profile(tag_id: str, vehicle_name: str, owner_name: str = "", cus
             (vehicle_name, owner_name, custom_note, tag_id)
         )
         conn.commit()
+
+def toggle_tag_active(tag_id: str) -> int:
+    with get_db() as conn:
+        row = conn.execute("SELECT is_active FROM tags WHERE tag_id = ?", (tag_id,)).fetchone()
+        current_state = row["is_active"] if (row and row["is_active"] is not None) else 1
+        new_state = 0 if current_state == 1 else 1
+        conn.execute("UPDATE tags SET is_active = ? WHERE tag_id = ?", (new_state, tag_id))
+        conn.commit()
+        return new_state
 
 def save_subscription(tag_id: str, endpoint: str, p256dh: str, auth: str):
     with get_db() as conn:

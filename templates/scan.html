@@ -23,6 +23,13 @@
       <span><strong>100% Private:</strong> Your phone number remains completely masked and confidential.</span>
     </div>
 
+    {% if tag.get('is_active', 1) == 0 %}
+    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 18px; color: #f87171; text-align: center;">
+      ⚠️ <strong>Owner is currently unavailable (Do Not Disturb)</strong><br>
+      <span style="font-size: 12px; color: #cbd5e1;">The owner has temporarily disconnected notifications.</span>
+    </div>
+    {% endif %}
+
     {% if tag.custom_note %}
     <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
       <strong>Note from owner:</strong> {{ tag.custom_note }}

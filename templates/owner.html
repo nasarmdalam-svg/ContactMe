@@ -12,15 +12,23 @@
     <div class="header" style="position: relative;">
       <div class="logo-badge">⚡</div>
       <h1 id="headingVehicleName">{{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}</h1>
-      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
-        <span class="badge badge-success">● App Service Active</span>
-        <span style="font-size: 12px; color: var(--text-secondary);">Tag: {{ tag.tag_id }}</span>
-      </div>
-      <div style="margin-top: 14px;">
-        <button id="btnOpenEdit" class="alert-btn" style="margin: 0 auto; width: auto; font-size: 13px; padding: 7px 16px; border-color: rgba(255,255,255,0.25);">
-          ✏️ Edit Vehicle & Owner Details
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px;">
+        <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid var(--border-color); background: rgba(255,255,255,0.06); padding: 6px 16px; border-radius: 20px; color: white; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+          {% if tag.get('is_active', 1) == 1 %}
+            <span id="activeDot" style="color: #34d399; font-size: 14px;">●</span>
+            <span id="activeStatusText">Status: <strong style="color: #34d399;">Active (Online)</strong></span>
+          {% else %}
+            <span id="activeDot" style="color: #94a3b8; font-size: 14px;">○</span>
+            <span id="activeStatusText">Status: <strong style="color: #94a3b8;">Disconnected (Muted)</strong></span>
+          {% endif %}
         </button>
-        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; margin: 10px auto 0; padding: 8px 16px; font-size: 13px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
+        <span style="font-size: 11px; color: var(--text-secondary);">Tap above to connect/disconnect alerts • Tag: {{ tag.tag_id }}</span>
+      </div>
+      <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px;">
+        <button id="btnOpenEdit" class="alert-btn" style="margin: 0; width: auto; font-size: 13px; padding: 7px 16px; border-color: rgba(255,255,255,0.25);">
+          ✏️ Edit Details
+        </button>
+        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; margin: 0; padding: 7px 16px; font-size: 13px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
           🔕 Silence Alarm
         </button>
       </div>
@@ -187,6 +195,34 @@
         saveBtn.textContent = 'Save Changes';
         saveBtn.disabled = false;
       }
+    // Active / Disconnect Toggle
+    const btnToggleActive = document.getElementById('btnToggleActive');
+    const activeDot = document.getElementById('activeDot');
+    const activeStatusText = document.getElementById('activeStatusText');
+
+    btnToggleActive.addEventListener('click', async () => {
+      btnToggleActive.style.opacity = '0.5';
+      try {
+        const resp = await fetch(`/api/tag/${tagId}/toggle-active`, { method: 'POST' });
+        const data = await resp.json();
+        if (resp.ok) {
+          if (data.is_active === 1) {
+            activeDot.textContent = '●';
+            activeDot.style.color = '#34d399';
+            activeStatusText.innerHTML = 'Status: <strong style="color: #34d399;">Active (Online)</strong>';
+            showToast('🟢 Connected: ParkBuzz is active and receiving alerts!');
+          } else {
+            activeDot.textContent = '○';
+            activeDot.style.color = '#94a3b8';
+            activeStatusText.innerHTML = 'Status: <strong style="color: #94a3b8;">Disconnected (Muted)</strong>';
+            showToast('⚪ Disconnected: Alerts muted & Do Not Disturb enabled');
+          }
+        }
+      } catch (e) {
+        alert('Network error toggling status: ' + e.message);
+      } finally {
+        btnToggleActive.style.opacity = '1';
+      }
     });
 
     const btnSilence = document.getElementById('btnSilenceAlarm');
@@ -234,7 +270,10 @@
     callClient.connectSignaling();
 
     callClient.onAlertReceived = (msg) => {
-      window.soundManager.playAlertSound(8);
+      // In native Android APK, the APK plays the chime natively! Do NOT play duplicate web sound!
+      if (!window.ParkBuzzApp) {
+        window.soundManager.playAlertSound(4);
+      }
       btnSilence.style.display = 'inline-flex';
       showToast(`🚨 ${msg.alert_type.toUpperCase()}: ${msg.message}`);
       
@@ -267,7 +306,9 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'TRIGGER_SOUND') {
-          window.soundManager.playAlertSound();
+          if (!window.ParkBuzzApp) {
+            window.soundManager.playAlertSound();
+          }
         }
       });
     }

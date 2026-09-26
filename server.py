@@ -200,6 +200,11 @@ def api_update_tag(tag_id: str, data: UpdateProfileRequest):
     )
     return {"status": "ok", "vehicle_name": data.vehicle_name, "owner_name": data.owner_name, "custom_note": data.custom_note}
 
+@app.post("/api/tag/{tag_id}/toggle-active")
+def api_toggle_active(tag_id: str):
+    new_state = database.toggle_tag_active(tag_id)
+    return {"status": "ok", "is_active": new_state}
+
 # Owner dashboard
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)
 def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
@@ -251,6 +256,9 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     tag = database.get_tag(tag_id)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
+
+    if tag.get("is_active", 1) == 0:
+        return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}
 
     # 1. Log alert in DB
     alert_title = f"🚨 {alert.alert_type.capitalize()} Alert"

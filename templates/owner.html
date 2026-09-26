@@ -127,15 +127,30 @@
 
     // Service Worker & Push Notification Registration
     async function registerPush() {
+      const btn = document.getElementById('btnEnableNotifications');
+      btn.textContent = '⏳ Enabling...';
+      btn.disabled = true;
+
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert('Push notifications are not supported in this browser mode.');
+        alert('Push notifications are not supported in this browser mode. Please open in Google Chrome or Safari directly (not incognito/private mode).');
+        btn.textContent = '🔔 Enable Push & Sound';
+        btn.disabled = false;
+        return;
+      }
+
+      if (window.Notification && Notification.permission === 'denied') {
+        alert('⚠️ Notifications are blocked in your browser settings for this site.\n\nTo fix:\n1. Tap the 🔒 or settings icon in your browser address bar next to the website URL\n2. Tap Permissions -> Notifications -> Allow\n3. Refresh and try again!');
+        btn.textContent = '🔔 Blocked in Settings';
+        btn.disabled = false;
         return;
       }
 
       try {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
-          showToast('Notification permission denied', true);
+          alert('⚠️ Notification permission was not granted. Please tap "Allow" when prompted.');
+          btn.textContent = '🔔 Enable Push & Sound';
+          btn.disabled = false;
           return;
         }
 
@@ -160,12 +175,21 @@
         if (resp.ok) {
           notifStatusBadge.textContent = 'Active & Protected';
           notifStatusBadge.className = 'badge badge-success';
+          btn.textContent = '✅ Notifications Active';
+          btn.style.background = '#10b981';
           showToast('✅ Push Notifications & Sound activated!');
-          window.soundManager.playAlertSound();
+          alert('🎉 Success! Push Notifications & Sound are now active on your phone. You can lock your phone screen now.');
+          window.soundManager.playAlertSound(2);
+        } else {
+          alert('Server error saving subscription. Please try again.');
+          btn.textContent = '🔔 Enable Push & Sound';
+          btn.disabled = false;
         }
       } catch (err) {
         console.error('Error registering push:', err);
-        showToast('Push setup error: ' + err.message, true);
+        alert('Push Setup Error: ' + err.name + ': ' + err.message);
+        btn.textContent = '🔔 Enable Push & Sound';
+        btn.disabled = false;
       }
     }
 

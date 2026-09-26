@@ -11,13 +11,26 @@ android {
         applicationId = "com.example.carsafetag"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
+    }
+
+    signingConfigs {
+        create("permanentRelease") {
+            storeFile = file("${rootDir}/parkbuzz.keystore")
+            storePassword = "parkbuzz2026"
+            keyAlias = "parkbuzz"
+            keyPassword = "parkbuzz2026"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("permanentRelease")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("permanentRelease")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

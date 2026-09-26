@@ -1,15 +1,20 @@
 package com.example.carsafetag
 
 import android.Manifest
+import android.app.AlertDialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -23,10 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 
-import android.app.AlertDialog
-import android.content.Intent
-import android.webkit.JavascriptInterface
-
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -37,8 +38,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         createLoudNotificationChannel()
-        requestAppPermissions()
-        startAlertBackgroundService()
+        checkFirstTimeOnboarding()
         checkIntentForAlert(intent)
 
         setContent {
@@ -71,6 +71,15 @@ class MainActivity : ComponentActivity() {
                             @JavascriptInterface
                             fun getTagId(): String = "CAR-D3AEED"
                         }, "ParkBuzzApp")
+
+                        setDownloadListener { url, _, _, _, _ ->
+                            try {
+                                val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(downloadIntent)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
 
                         loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
                         webViewInstance = this
@@ -138,7 +147,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestAppPermissions() {
+    private fun checkFirstTimeOnboarding() {
+        val prefs = getSharedPreferences("parkbuzz_prefs", Context.MODE_PRIVATE)
+        val isSetupDone = prefs.getBoolean("setup_done", false)
+        if (!isSetupDone) {
+            AlertDialog.Builder(this)
+                .setTitle("⚡ Activate ParkBuzz Alerts")
+                .setMessage(
+                    "To receive emergency parking alerts even when your phone is locked or app is closed:\n\n" +
+                    "• 🔔 Urgent Notifications & Screen Pop-up\n" +
+                    "• ⚡ Background Monitoring\n" +
+                    "• 🎙️ Masked Voice Calling\n\n" +
+                    "Tap below to activate."
+                )
+                .setPositiveButton("Activate ParkBuzz") { d, _ ->
+                    prefs.edit().putBoolean("setup_done", true).apply()
+                    d.dismiss()
+                    executePermissionsRequest()
+                }
+                .setCancelable(false)
+                .show()
+        } else {
+            // Already onboarded, start background service
+            startAlertBackgroundService()
+        }
+    }
+
+    private fun executePermissionsRequest() {
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -149,5 +184,20 @@ class MainActivity : ComponentActivity() {
         if (needed.isNotEmpty()) {
             requestPermissionLauncher.launch(needed.toTypedArray())
         }
+
+        // Request background execution without battery restriction
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        }
+
+        startAlertBackgroundService()
     }
 }

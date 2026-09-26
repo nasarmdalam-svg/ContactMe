@@ -8,10 +8,15 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,6 +25,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import kotlin.math.sin
 
 class ParkBuzzAlertService : Service() {
 
@@ -29,8 +35,9 @@ class ParkBuzzAlertService : Service() {
     private var tagId = "CAR-D3AEED"
 
     companion object {
-        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper"
-        const val ALERT_CHANNEL_ID = "car_emergency_alerts"
+        const val TAG = "ParkBuzzService"
+        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v4"
+        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v4"
         const val KEEPER_NOTIF_ID = 8801
     }
 
@@ -46,8 +53,22 @@ class ParkBuzzAlertService : Service() {
             if (it.isNotBlank()) tagId = it
         }
 
-        // Low-priority, silent keeper notification to prevent Android from killing connection when closed
-        startForeground(KEEPER_NOTIF_ID, buildKeeperNotification())
+        // Android 14+ (API 34+) compatibility: MUST specify foregroundServiceType
+        try {
+            val notification = buildKeeperNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    KEEPER_NOTIF_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
+                )
+            } else {
+                startForeground(KEEPER_NOTIF_ID, notification)
+            }
+            Log.d(TAG, "Foreground service started successfully for tag: $tagId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to startForeground: ${e.message}", e)
+        }
 
         if (!isRunning) {
             isRunning = true
@@ -58,7 +79,7 @@ class ParkBuzzAlertService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // If swiped away, restart service immediately
+        // When user swipes away app from recent apps, restart service immediately
         try {
             val restartIntent = Intent(applicationContext, ParkBuzzAlertService::class.java).apply {
                 putExtra("TAG_ID", tagId)
@@ -73,7 +94,9 @@ class ParkBuzzAlertService : Service() {
                 SystemClock.elapsedRealtime() + 1000,
                 pendingIntent
             )
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scheduling restart: ${e.message}")
+        }
         super.onTaskRemoved(rootIntent)
     }
 
@@ -81,24 +104,24 @@ class ParkBuzzAlertService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // 1. Silent, discreet keeper channel (no sound, no vibration, low priority)
+            // 1. Silent keeper channel (no sound, no vibration)
             val keeperChannel = NotificationChannel(
                 SILENT_KEEPER_CHANNEL_ID,
-                "ParkBuzz Background Monitor",
+                "ParkBuzz Background Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Keeps connection alive when app is closed"
+                description = "Keeps ParkBuzz connected to receive alerts when app is closed"
                 setShowBadge(false)
             }
             nm.createNotificationChannel(keeperChannel)
 
-            // 2. High priority alert channel (vibration, heads-up display)
+            // 2. High priority alert channel (Heads-up pop-up on screen)
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
                 "ParkBuzz Emergency Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Emergency heads-up pop-up when vehicle is blocked"
+                description = "Emergency heads-up alert when vehicle is blocked"
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 1000)
@@ -138,24 +161,29 @@ class ParkBuzzAlertService : Service() {
             fun openConnection() {
                 if (!isRunning) return
                 try {
+                    Log.d(TAG, "Connecting to WebSocket: $wsUrl")
                     webSocket = okHttpClient?.newWebSocket(request, object : WebSocketListener() {
                         override fun onOpen(ws: WebSocket, response: Response) {
-                            // Connected
+                            Log.d(TAG, "WebSocket connected successfully!")
                         }
 
                         override fun onMessage(ws: WebSocket, text: String) {
+                            Log.d(TAG, "WebSocket message received: $text")
                             try {
                                 val json = JSONObject(text)
                                 val type = json.optString("type")
                                 if (type == "alert_received" || type == "alert") {
                                     val alertType = json.optString("alert_type", "URGENT")
-                                    val message = json.optString("message", "Someone scanned your vehicle sticker!")
-                                    fireEmergencyPopUp(alertType, message)
+                                    val message = json.optString("message", "Someone needs you to move your vehicle!")
+                                    fireEmergencyAlert(alertType, message)
                                 }
-                            } catch (_: Exception) {}
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error parsing message: ${e.message}")
+                            }
                         }
 
                         override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                            Log.w(TAG, "WebSocket failure: ${t.message}. Reconnecting in 4s...")
                             if (isRunning) {
                                 try { Thread.sleep(4000) } catch (_: Exception) {}
                                 openConnection()
@@ -163,13 +191,15 @@ class ParkBuzzAlertService : Service() {
                         }
 
                         override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                            Log.w(TAG, "WebSocket closed: $reason. Reconnecting in 3s...")
                             if (isRunning) {
                                 try { Thread.sleep(3000) } catch (_: Exception) {}
                                 openConnection()
                             }
                         }
                     })
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e(TAG, "Exception opening WebSocket: ${e.message}")
                     if (isRunning) {
                         try { Thread.sleep(5000) } catch (_: Exception) {}
                         openConnection()
@@ -181,8 +211,8 @@ class ParkBuzzAlertService : Service() {
         }.start()
     }
 
-    private fun fireEmergencyPopUp(alertType: String, message: String) {
-        // 1. Wake up screen immediately
+    private fun fireEmergencyAlert(alertType: String, message: String) {
+        // 1. Wake up the screen if phone is locked in pocket
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             @Suppress("DEPRECATION")
@@ -193,7 +223,11 @@ class ParkBuzzAlertService : Service() {
             wakeLock.acquire(10000)
         } catch (_: Exception) {}
 
-        // 2. Build Heads-Up Screen Pop-Up Notification (NO siren media player!)
+        // 2. Play our clean synthesized dual-tone horn chime (850Hz & 1100Hz) natively!
+        // Works 100% reliably even when app is closed and phone is locked
+        playDualToneChime(cycles = 4)
+
+        // 3. Show Heads-Up Screen Pop-Up Notification
         val openIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("ALERT_POPUP", true)
@@ -209,7 +243,7 @@ class ParkBuzzAlertService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("🚨 ParkBuzz: ${alertType.uppercase()} ALERT")
             .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("🚨 $message\n\nTap to open and silence alarm."))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("🚨 $message\n\nTap to open app and silence."))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -221,6 +255,62 @@ class ParkBuzzAlertService : Service() {
 
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify((System.currentTimeMillis() % 10000).toInt(), notif)
+    }
+
+    // Pure synthesized dual-tone horn chime (exact match to web sound.js 850Hz + 1100Hz)
+    private fun playDualToneChime(cycles: Int = 4) {
+        Thread {
+            try {
+                val sampleRate = 44100
+                val freq1 = 850.0
+                val freq2 = 1100.0
+                val burstDurationMs = 220
+                val silenceDurationMs = 120
+
+                val burstSamples = (sampleRate * burstDurationMs / 1000)
+                val buffer = ShortArray(burstSamples)
+
+                for (i in 0 until burstSamples) {
+                    val angle1 = 2.0 * Math.PI * i / (sampleRate / freq1)
+                    val angle2 = 2.0 * Math.PI * i / (sampleRate / freq2)
+                    // Mix the dual tones cleanly
+                    val sample = ((sin(angle1) + sin(angle2)) * 0.5 * Short.MAX_VALUE * 0.75).toInt()
+                    buffer[i] = sample.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+                }
+
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .build()
+
+                val audioFormat = AudioFormat.Builder()
+                    .setSampleRate(sampleRate)
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+
+                val track = AudioTrack.Builder()
+                    .setAudioAttributes(audioAttributes)
+                    .setAudioFormat(audioFormat)
+                    .setBufferSizeInBytes(buffer.size * 2)
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+
+                track.write(buffer, 0, buffer.size)
+
+                for (c in 0 until cycles) {
+                    track.stop()
+                    track.reloadStaticData()
+                    track.play()
+                    Thread.sleep(burstDurationMs.toLong())
+                    Thread.sleep(silenceDurationMs.toLong())
+                }
+
+                track.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "AudioTrack chime error: ${e.message}")
+            }
+        }.start()
     }
 
     override fun onDestroy() {

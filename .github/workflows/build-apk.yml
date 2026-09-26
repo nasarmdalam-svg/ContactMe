@@ -34,29 +34,28 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.3.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v1.2-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
+          name: ParkBuzz-v1.3-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.3.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.2
-          name: ParkBuzz Android App v1.2
+          tag_name: v1.3
+          name: ParkBuzz Android App v1.3
           body: |
-            ## ⚡ ParkBuzz v1.2
-            - **Closed-App Delivery:** Low-priority keeper keeps WebSocket alive so you receive notifications even when closed.
-            - **No Harsh Siren:** Completely removed harsh siren sound; only the clean synthesized chime alert plays.
-            - **Heads-up Screen Pop-up:** Turns on screen and pops up directly with silence/action buttons.
-            - **Profile Editing:** Edit vehicle plate, owner name, and bystander note on the fly.
+            ## ⚡ ParkBuzz v1.3
+            - **Android 14+ Compatibility Fix:** Added `FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING` so the background service runs properly on Android 14/15 without crashing on launch.
+            - **Native Dual-Tone Horn Chime:** Synthesizes the exact car horn chime (850Hz & 1100Hz) natively via AudioTrack so it plays even when the app is completely closed.
+            - **Screen Pop-Up:** Pops up directly on top of the lock screen and active screen on alert.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v1.3.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -90,7 +90,6 @@ class MainActivity : ComponentActivity() {
     private fun checkIntentForAlert(intent: Intent?) {
         if (intent?.getBooleanExtra("ALERT_POPUP", false) == true) {
             val msg = intent.getStringExtra("ALERT_MSG") ?: "Someone needs you to move your vehicle!"
-            webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.playAlertSound(6); }", null)
             AlertDialog.Builder(this)
                 .setTitle("🚨 URGENT PARKING ALERT")
                 .setMessage(msg)
@@ -98,7 +97,7 @@ class MainActivity : ComponentActivity() {
                     webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
                     d.dismiss()
                 }
-                .setNegativeButton("Silence Sound") { d, _ ->
+                .setNegativeButton("Dismiss") { d, _ ->
                     webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
                     d.dismiss()
                 }
@@ -108,13 +107,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startAlertBackgroundService() {
-        val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
-            putExtra("TAG_ID", "CAR-D3AEED")
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
+        try {
+            val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
+                putExtra("TAG_ID", "CAR-D3AEED")
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

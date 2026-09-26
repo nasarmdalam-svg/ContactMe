@@ -118,18 +118,20 @@ def scan_qr(tag_id: str, request: Request):
         # If tag doesn't exist or isn't claimed yet, prompt activation
         return RedirectResponse(url=f"/activate/{tag_id}")
 
-    return templates.TemplateResponse("scan.html", {
-        "request": request,
-        "tag": tag
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="scan.html",
+        context={"tag": tag}
+    )
 
 # Activation page
 @app.get("/activate/{tag_id}", response_class=HTMLResponse)
 def activate_page(tag_id: str, request: Request):
-    return templates.TemplateResponse("activate.html", {
-        "request": request,
-        "tag_id": tag_id
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="activate.html",
+        context={"tag_id": tag_id}
+    )
 
 @app.post("/api/activate/{tag_id}")
 def api_activate(tag_id: str, data: ActivateRequest):
@@ -144,12 +146,15 @@ def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
         raise HTTPException(status_code=404, detail="Tag not found")
 
     recent_alerts = database.get_recent_alerts(tag_id)
-    return templates.TemplateResponse("owner.html", {
-        "request": request,
-        "tag": tag,
-        "recent_alerts": recent_alerts,
-        "vapid_public_key": vapid_keys["public_key"]
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="owner.html",
+        context={
+            "tag": tag,
+            "recent_alerts": recent_alerts,
+            "vapid_public_key": vapid_keys["public_key"]
+        }
+    )
 
 # Push subscription endpoint
 @app.post("/api/subscribe/{tag_id}")

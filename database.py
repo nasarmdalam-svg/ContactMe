@@ -45,10 +45,16 @@ def init_db():
         """)
         conn.commit()
 
-    # Pre-seed initial distributed tags so they are always present
-    initial_tags = ["CAR-D3AEED", "CAR-2F5752", "CAR-14AD84", "CAR-CD7AA9", "CAR-EFEA7E", "CAR-DEMO1"]
+    # Pre-seed and permanently activate your test car so it is always active
     with get_db() as conn:
-        for t in initial_tags:
+        conn.execute("""
+            INSERT INTO tags (tag_id, activated, vehicle_name, owner_token) 
+            VALUES ('CAR-D3AEED', 1, 'DL3CCM4468', 'owner_token_d3aeed')
+            ON CONFLICT(tag_id) DO UPDATE SET
+                activated = 1,
+                vehicle_name = 'DL3CCM4468'
+        """)
+        for t in ["CAR-2F5752", "CAR-14AD84", "CAR-CD7AA9", "CAR-EFEA7E", "CAR-DEMO1"]:
             conn.execute("INSERT OR IGNORE INTO tags (tag_id) VALUES (?)", (t,))
         conn.commit()
 

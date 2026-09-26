@@ -1,0 +1,247 @@
+import os
+import json
+import io
+import asyncio
+from typing import Dict, List, Optional
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+import qrcode
+from pywebpush import webpush, WebPushException
+
+import database
+import vapid_manager
+import generate_stickers
+
+app = FastAPI(title="Car SafeTag System")
+
+BASE_DIR = os.path.dirname(__file__)
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+vapid_keys = vapid_manager.get_or_create_vapid_keys()
+
+# WebSocket Connection Manager for WebRTC Signaling & Instant In-App Alerts
+class ConnectionManager:
+    def __init__(self):
+        # tag_id -> {'owner': [ws, ...], 'caller': [ws, ...]}
+        self.rooms: Dict[str, Dict[str, List[WebSocket]]] = {}
+
+    async def connect(self, tag_id: str, role: str, websocket: WebSocket):
+        await websocket.accept()
+        if tag_id not in self.rooms:
+            self.rooms[tag_id] = {"owner": [], "caller": []}
+        self.rooms[tag_id][role].append(websocket)
+
+    def disconnect(self, tag_id: str, role: str, websocket: WebSocket):
+        if tag_id in self.rooms and role in self.rooms[tag_id]:
+            if websocket in self.rooms[tag_id][role]:
+                self.rooms[tag_id][role].remove(websocket)
+
+    async def broadcast_to_peer(self, tag_id: str, sender_role: str, message: dict):
+        if tag_id not in self.rooms:
+            return
+        target_role = "owner" if sender_role == "caller" else "caller"
+        targets = self.rooms[tag_id].get(target_role, [])
+        for ws in targets:
+            try:
+                await ws.send_text(json.dumps(message))
+            except Exception as e:
+                print(f"Error sending ws message: {e}")
+
+    async def notify_owner(self, tag_id: str, message: dict):
+        if tag_id not in self.rooms:
+            return
+        for ws in self.rooms[tag_id].get("owner", []):
+            try:
+                await ws.send_text(json.dumps(message))
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
+# --- Schemas ---
+class ActivateRequest(BaseModel):
+    vehicle_name: str
+    custom_note: Optional[str] = ""
+
+class AlertRequest(BaseModel):
+    alert_type: str
+    message: Optional[str] = ""
+
+class SubscriptionModel(BaseModel):
+    endpoint: str
+    keys: Dict[str, str]
+
+# --- Helper: Send Web Push ---
+def send_push_notification(subscription_info: dict, payload: dict):
+    try:
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps(payload),
+            vapid_private_key=vapid_keys["private_key"],
+            vapid_claims={"sub": vapid_keys["claims_sub"]}
+        )
+    except WebPushException as ex:
+        print(f"WebPush failed: {ex}")
+    except Exception as e:
+        print(f"Unexpected push error: {e}")
+
+# --- Routes ---
+@app.get("/")
+def home():
+    return HTMLResponse("""
+    <html>
+      <head><title>Car SafeTag</title><link rel='stylesheet' href='/static/css/style.css'></head>
+      <body>
+        <div class='container' style='text-align: center;'>
+          <div class='logo-badge'>🚗</div>
+          <h1>Car Contact SafeTag</h1>
+          <p style='margin: 14px 0; color: #94a3b8;'>Scan a QR code sticker on any vehicle or activate a new sticker below.</p>
+          <div style='margin-top: 24px;'>
+            <a href='/activate/CAR-SAMPLE' class='btn-primary' style='text-decoration:none; justify-content:center;'>
+              Activate a Sticker
+            </a>
+          </div>
+        </div>
+      </body>
+    </html>
+    """)
+
+# Scan entrypoint for QR code: /c/{tag_id}
+@app.get("/c/{tag_id}", response_class=HTMLResponse)
+def scan_qr(tag_id: str, request: Request):
+    tag = database.get_tag(tag_id)
+    if not tag or not tag["activated"]:
+        # If tag doesn't exist or isn't claimed yet, prompt activation
+        return RedirectResponse(url=f"/activate/{tag_id}")
+
+    return templates.TemplateResponse("scan.html", {
+        "request": request,
+        "tag": tag
+    })
+
+# Activation page
+@app.get("/activate/{tag_id}", response_class=HTMLResponse)
+def activate_page(tag_id: str, request: Request):
+    return templates.TemplateResponse("activate.html", {
+        "request": request,
+        "tag_id": tag_id
+    })
+
+@app.post("/api/activate/{tag_id}")
+def api_activate(tag_id: str, data: ActivateRequest):
+    owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note)
+    return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
+
+# Owner dashboard
+@app.get("/owner/{tag_id}", response_class=HTMLResponse)
+def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    recent_alerts = database.get_recent_alerts(tag_id)
+    return templates.TemplateResponse("owner.html", {
+        "request": request,
+        "tag": tag,
+        "recent_alerts": recent_alerts,
+        "vapid_public_key": vapid_keys["public_key"]
+    })
+
+# Push subscription endpoint
+@app.post("/api/subscribe/{tag_id}")
+def subscribe_push(tag_id: str, sub: SubscriptionModel):
+    database.save_subscription(
+        tag_id=tag_id,
+        endpoint=sub.endpoint,
+        p256dh=sub.keys.get("p256dh", ""),
+        auth=sub.keys.get("auth", "")
+    )
+    return {"status": "subscribed"}
+
+# Send Alert endpoint (Called by bystander)
+@app.post("/api/alert/{tag_id}")
+async def send_alert(tag_id: str, alert: AlertRequest):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    # 1. Log alert in DB
+    alert_title = f"🚨 {alert.alert_type.capitalize()} Alert"
+    alert_body = alert.message if alert.message else f"Alert regarding your vehicle ({tag.get('vehicle_name', tag_id)})"
+    database.log_alert(tag_id, alert.alert_type, alert_body)
+
+    # 2. Notify active WebSocket owner connection immediately
+    await manager.notify_owner(tag_id, {
+        "type": "alert_received",
+        "alert_type": alert.alert_type,
+        "message": alert_body
+    })
+
+    # 3. Trigger Web Push to all registered devices for this owner
+    subs = database.get_subscriptions(tag_id)
+    payload = {
+        "title": alert_title,
+        "body": alert_body,
+        "url": f"/owner/{tag_id}?token={tag.get('owner_token', '')}",
+        "actionType": alert.alert_type
+    }
+
+    loop = asyncio.get_event_loop()
+    for sub in subs:
+        sub_info = {
+            "endpoint": sub["endpoint"],
+            "keys": {
+                "p256dh": sub["p256dh"],
+                "auth": sub["auth"]
+            }
+        }
+        loop.run_in_executor(None, send_push_notification, sub_info, payload)
+
+    return {"status": "alert_sent", "subscribers_notified": len(subs)}
+
+# Dynamic QR code generation endpoint
+@app.get("/api/qr/{tag_id}")
+def get_qr_image(tag_id: str, request: Request):
+    base_url = str(request.base_url).rstrip("/")
+    scan_url = f"{base_url}/c/{tag_id}"
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(scan_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#0f172a", back_color="white")
+    
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return Response(content=buf.getvalue(), media_type="image/png")
+
+# Printable sticker download endpoint
+@app.get("/api/sticker/{tag_id}")
+def get_sticker(tag_id: str, request: Request):
+    base_url = str(request.base_url).rstrip("/")
+    sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
+    with open(sticker_path, "rb") as f:
+        content = f.read()
+    return Response(
+        content=content,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="sticker_{tag_id}.png"'}
+    )
+
+# WebSocket endpoint for real-time WebRTC signaling
+@app.websocket("/ws/{tag_id}/{role}")
+async def websocket_signaling(websocket: WebSocket, tag_id: str, role: str):
+    await manager.connect(tag_id, role, websocket)
+    try:
+        while True:
+            text = await websocket.receive_text()
+            try:
+                msg = json.loads(text)
+                await manager.broadcast_to_peer(tag_id, role, msg)
+            except Exception as e:
+                print(f"Error handling message: {e}")
+    except WebSocketDisconnect:
+        manager.disconnect(tag_id, role, websocket)
+        await manager.broadcast_to_peer(tag_id, role, {"type": "call_ended"})

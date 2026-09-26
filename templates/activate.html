@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate Your Sticker - SafeTag</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">✨</div>
+      <h1>Activate New Sticker</h1>
+      <p>Sticker ID: <strong>{{ tag_id }}</strong></p>
+    </div>
+
+    <div class="privacy-banner">
+      <span>🔒</span>
+      <span>Link this sticker to your phone to receive instant sound alerts and masked calls.</span>
+    </div>
+
+    <form id="activateForm">
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size: 14px; margin-bottom: 6px; color: var(--text-secondary);">
+          Vehicle Name or Plate (for your reference)
+        </label>
+        <input type="text" id="vehicleName" placeholder="e.g. Blue Civic (ABC-1234)" required>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; font-size: 14px; margin-bottom: 6px; color: var(--text-secondary);">
+          Optional Note for People Who Scan
+        </label>
+        <textarea id="customNote" rows="2" placeholder="e.g. Please call before towing, I will come out immediately."></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+        🚀 Activate Sticker & Open Dashboard
+      </button>
+    </form>
+
+    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
+  </div>
+
+  <script>
+    const tagId = "{{ tag_id }}";
+    const form = document.getElementById('activateForm');
+    const toast = document.getElementById('statusToast');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const vehicleName = document.getElementById('vehicleName').value.trim();
+      const customNote = document.getElementById('customNote').value.trim();
+
+      try {
+        const resp = await fetch(`/api/activate/${tagId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicle_name: vehicleName, custom_note: customNote })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          toast.textContent = 'Activated! Redirecting to your dashboard...';
+          toast.style.display = 'block';
+          toast.style.background = 'rgba(16, 185, 129, 0.2)';
+          toast.style.color = '#34d399';
+          setTimeout(() => {
+            window.location.href = `/owner/${tagId}?token=${data.owner_token}`;
+          }, 1000);
+        } else {
+          toast.textContent = data.detail || 'Activation failed';
+          toast.style.display = 'block';
+          toast.style.background = 'rgba(239, 68, 68, 0.2)';
+          toast.style.color = '#f87171';
+        }
+      } catch (err) {
+        alert('Error connecting to server: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

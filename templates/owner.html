@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard - {{ tag.vehicle_name }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">🚗</div>
+      <h1>{{ tag.vehicle_name if tag.vehicle_name else 'Vehicle Dashboard' }}</h1>
+      <p>Sticker ID: <strong>{{ tag.tag_id }}</strong> <span class="badge badge-success">Active</span></p>
+    </div>
+
+    <!-- Alert Sound Status Card -->
+    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-weight: 600; font-size: 15px;">🔔 Sound & Notifications</span>
+        <span id="notifStatusBadge" class="badge badge-warning">Setup Needed</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 14px;">
+        Enable Web Push notifications so your phone rings loudly even when your screen is locked.
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button id="btnEnableNotifications" class="btn-primary" style="padding: 10px; font-size: 14px; flex: 1;">
+          🔔 Enable Push & Sound
+        </button>
+        <button id="btnTestSound" class="alert-btn" style="padding: 10px; font-size: 14px; width: auto; justify-content: center;">
+          🔊 Test Sound
+        </button>
+      </div>
+    </div>
+
+    <!-- Live QR / Sticker Section -->
+    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+      <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">Your Car Sticker QR Code</div>
+      <div style="margin: 14px 0;">
+        <img src="/api/qr/{{ tag.tag_id }}" alt="Car QR Code" style="width: 170px; height: 170px; border-radius: 12px; background: white; padding: 8px;">
+      </div>
+      <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
+        Public link: <a href="/c/{{ tag.tag_id }}" target="_blank" style="color: var(--accent-blue);">/c/{{ tag.tag_id }}</a>
+      </div>
+      <a href="/api/sticker/{{ tag.tag_id }}" download="car_sticker_{{ tag.tag_id }}.png" class="alert-btn" style="justify-content: center; background: rgba(59, 130, 246, 0.15); border-color: #3b82f6;">
+        🖨️ Download Printable Sticker (PNG)
+      </a>
+    </div>
+
+    <!-- Recent Alerts History -->
+    <div class="section-title">Recent Alerts History</div>
+    <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 8px;">
+      {% if recent_alerts %}
+        {% for a in recent_alerts %}
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <strong style="color: #38bdf8;">{{ a.alert_type|capitalize }} Alert</strong>
+            <span style="color: var(--text-secondary); font-size: 11px;">{{ a.created_at }}</span>
+          </div>
+          <div>{{ a.message if a.message else 'Alert received' }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">
+          No alerts received yet. Your sticker is ready!
+        </div>
+      {% endif %}
+    </div>
+
+    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
+  </div>
+
+  <!-- Incoming Call Modal -->
+  <div class="call-overlay" id="incomingCallOverlay">
+    <div class="pulse-avatar" style="background: #10b981;">📞</div>
+    <div class="call-status-text" id="ownerCallStatus">Incoming Voice Call!</div>
+    <div class="call-subtext">Someone scanned your car sticker and wants to speak with you</div>
+
+    <div class="call-controls" id="incomingControls">
+      <button class="action-circle-btn btn-accept" id="btnAcceptCall" title="Accept Call">✓</button>
+      <button class="action-circle-btn btn-hangup" id="btnRejectCall" title="Decline Call">✕</button>
+    </div>
+
+    <div class="call-controls" id="activeControls" style="display: none;">
+      <button class="action-circle-btn btn-hangup" id="btnHangupCall" title="End Call">✕</button>
+    </div>
+  </div>
+
+  <audio id="remoteAudio" autoplay playsinline></audio>
+
+  <script src="/static/js/sound.js"></script>
+  <script src="/static/js/webrtc.js"></script>
+  <script>
+    const tagId = "{{ tag.tag_id }}";
+    const vapidPublicKey = "{{ vapid_public_key }}";
+    const notifStatusBadge = document.getElementById('notifStatusBadge');
+    const toast = document.getElementById('statusToast');
+    const incomingCallOverlay = document.getElementById('incomingCallOverlay');
+    const ownerCallStatus = document.getElementById('ownerCallStatus');
+    const incomingControls = document.getElementById('incomingControls');
+    const activeControls = document.getElementById('activeControls');
+    const remoteAudio = document.getElementById('remoteAudio');
+
+    function showToast(text, isError = false) {
+      toast.textContent = text;
+      toast.style.display = 'block';
+      toast.style.background = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+      toast.style.color = isError ? '#f87171' : '#34d399';
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    // Convert VAPID base64url to Uint8Array
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    // Service Worker & Push Notification Registration
+    async function registerPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Push notifications are not supported in this browser mode.');
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showToast('Notification permission denied', true);
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/static/sw.js');
+        await navigator.serviceWorker.ready;
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+          });
+        }
+
+        // Send subscription to server
+        const resp = await fetch(`/api/subscribe/${tagId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription)
+        });
+
+        if (resp.ok) {
+          notifStatusBadge.textContent = 'Active & Protected';
+          notifStatusBadge.className = 'badge badge-success';
+          showToast('✅ Push Notifications & Sound activated!');
+          window.soundManager.playAlertSound();
+        }
+      } catch (err) {
+        console.error('Error registering push:', err);
+        showToast('Push setup error: ' + err.message, true);
+      }
+    }
+
+    document.getElementById('btnEnableNotifications').addEventListener('click', registerPush);
+
+    document.getElementById('btnTestSound').addEventListener('click', () => {
+      window.soundManager.playAlertSound();
+      showToast('🔊 Alert sound played!');
+    });
+
+    // Check if notification already granted
+    if (window.Notification && Notification.permission === 'granted') {
+      notifStatusBadge.textContent = 'Active & Protected';
+      notifStatusBadge.className = 'badge badge-success';
+    }
+
+    // Auto ring if opened from notification click
+    if (window.location.search.includes('autoring=1')) {
+      window.soundManager.playAlertSound();
+    }
+
+    // Voice Calling Setup for Owner
+    const callClient = new VoiceCallClient(
+      tagId,
+      'owner',
+      (state) => {
+        console.log('Owner call state:', state);
+        if (state === 'incoming_call') {
+          incomingCallOverlay.classList.add('active');
+          incomingControls.style.display = 'flex';
+          activeControls.style.display = 'none';
+          ownerCallStatus.textContent = 'Incoming Voice Call!';
+          window.soundManager.startRingtone();
+        } else if (state === 'in_call') {
+          window.soundManager.stopRingtone();
+          incomingControls.style.display = 'none';
+          activeControls.style.display = 'flex';
+          ownerCallStatus.textContent = 'In Call (Live Audio)';
+        } else if (state === 'call_ended' || state === 'idle') {
+          window.soundManager.stopRingtone();
+          incomingCallOverlay.classList.remove('active');
+        }
+      },
+      (remoteStream) => {
+        remoteAudio.srcObject = remoteStream;
+        remoteAudio.play().catch(e => console.log('Audio play error:', e));
+      }
+    );
+
+    callClient.connectSignaling();
+
+    document.getElementById('btnAcceptCall').addEventListener('click', () => {
+      callClient.acceptCall();
+    });
+
+    document.getElementById('btnRejectCall').addEventListener('click', () => {
+      callClient.rejectCall();
+    });
+
+    document.getElementById('btnHangupCall').addEventListener('click', () => {
+      callClient.endCall();
+    });
+
+    // Listen for Service Worker messages
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'TRIGGER_SOUND') {
+          window.soundManager.playAlertSound();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

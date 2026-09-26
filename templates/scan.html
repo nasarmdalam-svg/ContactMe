@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Car Owner - SafeTag</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">🚗</div>
+      <h1>Contact Car Owner</h1>
+      <p>Vehicle: <strong>{{ tag.vehicle_name if tag.vehicle_name else 'Registered Vehicle' }}</strong> (ID: {{ tag.tag_id }})</p>
+    </div>
+
+    <div class="privacy-banner">
+      <span>🛡️</span>
+      <span><strong>100% Private:</strong> Your phone number remains completely masked and confidential.</span>
+    </div>
+
+    {% if tag.custom_note %}
+    <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
+      <strong>Note from owner:</strong> {{ tag.custom_note }}
+    </div>
+    {% endif %}
+
+    <!-- Voice Call Option -->
+    <div class="call-btn-container">
+      <button class="btn-primary" id="btnStartCall">
+        <span style="font-size: 20px;">📞</span> Call Owner (Free Voice Call)
+      </button>
+    </div>
+
+    <div class="section-title">Or Send an Instant Sound Alert</div>
+
+    <div class="alerts-grid">
+      <button class="alert-btn" data-type="blocking">
+        <span class="icon">🚗</span>
+        <span>Car is blocking someone / driveway</span>
+      </button>
+      <button class="alert-btn" data-type="lights">
+        <span class="icon">💡</span>
+        <span>Headlights or hazard lights left ON</span>
+      </button>
+      <button class="alert-btn" data-type="alarm">
+        <span class="icon">🚨</span>
+        <span>Car alarm is going off</span>
+      </button>
+      <button class="alert-btn" data-type="window">
+        <span class="icon">🪟</span>
+        <span>Window is left open / rolled down</span>
+      </button>
+      <button class="alert-btn" data-type="emergency">
+        <span class="icon">⚠️</span>
+        <span>Towing warning / Emergency</span>
+      </button>
+    </div>
+
+    <div class="custom-msg-box">
+      <div class="section-title">Custom Message</div>
+      <textarea id="customMessage" rows="2" placeholder="e.g. Please move back 2 feet, thank you!"></textarea>
+      <button class="alert-btn" id="btnSendCustom" style="justify-content: center; background: rgba(59, 130, 246, 0.15); border-color: #3b82f6;">
+        <span>✉️ Send Custom Alert</span>
+      </button>
+    </div>
+
+    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
+  </div>
+
+  <!-- In-Call Fullscreen Modal -->
+  <div class="call-overlay" id="callOverlay">
+    <div class="pulse-avatar" id="avatarIcon">📞</div>
+    <div class="call-status-text" id="callStatusText">Connecting...</div>
+    <div class="call-subtext" id="callSubText">Ring is playing on the owner's phone</div>
+
+    <div class="call-controls">
+      <button class="action-circle-btn btn-hangup" id="btnEndCall" title="Hang Up">✕</button>
+    </div>
+  </div>
+
+  <audio id="remoteAudio" autoplay playsinline></audio>
+
+  <script src="/static/js/sound.js"></script>
+  <script src="/static/js/webrtc.js"></script>
+  <script>
+    const tagId = "{{ tag.tag_id }}";
+    const statusToast = document.getElementById('statusToast');
+    const callOverlay = document.getElementById('callOverlay');
+    const callStatusText = document.getElementById('callStatusText');
+    const callSubText = document.getElementById('callSubText');
+    const remoteAudio = document.getElementById('remoteAudio');
+
+    function showToast(text, isError = false) {
+      statusToast.textContent = text;
+      statusToast.style.display = 'block';
+      statusToast.style.background = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+      statusToast.style.color = isError ? '#f87171' : '#34d399';
+      setTimeout(() => { statusToast.style.display = 'none'; }, 4000);
+    }
+
+    // Send Alert handler
+    async function sendAlert(type, message = '') {
+      try {
+        const resp = await fetch(`/api/alert/${tagId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alert_type: type, message: message })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          showToast('🔔 Alert sent! The owner\'s phone is ringing/notified.');
+        } else {
+          showToast('Failed to send alert: ' + (data.detail || 'Unknown error'), true);
+        }
+      } catch (e) {
+        showToast('Network error sending alert', true);
+      }
+    }
+
+    document.querySelectorAll('.alert-btn[data-type]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.getAttribute('data-type');
+        const text = btn.querySelector('span:last-child').textContent;
+        sendAlert(type, text);
+      });
+    });
+
+    document.getElementById('btnSendCustom').addEventListener('click', () => {
+      const msg = document.getElementById('customMessage').value.trim();
+      if (!msg) {
+        alert('Please enter a message.');
+        return;
+      }
+      sendAlert('custom', msg);
+      document.getElementById('customMessage').value = '';
+    });
+
+    // Voice Call Logic
+    let callClient = null;
+
+    function initCallClient() {
+      callClient = new VoiceCallClient(
+        tagId,
+        'caller',
+        (state) => {
+          console.log('Caller state:', state);
+          if (state === 'calling') {
+            callOverlay.classList.add('active');
+            callStatusText.textContent = 'Calling Owner...';
+            callSubText.textContent = 'Owner has been notified and phone is ringing';
+            window.soundManager.startRingtone();
+          } else if (state === 'call_accepted') {
+            window.soundManager.stopRingtone();
+            callStatusText.textContent = 'Connecting Audio...';
+          } else if (state === 'in_call') {
+            window.soundManager.stopRingtone();
+            callStatusText.textContent = 'In Call (Live Audio)';
+            callSubText.textContent = 'Speaking directly with owner';
+          } else if (state === 'call_ended' || state === 'call_rejected' || state === 'idle') {
+            window.soundManager.stopRingtone();
+            callOverlay.classList.remove('active');
+            showToast(state === 'call_rejected' ? 'Call was declined by owner' : 'Call ended');
+          }
+        },
+        (remoteStream) => {
+          remoteAudio.srcObject = remoteStream;
+          remoteAudio.play().catch(e => console.log('Audio autoplay error:', e));
+        }
+      );
+      callClient.connectSignaling();
+    }
+
+    document.getElementById('btnStartCall').addEventListener('click', async () => {
+      // Send an alert first so push notification wakes up the owner
+      await sendAlert('incoming_call', 'Incoming Voice Call Request');
+      if (!callClient) {
+        initCallClient();
+        setTimeout(() => {
+          callClient.startCall();
+        }, 600);
+      } else {
+        callClient.startCall();
+      }
+    });
+
+    document.getElementById('btnEndCall').addEventListener('click', () => {
+      if (callClient) {
+        callClient.endCall();
+      }
+    });
+  </script>
+</body>
+</html>

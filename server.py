@@ -90,7 +90,7 @@ def send_push_notification(subscription_info: dict, payload: dict):
         print(f"Unexpected push error: {e}")
 
 # --- Routes ---
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return HTMLResponse("""
     <html>

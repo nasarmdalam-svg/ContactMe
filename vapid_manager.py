@@ -1,47 +1,35 @@
 import os
 import json
-from py_vapid import Vapid
+
+# Permanent static keypair so Render redeployments never invalidate active phone push tokens
+DEFAULT_VAPID = {
+    "public_key": "BMVoVqN6x_PGOYs6OTPOmANsJvMrmHTyGMyDXH7uTdfLe6dyJqpgnGzAkKrfsESXYYnsO_aIsUYWw9p5qDZHdWo",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgUT7H2Qw3sy2qdvO6\nLW8y7B3qNV3jKaoK6Mde0H0mYZWhRANCAATFaFajesfzxjmLOjkzzpgDbCbzK5h0\n8hjMg1x+7k3Xy3unciaqYJxswJCq37BEl2GJ7Dv2iLFGFsPaeag2R3Vq\n-----END PRIVATE KEY-----\n",
+    "claims_sub": "mailto:admin@cartag.local"
+}
 
 VAPID_FILE = os.path.join(os.path.dirname(__file__), "vapid_keys.json")
 
 def get_or_create_vapid_keys():
-    """Retrieve existing VAPID keys or generate new ones for Web Push."""
+    """Retrieve permanent VAPID keys for Web Push."""
+    if os.environ.get("VAPID_PUBLIC_KEY") and os.environ.get("VAPID_PRIVATE_KEY"):
+        return {
+            "public_key": os.environ["VAPID_PUBLIC_KEY"],
+            "private_key": os.environ["VAPID_PRIVATE_KEY"],
+            "claims_sub": os.environ.get("VAPID_CLAIMS_SUB", "mailto:admin@cartag.local")
+        }
+
     if os.path.exists(VAPID_FILE):
         try:
             with open(VAPID_FILE, "r") as f:
                 data = json.load(f)
                 if "public_key" in data and "private_key" in data:
                     return data
-        except Exception as e:
-            print(f"Error reading VAPID file: {e}")
+        except Exception:
+            pass
 
-    vapid = Vapid()
-    vapid.generate_keys()
-    
-    # Export raw uncompressed public key (URL safe base64)
-    public_key = vapid.public_key
-    # The application server key for browser is raw bytes base64url encoded
-    raw_pub = vapid.public_key.public_numbers().x.to_bytes(32, 'big') + vapid.public_key.public_numbers().y.to_bytes(32, 'big')
-    raw_pub_bytes = b"\x04" + raw_pub
-    
-    import base64
-    b64_pub = base64.urlsafe_b64encode(raw_pub_bytes).decode('utf-8').rstrip('=')
-    
-    # Private key in PEM format
-    private_pem = vapid.private_pem().decode('utf-8')
-    
-    keys = {
-        "public_key": b64_pub,
-        "private_key": private_pem,
-        "claims_sub": "mailto:admin@cartag.local"
-    }
-    
-    with open(VAPID_FILE, "w") as f:
-        json.dump(keys, f, indent=2)
-        
-    return keys
+    return DEFAULT_VAPID
 
 if __name__ == "__main__":
     keys = get_or_create_vapid_keys()
-    print("VAPID Keys generated successfully:")
-    print("Public Key:", keys["public_key"])
+    print("VAPID Public Key:", keys["public_key"])

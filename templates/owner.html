@@ -175,12 +175,17 @@
 
         const activeReg = await navigator.serviceWorker.ready;
         let subscription = await activeReg.pushManager.getSubscription();
-        if (!subscription) {
-          subscription = await activeReg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-          });
+        if (subscription) {
+          try {
+            await subscription.unsubscribe();
+          } catch (e) {
+            console.log('Unsubscribe error:', e);
+          }
         }
+        subscription = await activeReg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        });
 
         // Send subscription to server
         const resp = await fetch(`/api/subscribe/${tagId}`, {

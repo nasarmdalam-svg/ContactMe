@@ -119,5 +119,25 @@ def get_recent_alerts(tag_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         )
         return [dict(row) for row in cursor.fetchall()]
 
+def get_admin_stats() -> Dict[str, Any]:
+    with get_db() as conn:
+        total_tags = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
+        activated = conn.execute("SELECT COUNT(*) FROM tags WHERE activated = 1").fetchone()[0]
+        total_alerts = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
+        recent_cars = conn.execute(
+            """
+            SELECT t.tag_id, t.vehicle_name, t.activated, t.created_at, t.custom_note,
+                   (SELECT COUNT(*) FROM alerts a WHERE a.tag_id = t.tag_id) as alert_count
+            FROM tags t
+            ORDER BY t.activated DESC, t.created_at DESC
+            """
+        ).fetchall()
+        return {
+            "total_stickers": total_tags,
+            "activated_cars": activated,
+            "total_alerts": total_alerts,
+            "cars": [dict(r) for r in recent_cars]
+        }
+
 # Initialize tables
 init_db()

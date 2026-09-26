@@ -3,7 +3,7 @@ import json
 import io
 import asyncio
 from typing import Dict, List, Optional
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -155,6 +155,22 @@ def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
             "vapid_public_key": vapid_keys["public_key"]
         }
     )
+
+# Admin Dashboard
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request):
+    stats = database.get_admin_stats()
+    return templates.TemplateResponse(
+        request=request,
+        name="admin.html",
+        context={"stats": stats}
+    )
+
+@app.post("/api/admin/generate-batch")
+def admin_generate_batch(request: Request, count: int = Form(5)):
+    base_url = str(request.base_url).rstrip("/")
+    generate_stickers.generate_batch(count=count, base_url=base_url)
+    return RedirectResponse(url="/admin", status_code=303)
 
 # Push subscription endpoint
 @app.post("/api/subscribe/{tag_id}")

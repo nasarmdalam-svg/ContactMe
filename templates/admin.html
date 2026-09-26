@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Car SafeTag</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    th {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width: 650px;">
+    <div class="header">
+      <div class="logo-badge">📊</div>
+      <h1>Car SafeTag Manager</h1>
+      <p>Overview of all registered vehicles & sticker batches</p>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" style="color: #34d399;">{{ stats.activated_cars }}</div>
+        <div class="stat-label">Active Cars</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">{{ stats.total_stickers }}</div>
+        <div class="stat-label">Total Stickers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #f59e0b;">{{ stats.total_alerts }}</div>
+        <div class="stat-label">Alerts Triggered</div>
+      </div>
+    </div>
+
+    <!-- Generate New Stickers Section -->
+    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+      <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px;">🖨️ Create New Sticker Batch</div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+        Generate new unassigned QR stickers to print and distribute.
+      </p>
+      <form action="/api/admin/generate-batch" method="POST" style="display: flex; gap: 10px;">
+        <input type="number" name="count" value="5" min="1" max="50" style="width: 90px; margin-bottom: 0;">
+        <button type="submit" class="btn-primary" style="padding: 10px 16px; font-size: 14px; flex: 1;">
+          + Generate Stickers
+        </button>
+      </form>
+    </div>
+
+    <!-- Registered Cars Table -->
+    <div class="section-title">All Vehicles & Stickers</div>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Vehicle / Plate</th>
+            <th>Tag ID</th>
+            <th>Status</th>
+            <th>Alerts</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for car in stats.cars %}
+          <tr>
+            <td>
+              <strong>{{ car.vehicle_name if car.vehicle_name else 'Unassigned' }}</strong>
+              {% if car.custom_note %}
+              <div style="font-size: 11px; color: var(--text-secondary);">{{ car.custom_note }}</div>
+              {% endif %}
+            </td>
+            <td><code>{{ car.tag_id }}</code></td>
+            <td>
+              {% if car.activated %}
+                <span class="badge badge-success">Registered</span>
+              {% else %}
+                <span class="badge badge-warning">Unclaimed</span>
+              {% endif %}
+            </td>
+            <td>{{ car.alert_count }}</td>
+            <td>
+              <a href="/c/{{ car.tag_id }}" target="_blank" style="color: #38bdf8; text-decoration: none; font-size: 12px; margin-right: 8px;">View</a>
+              <a href="/api/sticker/{{ car.tag_id }}" download style="color: #34d399; text-decoration: none; font-size: 12px;">Sticker</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

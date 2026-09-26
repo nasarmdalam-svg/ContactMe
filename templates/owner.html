@@ -82,12 +82,12 @@
       <form id="editForm">
         <div style="margin-bottom: 14px;">
           <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Vehicle Name / Number Plate</label>
-          <input type="text" id="inputVehicleName" value="{{ tag.vehicle_name }}" placeholder="e.g. DL3CCM4468 or Black Activa" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <input type="text" id="inputVehicleName" value="{{ tag.vehicle_name if tag.vehicle_name else '' }}" placeholder="e.g. MH 02 AB 1234 or Red Car" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 14px;">
           <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Owner / Display Name (Optional)</label>
-          <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Nasar or Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 18px;">

@@ -34,28 +34,29 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.1.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v1.1-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.1.apk
+          name: ParkBuzz-v1.2-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.1
-          name: ParkBuzz Android App v1.1
+          tag_name: v1.2
+          name: ParkBuzz Android App v1.2
           body: |
-            ## ⚡ ParkBuzz v1.1
-            - **Silent Background Execution:** No persistent notification bar clutter. The app runs completely silently in the background.
-            - **Instant Screen Pop-up:** On emergency alert, turns on screen, displays heads-up pop-up alert, and plays loud alarm siren.
-            - **Profile Editing:** Easily edit vehicle plate, owner name, and bystander note directly from the dashboard.
+            ## ⚡ ParkBuzz v1.2
+            - **Closed-App Delivery:** Low-priority keeper keeps WebSocket alive so you receive notifications even when closed.
+            - **No Harsh Siren:** Completely removed harsh siren sound; only the clean synthesized chime alert plays.
+            - **Heads-up Screen Pop-up:** Turns on screen and pops up directly with silence/action buttons.
+            - **Profile Editing:** Edit vehicle plate, owner name, and bystander note on the fly.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v1.1.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v1.2.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

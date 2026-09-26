@@ -73,11 +73,14 @@ class MainActivity : ComponentActivity() {
                         }, "ParkBuzzApp")
 
                         loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
+                        webViewInstance = this
                     }
                 }
             )
         }
     }
+
+    private var webViewInstance: WebView? = null
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -87,10 +90,18 @@ class MainActivity : ComponentActivity() {
     private fun checkIntentForAlert(intent: Intent?) {
         if (intent?.getBooleanExtra("ALERT_POPUP", false) == true) {
             val msg = intent.getStringExtra("ALERT_MSG") ?: "Someone needs you to move your vehicle!"
+            webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.playAlertSound(6); }", null)
             AlertDialog.Builder(this)
                 .setTitle("🚨 URGENT PARKING ALERT")
                 .setMessage(msg)
-                .setPositiveButton("I Am On My Way") { d, _ -> d.dismiss() }
+                .setPositiveButton("I Am On My Way") { d, _ ->
+                    webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
+                    d.dismiss()
+                }
+                .setNegativeButton("Silence Sound") { d, _ ->
+                    webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
+                    d.dismiss()
+                }
                 .setCancelable(false)
                 .show()
         }
@@ -100,7 +111,11 @@ class MainActivity : ComponentActivity() {
         val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
             putExtra("TAG_ID", "CAR-D3AEED")
         }
-        startService(serviceIntent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
     }
 
     private fun createLoudNotificationChannel() {
@@ -109,18 +124,10 @@ class MainActivity : ComponentActivity() {
             val channelName = "ParkBuzz Urgent Alerts"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(channelId, channelName, importance).apply {
-                description = "Loud alarm siren sound when someone scans your ParkBuzz vehicle sticker"
+                description = "Alert pop-up when someone scans your ParkBuzz vehicle sticker"
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 1000)
-
-                val audioAttributes = AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .build()
-
-                val soundUri = Uri.parse("android.resource://$packageName/${R.raw.alarm}")
-                setSound(soundUri, audioAttributes)
             }
 
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

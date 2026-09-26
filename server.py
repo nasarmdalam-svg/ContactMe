@@ -142,8 +142,8 @@ def api_activate(tag_id: str, data: ActivateRequest):
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)
 def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
     tag = database.get_tag(tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
+    if not tag or not tag["activated"]:
+        return RedirectResponse(url=f"/activate/{tag_id}")
 
     recent_alerts = database.get_recent_alerts(tag_id)
     return templates.TemplateResponse(

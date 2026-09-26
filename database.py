@@ -45,6 +45,13 @@ def init_db():
         """)
         conn.commit()
 
+    # Pre-seed initial distributed tags so they are always present
+    initial_tags = ["CAR-D3AEED", "CAR-2F5752", "CAR-14AD84", "CAR-CD7AA9", "CAR-EFEA7E", "CAR-DEMO1"]
+    with get_db() as conn:
+        for t in initial_tags:
+            conn.execute("INSERT OR IGNORE INTO tags (tag_id) VALUES (?)", (t,))
+        conn.commit()
+
 def create_tag(tag_id: str, owner_token: Optional[str] = None) -> str:
     if not owner_token:
         owner_token = secrets.token_urlsafe(16)

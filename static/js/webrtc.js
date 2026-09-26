@@ -47,6 +47,17 @@ class VoiceCallClient {
 
   async handleSignalingMessage(msg) {
     switch (msg.type) {
+      case 'alert_received':
+        if (this.role === 'owner') {
+          if (window.soundManager) {
+            window.soundManager.playAlertSound();
+          }
+          if (this.onAlertReceived) {
+            this.onAlertReceived(msg);
+          }
+        }
+        break;
+
       case 'incoming_call':
         if (this.role === 'owner') {
           this.onStateChange('incoming_call');

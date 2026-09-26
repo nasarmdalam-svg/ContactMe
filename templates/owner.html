@@ -214,6 +214,23 @@
 
     callClient.connectSignaling();
 
+    callClient.onAlertReceived = (msg) => {
+      window.soundManager.playAlertSound();
+      showToast(`🚨 ${msg.alert_type.toUpperCase()}: ${msg.message}`);
+      
+      const history = document.getElementById('alertsHistory');
+      const item = document.createElement('div');
+      item.style.cssText = 'background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 6px; animation: pulse 1s;';
+      item.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <strong style="color: #f87171;">🚨 ${msg.alert_type.toUpperCase()} ALERT</strong>
+          <span style="color: var(--text-secondary); font-size: 11px;">Just now</span>
+        </div>
+        <div>${msg.message}</div>
+      `;
+      history.prepend(item);
+    };
+
     document.getElementById('btnAcceptCall').addEventListener('click', () => {
       callClient.acceptCall();
     });

@@ -90,7 +90,7 @@ def send_push_notification(subscription_info: dict, payload: dict):
         webpush(
             subscription_info=subscription_info,
             data=json.dumps(payload),
-            vapid_private_key=vapid_keys["private_key"],
+            vapid_private_key=vapid_keys["pem_path"],
             vapid_claims={"sub": vapid_keys.get("claims_sub", "mailto:nasarmdalam@gmail.com")},
             ttl=86400
         )
@@ -124,7 +124,7 @@ def test_push_endpoint(tag_id: str):
             res = webpush(
                 subscription_info=sub_info,
                 data=json.dumps(payload),
-                vapid_private_key=vapid_keys["private_key"],
+                vapid_private_key=vapid_keys["pem_path"],
                 vapid_claims={"sub": vapid_keys.get("claims_sub", "mailto:nasarmdalam@gmail.com")},
                 ttl=86400
             )

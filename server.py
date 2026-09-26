@@ -91,12 +91,50 @@ def send_push_notification(subscription_info: dict, payload: dict):
             subscription_info=subscription_info,
             data=json.dumps(payload),
             vapid_private_key=vapid_keys["private_key"],
-            vapid_claims={"sub": vapid_keys["claims_sub"]}
+            vapid_claims={"sub": vapid_keys.get("claims_sub", "mailto:nasarmdalam@gmail.com")},
+            ttl=86400
         )
     except WebPushException as ex:
         print(f"WebPush failed: {ex}")
     except Exception as e:
         print(f"Unexpected push error: {e}")
+
+# Diagnostic endpoint to test direct push delivery
+@app.get("/api/test-push/{tag_id}")
+def test_push_endpoint(tag_id: str):
+    subs = database.get_subscriptions(tag_id)
+    if not subs:
+        return {"status": "no_subscribers", "detail": "No subscriptions registered in DB for this tag"}
+    results = []
+    payload = {
+        "title": "🚨 Car SafeTag Alert",
+        "body": "Your car has a new alert!",
+        "url": f"/owner/{tag_id}",
+        "actionType": "test"
+    }
+    for sub in subs:
+        sub_info = {
+            "endpoint": sub["endpoint"],
+            "keys": {
+                "p256dh": sub["p256dh"],
+                "auth": sub["auth"]
+            }
+        }
+        try:
+            res = webpush(
+                subscription_info=sub_info,
+                data=json.dumps(payload),
+                vapid_private_key=vapid_keys["private_key"],
+                vapid_claims={"sub": vapid_keys.get("claims_sub", "mailto:nasarmdalam@gmail.com")},
+                ttl=86400
+            )
+            results.append({"status": "success", "status_code": res.status_code if res else 200})
+        except WebPushException as ex:
+            err_body = ex.response.text if hasattr(ex, 'response') and ex.response else str(ex)
+            results.append({"status": "fcm_error", "message": str(ex), "fcm_body": err_body})
+        except Exception as e:
+            results.append({"status": "error", "message": str(e)})
+    return {"subscribers_count": len(subs), "results": results}
 
 # --- Routes ---
 @app.api_route("/", methods=["GET", "HEAD"])

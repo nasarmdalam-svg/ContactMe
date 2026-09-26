@@ -5,7 +5,7 @@ import json
 DEFAULT_VAPID = {
     "public_key": "BMVoVqN6x_PGOYs6OTPOmANsJvMrmHTyGMyDXH7uTdfLe6dyJqpgnGzAkKrfsESXYYnsO_aIsUYWw9p5qDZHdWo",
     "private_key": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgUT7H2Qw3sy2qdvO6\nLW8y7B3qNV3jKaoK6Mde0H0mYZWhRANCAATFaFajesfzxjmLOjkzzpgDbCbzK5h0\n8hjMg1x+7k3Xy3unciaqYJxswJCq37BEl2GJ7Dv2iLFGFsPaeag2R3Vq\n-----END PRIVATE KEY-----\n",
-    "claims_sub": "mailto:admin@cartag.local"
+    "claims_sub": "mailto:nasarmdalam@gmail.com"
 }
 
 VAPID_FILE = os.path.join(os.path.dirname(__file__), "vapid_keys.json")

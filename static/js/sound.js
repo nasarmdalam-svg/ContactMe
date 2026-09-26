@@ -3,7 +3,8 @@ class SoundManager {
   constructor() {
     this.ctx = null;
     this.isPlaying = false;
-    this.currentLoop = null;
+    this.alarmLoop = null;
+    this.ringLoop = null;
   }
 
   init() {
@@ -18,32 +19,59 @@ class SoundManager {
     }
   }
 
-  // Plays a sharp, loud alert chime / horn for parking alerts
-  playAlertSound() {
+  // Plays a repeating urgent car horn / alarm siren until stopped or after 8 cycles
+  playAlertSound(repeat = 6) {
     this.init();
     if (!this.ctx) return;
+    this.stopAlarm();
 
-    const playBeep = (freq, startTime, duration) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+    let count = 0;
+    const playHornCycle = () => {
+      if (count >= repeat) {
+        this.stopAlarm();
+        return;
+      }
+      count++;
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, startTime);
+      const now = this.ctx.currentTime;
+      const playBeep = (freq, offset, duration) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
 
-      gain.gain.setValueAtTime(0.3, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + offset);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
+        gain.gain.setValueAtTime(0.35, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + duration);
 
-      osc.start(startTime);
-      osc.stop(startTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + offset);
+        osc.stop(now + offset + duration);
+      };
+
+      // Urgent dual-tone car horn burst: HONK - HONK - HONK
+      playBeep(850, 0.00, 0.22);
+      playBeep(1100, 0.00, 0.22);
+
+      playBeep(850, 0.28, 0.22);
+      playBeep(1100, 0.28, 0.22);
+
+      playBeep(950, 0.56, 0.35);
+      playBeep(1200, 0.56, 0.35);
+
+      this.alarmLoop = setTimeout(playHornCycle, 1400);
     };
 
-    const now = this.ctx.currentTime;
-    playBeep(880, now, 0.18);
-    playBeep(1100, now + 0.12, 0.22);
-    playBeep(1320, now + 0.26, 0.35);
+    playHornCycle();
+  }
+
+  stopAlarm() {
+    if (this.alarmLoop) {
+      clearTimeout(this.alarmLoop);
+      this.alarmLoop = null;
+    }
   }
 
   // Starts a repeating ringing tone for incoming calls until stopped
@@ -62,13 +90,13 @@ class SoundManager {
       const gain = this.ctx.createGain();
 
       osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(440, now); // A4
+      osc1.frequency.setValueAtTime(440, now);
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(480, now); // Standard US/UK ring frequency
+      osc2.frequency.setValueAtTime(480, now);
 
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
-      gain.gain.setValueAtTime(0.25, now + 1.2);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.setValueAtTime(0.3, now + 1.2);
       gain.gain.linearRampToValueAtTime(0.001, now + 1.3);
 
       osc1.connect(gain);
@@ -80,9 +108,9 @@ class SoundManager {
       osc1.stop(now + 1.3);
       osc2.stop(now + 1.3);
 
-      this.currentLoop = setTimeout(() => {
+      this.ringLoop = setTimeout(() => {
         ringCycle();
-      }, 2500);
+      }, 2400);
     };
 
     ringCycle();
@@ -90,9 +118,9 @@ class SoundManager {
 
   stopRingtone() {
     this.isPlaying = false;
-    if (this.currentLoop) {
-      clearTimeout(this.currentLoop);
-      this.currentLoop = null;
+    if (this.ringLoop) {
+      clearTimeout(this.ringLoop);
+      this.ringLoop = null;
     }
   }
 }

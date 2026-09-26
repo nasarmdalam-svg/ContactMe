@@ -29,7 +29,10 @@
           🔔 Enable Push & Sound
         </button>
         <button id="btnTestSound" class="alert-btn" style="padding: 10px; font-size: 14px; width: auto; justify-content: center;">
-          🔊 Test Sound
+          🔊 Test Siren
+        </button>
+        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; padding: 10px; font-size: 14px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
+          🔕 Silence
         </button>
       </div>
     </div>
@@ -168,9 +171,19 @@
 
     document.getElementById('btnEnableNotifications').addEventListener('click', registerPush);
 
+    const btnSilence = document.getElementById('btnSilenceAlarm');
+
+    btnSilence.addEventListener('click', () => {
+      window.soundManager.stopAlarm();
+      window.soundManager.stopRingtone();
+      btnSilence.style.display = 'none';
+      showToast('🔕 Alarm silenced');
+    });
+
     document.getElementById('btnTestSound').addEventListener('click', () => {
-      window.soundManager.playAlertSound();
-      showToast('🔊 Alert sound played!');
+      window.soundManager.playAlertSound(6);
+      btnSilence.style.display = 'inline-flex';
+      showToast('🔊 Alarm siren started! Repeating 6 times...');
     });
 
     // Check if notification already granted
@@ -181,7 +194,8 @@
 
     // Auto ring if opened from notification click
     if (window.location.search.includes('autoring=1')) {
-      window.soundManager.playAlertSound();
+      window.soundManager.playAlertSound(6);
+      btnSilence.style.display = 'inline-flex';
     }
 
     // Voice Calling Setup for Owner
@@ -215,7 +229,8 @@
     callClient.connectSignaling();
 
     callClient.onAlertReceived = (msg) => {
-      window.soundManager.playAlertSound();
+      window.soundManager.playAlertSound(8);
+      btnSilence.style.display = 'inline-flex';
       showToast(`🚨 ${msg.alert_type.toUpperCase()}: ${msg.message}`);
       
       const history = document.getElementById('alertsHistory');

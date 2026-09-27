@@ -9,30 +9,43 @@
 </head>
 <body>
   <div class="container">
-    <div class="header" style="position: relative;">
-      <div class="logo-badge">⚡</div>
-      <h1 id="headingVehicleName">{{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}</h1>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px;">
-        <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid var(--border-color); background: rgba(255,255,255,0.06); padding: 6px 16px; border-radius: 20px; color: white; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+    <!-- Compact Sleek Dashboard Header -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <!-- Left: Official Logo & Vehicle Details -->
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.35)); flex-shrink: 0;">
+          <div style="min-width: 0;">
+            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px;">ParkingBuzz</div>
+            <div id="headingVehicleName" style="font-size: 17px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;">
+              {{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-top: 1px;">Tag: <span style="color: #cbd5e1;">{{ tag.tag_id }}</span></div>
+          </div>
+        </div>
+
+        <!-- Right: Status Toggle Pill -->
+        <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); padding: 6px 12px; border-radius: 999px; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s;">
           {% if tag.get('is_active', 1) == 1 %}
-            <span id="activeDot" style="color: #34d399; font-size: 14px;">●</span>
-            <span id="activeStatusText">Status: <strong style="color: #34d399;">Active (Online)</strong></span>
+            <span id="activeDot" style="color: #34d399; font-size: 12px;">●</span>
+            <span id="activeStatusText" style="color: #34d399; font-weight: 700;">Online</span>
           {% else %}
-            <span id="activeDot" style="color: #94a3b8; font-size: 14px;">○</span>
-            <span id="activeStatusText">Status: <strong style="color: #94a3b8;">Disconnected (Muted)</strong></span>
+            <span id="activeDot" style="color: #94a3b8; font-size: 12px;">○</span>
+            <span id="activeStatusText" style="color: #94a3b8; font-weight: 700;">Muted</span>
           {% endif %}
         </button>
-        <span style="font-size: 11px; color: var(--text-secondary);">Tap above to connect/disconnect alerts • Tag: {{ tag.tag_id }}</span>
       </div>
-      <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        <button id="btnOpenEdit" class="alert-btn" style="margin: 0; width: auto; font-size: 13px; padding: 7px 16px; border-color: rgba(255,255,255,0.25);">
+
+      <!-- Action Chips Row -->
+      <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <button id="btnOpenEdit" type="button" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: #e2e8f0; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
           ✏️ Edit Details
         </button>
-        <a href="/register" class="alert-btn" style="margin: 0; width: auto; font-size: 13px; padding: 7px 16px; border-color: #38bdf8; color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-          ➕ Register New Car
+        <a href="/register" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); color: #38bdf8; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
+          ➕ Add Vehicle
         </a>
-        <button id="btnSilenceAlarm" class="alert-btn" style="display:none; margin: 0; padding: 7px 16px; font-size: 13px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
-          🔕 Silence Alarm
+        <button id="btnSilenceAlarm" type="button" style="display:none; flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 12px; font-weight: 700; cursor: pointer; align-items: center; justify-content: center; gap: 5px;">
+          🔕 Silence
         </button>
       </div>
     </div>

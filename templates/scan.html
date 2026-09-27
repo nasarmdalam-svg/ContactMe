@@ -9,12 +9,12 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <div class="logo-badge">⚡</div>
-      <h1>Contact Vehicle Owner</h1>
-      <p>Vehicle: <strong>{{ tag.vehicle_name if tag.vehicle_name else 'Registered Vehicle' }}</strong> (ID: {{ tag.tag_id }})</p>
+    <div class="header" style="margin-bottom: 16px;">
+      <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 52px; height: 52px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 3px 12px rgba(56, 189, 248, 0.4)); margin-bottom: 6px;">
+      <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 3px;">Contact Vehicle Owner</h1>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Vehicle: <strong style="color: #f8fafc;">{{ tag.vehicle_name if tag.vehicle_name else 'Registered Vehicle' }}</strong> (ID: {{ tag.tag_id }})</p>
       {% if tag.owner_name %}
-      <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Owner / Contact: <strong>{{ tag.owner_name }}</strong></div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">Owner / Contact: <strong>{{ tag.owner_name }}</strong></div>
       {% endif %}
     </div>
 

@@ -9,15 +9,15 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <div class="logo-badge">✨</div>
-      <h1>Activate New Sticker</h1>
-      <p>Sticker ID: <strong>{{ tag_id }}</strong></p>
+    <div class="header" style="margin-bottom: 14px;">
+      <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 56px; height: 56px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 3px 12px rgba(56, 189, 248, 0.4)); margin-bottom: 6px;">
+      <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 3px;">Activate New Sticker</h1>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Sticker ID: <strong style="color: #38bdf8;">{{ tag_id }}</strong></p>
     </div>
 
-    <div class="privacy-banner">
-      <span>🔒</span>
-      <span>Link this sticker to your phone to receive instant sound alerts and masked calls.</span>
+    <div class="privacy-banner" style="padding: 8px 12px; margin-bottom: 14px; gap: 8px;">
+      <span style="font-size: 16px;">🛡️</span>
+      <span style="font-size: 12px; line-height: 1.35;">Link this sticker to your phone to receive instant sound alerts and masked calls.</span>
     </div>
 
     <form id="activateForm">

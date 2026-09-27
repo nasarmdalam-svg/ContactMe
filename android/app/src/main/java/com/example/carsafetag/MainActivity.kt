@@ -66,21 +66,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Firebase initialized via Application class
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            val packageName = packageName
-            val hasIgnored = pm.isIgnoringBatteryOptimizations(packageName)
-            if (!hasIgnored) {
-                val intent = Intent()
-                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                intent.data = Uri.parse("package:" + packageName)
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    // Device may not support this intent
-                }
-            }
-        }
+
 
 
         // Prompt for runtime permissions (Notifications & Audio)

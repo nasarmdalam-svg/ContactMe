@@ -58,6 +58,7 @@ class VoiceCallClient {
         }
         break;
 
+      case 'call_request':
       case 'incoming_call':
         if (this.role === 'owner') {
           this.onStateChange('incoming_call');

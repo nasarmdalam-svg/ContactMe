@@ -37,8 +37,8 @@ class ParkBuzzAlertService : Service() {
 
     companion object {
         const val TAG = "ParkBuzzService"
-        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v7"
-        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v7"
+        const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v9"
+        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v9"
         const val KEEPER_NOTIF_ID = 8801
     }
 
@@ -71,7 +71,7 @@ class ParkBuzzAlertService : Service() {
             } else {
                 startForeground(KEEPER_NOTIF_ID, notification)
             }
-            Log.d(TAG, "Foreground service started successfully for tag: $tagId")
+            Log.d(TAG, "Foreground service started silently for tag: $tagId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to startForeground: ${e.message}", e)
         }
@@ -110,11 +110,11 @@ class ParkBuzzAlertService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // 1. Silent keeper channel (LOW importance ensures Android 14 keeps service alive when closed)
+            // 1. Silent keeper channel (MIN importance ensures NO icon on top status bar while keeping service alive)
             val keeperChannel = NotificationChannel(
                 SILENT_KEEPER_CHANNEL_ID,
                 "ParkBuzz Background Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN
             ).apply {
                 description = "Keeps ParkBuzz connected silently in background"
                 setShowBadge(false)
@@ -154,7 +154,7 @@ class ParkBuzzAlertService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setShowWhen(false)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .build()
     }
@@ -188,6 +188,8 @@ class ParkBuzzAlertService : Service() {
                                     val alertType = json.optString("alert_type", "URGENT")
                                     val message = json.optString("message", "Someone needs you to move your vehicle!")
                                     fireEmergencyAlert(alertType, message)
+                                } else if (type == "call_request" || type == "incoming_call") {
+                                    fireEmergencyAlert("incoming_call", "A bystander near your vehicle is calling you live!")
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error parsing message: ${e.message}")
@@ -237,16 +239,19 @@ class ParkBuzzAlertService : Service() {
 
         // 2. Play the clean chime audio file embedded inside the app (res/raw/chime.wav)
         try {
-            val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.chime)?.apply {
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+            val mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .setUsage(AudioAttributes.USAGE_ALARM)
                         .build()
                 )
+                setDataSource(applicationContext, soundUri)
+                prepare()
                 start()
-                setOnCompletionListener { it.release() }
             }
+            mediaPlayer.setOnCompletionListener { it.release() }
         } catch (e: Exception) {
             Log.e(TAG, "Chime playback error: ${e.message}")
         }

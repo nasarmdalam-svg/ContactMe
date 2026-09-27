@@ -23,8 +23,31 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 
@@ -43,57 +66,146 @@ class MainActivity : ComponentActivity() {
         checkIntentForAlert(intent)
 
         setContent {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    WebView(context).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            databaseEnabled = true
-                            mediaPlaybackRequiresUserGesture = false
-                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            cacheMode = WebSettings.LOAD_DEFAULT
-                        }
-                        webViewClient = WebViewClient()
-                        webChromeClient = object : WebChromeClient() {
-                            override fun onPermissionRequest(request: PermissionRequest?) {
-                                request?.grant(request.resources)
+            var isLoading by remember { mutableStateOf(true) }
+            var loadingStatus by remember { mutableStateOf("Securing vehicle connection...") }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        WebView(context).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                databaseEnabled = true
+                                mediaPlaybackRequiresUserGesture = false
+                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                cacheMode = WebSettings.LOAD_DEFAULT
                             }
-                        }
-                        addJavascriptInterface(object {
-                            @JavascriptInterface
-                            fun isParkBuzzApp(): Boolean = true
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    val title = view?.title ?: ""
+                                    // If Render spin-up page is detected, keep showing splash and retry
+                                    if (title.contains("starting", ignoreCase = true) || 
+                                        title.contains("render", ignoreCase = true)) {
+                                        loadingStatus = "Starting cloud service... Ready in moments"
+                                        postDelayed({
+                                            view?.reload()
+                                        }, 4000)
+                                    } else {
+                                        isLoading = false
+                                    }
+                                }
 
-                            @JavascriptInterface
-                            fun getTagId(): String = "CAR-D3AEED"
-
-                            @JavascriptInterface
-                            fun onCallEnded() {
-                                runOnUiThread {
-                                    ongoingCallDialog?.dismiss()
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    errorCode: Int,
+                                    description: String?,
+                                    failingUrl: String?
+                                ) {
+                                    super.onReceivedError(view, errorCode, description, failingUrl)
+                                    loadingStatus = "Reconnecting to ParkBuzz network..."
+                                    postDelayed({
+                                        view?.loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
+                                    }, 4000)
                                 }
                             }
-                        }, "ParkBuzzApp")
-
-                        setDownloadListener { url, _, _, _, _ ->
-                            try {
-                                val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                context.startActivity(downloadIntent)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
+                            webChromeClient = object : WebChromeClient() {
+                                override fun onPermissionRequest(request: PermissionRequest?) {
+                                    request?.grant(request.resources)
+                                }
                             }
-                        }
+                            addJavascriptInterface(object {
+                                @JavascriptInterface
+                                fun isParkBuzzApp(): Boolean = true
 
-                        loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
-                        webViewInstance = this
+                                @JavascriptInterface
+                                fun getTagId(): String = "CAR-D3AEED"
+
+                                @JavascriptInterface
+                                fun onCallEnded() {
+                                    runOnUiThread {
+                                        ongoingCallDialog?.dismiss()
+                                    }
+                                }
+                            }, "ParkBuzzApp")
+
+                            setDownloadListener { url, _, _, _, _ ->
+                                try {
+                                    val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(downloadIntent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+
+                            loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
+                            webViewInstance = this
+                        }
+                    }
+                )
+
+                AnimatedVisibility(
+                    visible = isLoading,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF0F172A)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .background(Color(0xFF1E293B), shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "🅿️",
+                                    fontSize = 40.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = "ParkBuzz",
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Anonymous Vehicle Contact System",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
+                            CircularProgressIndicator(
+                                color = Color(0xFF38BDF8),
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = loadingStatus,
+                                color = Color(0xFF64748B),
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
-            )
+            }
         }
     }
 

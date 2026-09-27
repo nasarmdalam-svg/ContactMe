@@ -9,7 +9,7 @@ android {
     namespace = "com.example.carsafetag"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.carsafetag"
+        applicationId = "com.parkingbuzz.alert"
         minSdk = 24
         targetSdk = 36
         versionCode = 15

@@ -31,9 +31,10 @@ def service_worker():
         headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
     )
 
-@app.get("/privacy", response_class=HTMLResponse)
+@app.api_route("/privacy", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def privacy_policy(request: Request):
-    return templates.TemplateResponse("privacy.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="privacy.html")
+
 
 
 vapid_keys = vapid_manager.get_or_create_vapid_keys()

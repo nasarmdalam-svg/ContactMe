@@ -400,17 +400,66 @@ def get_qr_image(tag_id: str, request: Request):
     img.save(buf, format="PNG")
     return Response(content=buf.getvalue(), media_type="image/png")
 
-# Printable sticker download endpoint
+# Printable sticker download endpoint — composites a real scannable QR onto the metallic card template
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
+    from PIL import Image, ImageDraw
+    import qrcode as _qrcode
+
+    base_url = str(request.base_url).rstrip("/")
+    scan_url = f"{base_url}/c/{tag_id}"
+
     metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
+    logo_path = os.path.join(os.path.dirname(__file__), "ParkBuzz_No_Disc_Transparent.png")
+
+    # QR placement region on the 896×1200 metallic card (leaves heading + bottom info visible)
+    QR_X1, QR_Y1 = 175, 290
+    QR_X2, QR_Y2 = 720, 755
+    qr_w = QR_X2 - QR_X1
+    qr_h = QR_Y2 - QR_Y1
+    qr_size = min(qr_w, qr_h)  # 465
+
+    # Generate QR with high error correction (allows logo overlay without breaking it)
+    qr = _qrcode.QRCode(
+        error_correction=_qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=2
+    )
+    qr.add_data(scan_url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
+
+    # Embed ParkingBuzz logo in the center of the QR
+    if os.path.exists(logo_path):
+        logo = Image.open(logo_path).convert("RGBA")
+        logo_size = int(qr_size * 0.20)
+        logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+        logo_pos = ((qr_size - logo_size) // 2, (qr_size - logo_size) // 2)
+        circle_size = logo_size + 16
+        circle_bg = Image.new("RGBA", (circle_size, circle_size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(circle_bg)
+        draw.ellipse([0, 0, circle_size - 1, circle_size - 1], fill=(255, 255, 255, 255))
+        qr_rgba = qr_img.convert("RGBA")
+        qr_rgba.paste(circle_bg, (logo_pos[0] - 8, logo_pos[1] - 8), circle_bg)
+        qr_rgba.paste(logo, logo_pos, logo)
+        qr_img = qr_rgba.convert("RGB")
+
+    # Overlay real QR onto the metallic card template
     if os.path.exists(metallic_path):
-        return FileResponse(
-            metallic_path,
+        card = Image.open(metallic_path)
+        paste_x = QR_X1 + (qr_w - qr_size) // 2
+        paste_y = QR_Y1 + (qr_h - qr_size) // 2
+        card.paste(qr_img, (paste_x, paste_y))
+        buf = io.BytesIO()
+        card.save(buf, format="JPEG", quality=95)
+        return Response(
+            content=buf.getvalue(),
             media_type="image/jpeg",
             headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.jpg"'}
         )
-    base_url = str(request.base_url).rstrip("/")
+
+    # Fallback: plain generated sticker if metallic card missing
     sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
     with open(sticker_path, "rb") as f:
         content = f.read()

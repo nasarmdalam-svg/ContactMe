@@ -81,9 +81,15 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # --- Schemas ---
+class RegisterVehicleRequest(BaseModel):
+    vehicle_name: str
+    owner_name: Optional[str] = ""
+    custom_note: Optional[str] = ""
+
 class ActivateRequest(BaseModel):
     vehicle_name: str
     custom_note: Optional[str] = ""
+
 
 class UpdateProfileRequest(BaseModel):
     vehicle_name: str
@@ -198,8 +204,25 @@ def activate_page(tag_id: str, request: Request):
         context={"tag_id": tag_id}
     )
 
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse(request=request, name="register.html")
+
+@app.post("/api/register-vehicle")
+def api_register_vehicle(data: RegisterVehicleRequest):
+    import random
+    while True:
+        tag_id = f"BUZZ-{random.randint(100000, 999999)}"
+        if not database.get_tag(tag_id):
+            break
+    owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note or "")
+    if data.owner_name:
+        database.update_tag_profile(tag_id, data.vehicle_name, data.owner_name, data.custom_note or "")
+    return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
+
 @app.post("/api/activate/{tag_id}")
 def api_activate(tag_id: str, data: ActivateRequest):
+
     owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note)
     return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
 
@@ -380,13 +403,6 @@ def get_qr_image(tag_id: str, request: Request):
 # Printable sticker download endpoint
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
-    metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
-    if os.path.exists(metallic_path):
-        return FileResponse(
-            metallic_path,
-            media_type="image/jpeg",
-            headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.jpg"'}
-        )
     base_url = str(request.base_url).rstrip("/")
     sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
     with open(sticker_path, "rb") as f:
@@ -394,8 +410,9 @@ def get_sticker(tag_id: str, request: Request):
     return Response(
         content=content,
         media_type="image/png",
-        headers={"Content-Disposition": f'attachment; filename="sticker_{tag_id}.png"'}
+        headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.png"'}
     )
+
 
 # PDF sticker download endpoint (single sticker on A4)
 @app.get("/api/sticker-pdf/{tag_id}")

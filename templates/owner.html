@@ -24,15 +24,28 @@
         </button>
         <span style="font-size: 11px; color: var(--text-secondary);">Tap above to connect/disconnect alerts • Tag: {{ tag.tag_id }}</span>
       </div>
-      <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px;">
+      <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
         <button id="btnOpenEdit" class="alert-btn" style="margin: 0; width: auto; font-size: 13px; padding: 7px 16px; border-color: rgba(255,255,255,0.25);">
           ✏️ Edit Details
         </button>
+        <a href="/register" class="alert-btn" style="margin: 0; width: auto; font-size: 13px; padding: 7px 16px; border-color: #38bdf8; color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          ➕ Register New Car
+        </a>
         <button id="btnSilenceAlarm" class="alert-btn" style="display:none; margin: 0; padding: 7px 16px; font-size: 13px; width: auto; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #f87171;">
           🔕 Silence Alarm
         </button>
       </div>
     </div>
+
+    <!-- New Car Registration Prompt for non-owners -->
+    <div id="newCarPrompt" style="display:none; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 14px; margin-bottom: 20px; text-align: center;">
+      <div style="font-weight: 700; color: #38bdf8; font-size: 14px; margin-bottom: 4px;">🚗 New User? Get Your Own Vehicle Sticker</div>
+      <p style="font-size: 12px; color: #cbd5e1; margin: 0 0 10px 0;">This is sample tag CAR-D3AEED. Tap below to link your own vehicle plate and get your personal QR sticker.</p>
+      <a href="/register" class="btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 20px; font-size: 13px; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: white; font-weight: 700; text-decoration: none; border-radius: 20px;">
+        ⚡ Register My Vehicle (Free)
+      </a>
+    </div>
+
 
     <!-- Live QR / Sticker Section -->
     <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin-bottom: 20px; text-align: center;">
@@ -146,6 +159,17 @@
     const tagId = "{{ tag.tag_id }}";
     const vapidPublicKey = "{{ vapid_public_key }}";
 
+    // Dynamic Device Routing: Check if this user has their own unique registered tag
+    const savedTag = localStorage.getItem('pb_active_tag');
+    if (savedTag && savedTag !== tagId && tagId === 'CAR-D3AEED') {
+      window.location.replace('/owner/' + savedTag);
+    } else if (!savedTag && tagId === 'CAR-D3AEED') {
+      const promptEl = document.getElementById('newCarPrompt');
+      if (promptEl) promptEl.style.display = 'block';
+    } else if (tagId !== 'CAR-D3AEED') {
+      localStorage.setItem('pb_active_tag', tagId);
+    }
+
     // Notify native Android app wrapper of active tag ID for FCM push binding
     if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
       try {
@@ -154,6 +178,7 @@
         console.error("Failed to notify native app of tagId", e);
       }
     }
+
     const notifStatusBadge = document.getElementById('notifStatusBadge');
     const toast = document.getElementById('statusToast');
     const incomingCallOverlay = document.getElementById('incomingCallOverlay');

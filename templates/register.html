@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Your Vehicle - ParkingBuzz</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+  <div class="container" style="max-width: 460px;">
+    <div class="header">
+      <div class="logo-badge" style="background: transparent; border: none; font-size: 38px;">🅿️</div>
+      <h1>Welcome to ParkingBuzz</h1>
+      <p style="color: var(--text-secondary); margin-top: 6px;">Register your vehicle to receive instant parking alerts and private calls.</p>
+    </div>
+
+    <div class="privacy-banner" style="background: rgba(56, 189, 248, 0.08); border-color: rgba(56, 189, 248, 0.25);">
+      <span style="font-size: 20px;">🛡️</span>
+      <span style="font-size: 13px; line-height: 1.4;">100% Privacy Protected: Contactor alerts and calls are routed securely without exposing your phone number.</span>
+    </div>
+
+    <form id="registerForm">
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #f1f5f9;">
+          Vehicle Number Plate / Name <span style="color: #ef4444;">*</span>
+        </label>
+        <input type="text" id="vehicleName" placeholder="e.g. DL 01 AB 1234 or Black SUV" required style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #f1f5f9;">
+          Your Name / Display Name (Optional)
+        </label>
+        <input type="text" id="ownerName" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px;">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #f1f5f9;">
+          Custom Note for Scanners (Optional)
+        </label>
+        <textarea id="customNote" rows="2" placeholder="e.g. Will move in 2 mins, call before towing." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 14px;"></textarea>
+      </div>
+
+      <!-- Privacy Policy Checkbox -->
+      <div style="margin-bottom: 22px; display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
+        <input type="checkbox" id="agreePrivacy" required style="margin-top: 3px; cursor: pointer; width: 18px; height: 18px; accent-color: #38bdf8;">
+        <label for="agreePrivacy" style="font-size: 13px; color: var(--text-secondary); cursor: pointer; line-height: 1.4;">
+          I agree to the <a href="/privacy" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 600;">ParkingBuzz Privacy Policy</a> and consent to receiving vehicle safety alerts.
+        </label>
+      </div>
+
+      <button type="submit" id="btnSubmit" class="btn-primary" style="background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); font-weight: 700; padding: 14px; font-size: 15px;">
+        ⚡ Generate My Vehicle Tag & Sticker
+      </button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-secondary);">
+      Already have a physical printed sticker? <br>
+      <a href="/activate/CAR-SAMPLE" id="linkExisting" style="color: #38bdf8; font-weight: 600; text-decoration: underline; display: inline-block; margin-top: 4px;">Link Existing Sticker</a>
+    </div>
+
+    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const toast = document.getElementById('statusToast');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const vehicleName = document.getElementById('vehicleName').value.trim();
+      const ownerName = document.getElementById('ownerName').value.trim();
+      const customNote = document.getElementById('customNote').value.trim();
+      const agree = document.getElementById('agreePrivacy').checked;
+
+      if (!agree) {
+        alert('Please agree to the Privacy Policy to proceed.');
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Generating vehicle tag...';
+
+      try {
+        const resp = await fetch('/api/register-vehicle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicle_name: vehicleName, owner_name: ownerName, custom_note: customNote })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.tag_id) {
+          const newTagId = data.tag_id;
+          localStorage.setItem('pb_active_tag', newTagId);
+
+          // Notify native Android wrapper of the new unique Tag ID for FCM push registration
+          if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
+            window.ParkBuzzApp.onTagLoaded(newTagId);
+          }
+
+          toast.textContent = 'Tag generated! Opening your dashboard...';
+          toast.style.display = 'block';
+          toast.style.background = 'rgba(16, 185, 129, 0.2)';
+          toast.style.color = '#34d399';
+          setTimeout(() => {
+            window.location.href = `/owner/${newTagId}`;
+          }, 800);
+        } else {
+          toast.textContent = data.detail || 'Registration failed';
+          toast.style.display = 'block';
+          toast.style.background = 'rgba(239, 68, 68, 0.2)';
+          toast.style.color = '#f87171';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
+        }
+      } catch (err) {
+        alert('Error connecting to server: ' + err.message);
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
+      }
+    });
+  </script>
+</body>
+</html>

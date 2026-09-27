@@ -35,9 +35,18 @@
         <textarea id="customNote" rows="2" placeholder="e.g. Please call before towing, I will come out immediately."></textarea>
       </div>
 
+      <div style="margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <input type="checkbox" id="agreePrivacy" required style="margin-top: 3px; cursor: pointer; width: 18px; height: 18px; accent-color: #38bdf8;">
+        <label for="agreePrivacy" style="font-size: 13px; color: var(--text-secondary); cursor: pointer; line-height: 1.4;">
+          I have read and agree to the <a href="/privacy" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 600;">ParkingBuzz Privacy Policy</a> and terms of service.
+        </label>
+      </div>
+
+
       <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
         🚀 Activate Sticker & Open Dashboard
       </button>
+
     </form>
 
     <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>

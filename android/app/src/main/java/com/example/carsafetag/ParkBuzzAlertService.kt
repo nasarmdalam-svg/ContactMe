@@ -149,7 +149,7 @@ class ParkBuzzAlertService : Service() {
         )
 
         return NotificationCompat.Builder(this, SILENT_KEEPER_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("ParkBuzz Active")
             .setContentText("Monitoring silently in background")
             .setContentIntent(pendingIntent)
@@ -279,7 +279,8 @@ class ParkBuzzAlertService : Service() {
         } catch (_: Exception) { null }
 
         val notifBuilder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setColor(0xFF38BDF8.toInt())
             .setContentTitle(notifTitle)
             .setContentText(if (isCall) "Incoming Voice Call..." else message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(notifBigText))

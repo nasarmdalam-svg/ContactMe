@@ -403,6 +403,13 @@ def get_qr_image(tag_id: str, request: Request):
 # Printable sticker download endpoint
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
+    metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
+    if os.path.exists(metallic_path):
+        return FileResponse(
+            metallic_path,
+            media_type="image/jpeg",
+            headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.jpg"'}
+        )
     base_url = str(request.base_url).rstrip("/")
     sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
     with open(sticker_path, "rb") as f:
@@ -412,6 +419,7 @@ def get_sticker(tag_id: str, request: Request):
         media_type="image/png",
         headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.png"'}
     )
+
 
 
 # PDF sticker download endpoint (single sticker on A4)

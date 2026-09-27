@@ -110,8 +110,42 @@
       setTimeout(() => { statusToast.style.display = 'none'; }, 4000);
     }
 
-    // Send Alert handler
-    async function sendAlert(type, message = '') {
+    let isAlertInProgress = false;
+
+    function setButtonsState(disabled, activeBtn = null, loadingText = '') {
+      const allButtons = document.querySelectorAll('.alert-btn, #btnSendCustom, #btnCallOwner');
+      const textarea = document.getElementById('customMessage');
+      if (textarea) textarea.disabled = disabled;
+
+      allButtons.forEach(btn => {
+        btn.disabled = disabled;
+        if (disabled) {
+          btn.style.opacity = '0.5';
+          btn.style.pointerEvents = 'none';
+        } else {
+          btn.style.opacity = '1';
+          btn.style.pointerEvents = 'auto';
+        }
+      });
+
+      if (activeBtn) {
+        activeBtn.style.opacity = '1';
+        if (disabled && loadingText) {
+          activeBtn.dataset.originalHtml = activeBtn.innerHTML;
+          activeBtn.innerHTML = `<span>⏳</span> <span>${loadingText}</span>`;
+        } else if (!disabled && activeBtn.dataset.originalHtml) {
+          activeBtn.innerHTML = activeBtn.dataset.originalHtml;
+        }
+      }
+    }
+
+    // Send Alert handler with anti-spam button lock & auto re-enable
+    async function sendAlert(type, message = '', clickedBtn = null) {
+      if (isAlertInProgress) return;
+      isAlertInProgress = true;
+
+      setButtonsState(true, clickedBtn, 'Delivering Alert to Owner...');
+
       try {
         const resp = await fetch(`/api/alert/${tagId}`, {
           method: 'POST',
@@ -119,13 +153,37 @@
           body: JSON.stringify({ alert_type: type, message: message })
         });
         const data = await resp.json();
+
         if (resp.ok) {
-          showToast('🔔 Alert sent! The owner\'s phone is ringing/notified.');
+          if (clickedBtn) {
+            clickedBtn.innerHTML = `<span>✅</span> <span>Alert Delivered to Owner!</span>`;
+          }
+          showToast('🔔 Alert delivered! The owner\'s phone is ringing/notified.');
+
+          // Cooldown for 5 seconds before re-enabling all buttons
+          let remainingSeconds = 5;
+          const countdownInterval = setInterval(() => {
+            remainingSeconds--;
+            if (clickedBtn && remainingSeconds > 0) {
+              clickedBtn.innerHTML = `<span>✅</span> <span>Delivered! Ready in ${remainingSeconds}s...</span>`;
+            }
+            if (remainingSeconds <= 0) {
+              clearInterval(countdownInterval);
+              setButtonsState(false, clickedBtn);
+              isAlertInProgress = false;
+              showToast('Buttons ready. You can send another alert if needed.');
+            }
+          }, 1000);
+
         } else {
           showToast('Failed to send alert: ' + (data.detail || 'Unknown error'), true);
+          setButtonsState(false, clickedBtn);
+          isAlertInProgress = false;
         }
       } catch (e) {
         showToast('Network error sending alert', true);
+        setButtonsState(false, clickedBtn);
+        isAlertInProgress = false;
       }
     }
 
@@ -133,7 +191,7 @@
       btn.addEventListener('click', () => {
         const type = btn.getAttribute('data-type');
         const text = btn.querySelector('span:last-child').textContent;
-        sendAlert(type, text);
+        sendAlert(type, text, btn);
       });
     });
 
@@ -143,9 +201,10 @@
         alert('Please enter a message.');
         return;
       }
-      sendAlert('custom', msg);
+      sendAlert('custom', msg, document.getElementById('btnSendCustom'));
       document.getElementById('customMessage').value = '';
     });
+
 
     // Voice Call Logic
     let callClient = null;

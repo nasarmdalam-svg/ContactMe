@@ -59,13 +59,14 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
         notification=messaging.AndroidNotification(
             title=title,
             body=body,
-            icon="ic_launcher",
+            icon="ic_stat_parkbuzz",
             color="#38BDF8",
             channel_id="parkbuzz_alert_popup_v9",
             priority="max",
             default_sound=True,
             default_vibrate_timings=True,
-            visibility="public"
+            visibility="public",
+            image="https://contactme-go9v.onrender.com/static/images/p_logo.png"
         )
     )
 
@@ -73,7 +74,8 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
         tokens=fcm_tokens,
         notification=messaging.Notification(
             title=title,
-            body=body
+            body=body,
+            image="https://contactme-go9v.onrender.com/static/images/p_logo.png"
         ),
         data={
             "tag_id": tag_id,

@@ -130,7 +130,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
         } catch (_: Exception) { null }
 
         val notifBuilder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
             .setColor(0xFF38BDF8.toInt())
             .setContentTitle(notifTitle)
             .setContentText(if (isCall) "Incoming Voice Call..." else message)

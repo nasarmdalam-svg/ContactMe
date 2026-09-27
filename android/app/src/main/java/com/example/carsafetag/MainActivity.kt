@@ -137,16 +137,23 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                                override fun onReceivedError(
+                                 override fun onReceivedError(
                                     view: WebView?,
                                     errorCode: Int,
                                     description: String?,
                                     failingUrl: String?
                                 ) {
                                     super.onReceivedError(view, errorCode, description, failingUrl)
-                                    loadingStatus = "Reconnecting to ParkBuzz network..."
+                                    loadingStatus = "Reconnecting to ParkingBuzz network..."
                                     postDelayed({
-                                        view?.loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
+                                        val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                        val tag = prefs.getString("ACTIVE_TAG_ID", null)
+                                        val retryUrl = if (!tag.isNullOrBlank()) {
+                                            "https://contactme-go9v.onrender.com/owner/$tag"
+                                        } else {
+                                            "https://contactme-go9v.onrender.com/register"
+                                        }
+                                        view?.loadUrl(retryUrl)
                                     }, 4000)
                                 }
                             }
@@ -160,7 +167,10 @@ class MainActivity : ComponentActivity() {
                                 fun isParkBuzzApp(): Boolean = true
 
                                 @JavascriptInterface
-                                fun getTagId(): String = "CAR-D3AEED"
+                                fun getTagId(): String {
+                                    val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                    return prefs.getString("ACTIVE_TAG_ID", "") ?: ""
+                                }
 
                                 @JavascriptInterface
                                 fun onTagLoaded(newTagId: String) {
@@ -190,7 +200,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            loadUrl("https://contactme-go9v.onrender.com/owner/CAR-D3AEED")
+                            val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                            val savedTag = prefs.getString("ACTIVE_TAG_ID", null)
+                            val startUrl = if (!savedTag.isNullOrBlank()) {
+                                "https://contactme-go9v.onrender.com/owner/$savedTag"
+                            } else {
+                                "https://contactme-go9v.onrender.com/register"
+                            }
+                            loadUrl(startUrl)
                             webViewInstance = this
                         }
                     }

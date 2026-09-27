@@ -20,7 +20,24 @@
       <span style="font-size: 13px; line-height: 1.4;">100% Privacy Protected: Contactor alerts and calls are routed securely without exposing your phone number.</span>
     </div>
 
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 12px; border: 1px solid var(--border-color);">
+      <button type="button" id="tabNew" style="flex: 1; padding: 10px; border-radius: 9px; border: none; background: #38bdf8; color: #0f172a; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+        🚗 Generate New Sticker
+      </button>
+      <button type="button" id="tabExisting" style="flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; color: #94a3b8; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+        🏷️ Link Printed Sticker
+      </button>
+    </div>
+
     <form id="registerForm">
+      <div id="existingTagGroup" style="display: none; margin-bottom: 16px;">
+        <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #38bdf8;">
+          Sticker ID (Printed on your card) <span style="color: #ef4444;">*</span>
+        </label>
+        <input type="text" id="existingTagId" placeholder="e.g. CAR-D3AEED or BUZZ-123456" style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(56, 189, 248, 0.08); border: 1px solid #38bdf8; border-radius: 10px; color: white; font-size: 15px; font-weight: 600; text-transform: uppercase;">
+        <span style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">Enter the Tag ID printed at the bottom of your physical sticker.</span>
+      </div>
+
       <div style="margin-bottom: 16px;">
         <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #f1f5f9;">
           Vehicle Number Plate / Name <span style="color: #ef4444;">*</span>
@@ -55,11 +72,6 @@
       </button>
     </form>
 
-    <div style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-secondary);">
-      Already have a physical printed sticker? <br>
-      <a href="/activate/CAR-SAMPLE" id="linkExisting" style="color: #38bdf8; font-weight: 600; text-decoration: underline; display: inline-block; margin-top: 4px;">Link Existing Sticker</a>
-    </div>
-
     <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
   </div>
 
@@ -67,6 +79,35 @@
     const form = document.getElementById('registerForm');
     const toast = document.getElementById('statusToast');
     const btnSubmit = document.getElementById('btnSubmit');
+    const tabNew = document.getElementById('tabNew');
+    const tabExisting = document.getElementById('tabExisting');
+    const existingTagGroup = document.getElementById('existingTagGroup');
+    const existingTagIdInput = document.getElementById('existingTagId');
+
+    let currentMode = 'new'; // 'new' or 'existing'
+
+    tabNew.addEventListener('click', () => {
+      currentMode = 'new';
+      tabNew.style.background = '#38bdf8';
+      tabNew.style.color = '#0f172a';
+      tabExisting.style.background = 'transparent';
+      tabExisting.style.color = '#94a3b8';
+      existingTagGroup.style.display = 'none';
+      existingTagIdInput.required = false;
+      btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
+    });
+
+    tabExisting.addEventListener('click', () => {
+      currentMode = 'existing';
+      tabExisting.style.background = '#38bdf8';
+      tabExisting.style.color = '#0f172a';
+      tabNew.style.background = 'transparent';
+      tabNew.style.color = '#94a3b8';
+      existingTagGroup.style.display = 'block';
+      existingTagIdInput.required = true;
+      existingTagIdInput.focus();
+      btnSubmit.textContent = '🔗 Link Sticker to My Vehicle';
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -81,43 +122,85 @@
       }
 
       btnSubmit.disabled = true;
-      btnSubmit.textContent = 'Generating vehicle tag...';
 
-      try {
-        const resp = await fetch('/api/register-vehicle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vehicle_name: vehicleName, owner_name: ownerName, custom_note: customNote })
-        });
-        const data = await resp.json();
-        if (resp.ok && data.tag_id) {
-          const newTagId = data.tag_id;
-          localStorage.setItem('pb_active_tag', newTagId);
+      if (currentMode === 'existing') {
+        const inputTag = existingTagIdInput.value.trim().toUpperCase();
+        if (!inputTag) {
+          alert('Please enter your physical Sticker ID.');
+          btnSubmit.disabled = false;
+          return;
+        }
 
-          // Notify native Android wrapper of the new unique Tag ID for FCM push registration
-          if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
-            window.ParkBuzzApp.onTagLoaded(newTagId);
+        btnSubmit.textContent = 'Linking your sticker...';
+        try {
+          const resp = await fetch(`/api/activate/${inputTag}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicle_name: vehicleName, custom_note: customNote })
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            localStorage.setItem('pb_active_tag', inputTag);
+            if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
+              window.ParkBuzzApp.onTagLoaded(inputTag);
+            }
+            toast.textContent = 'Sticker linked! Opening your dashboard...';
+            toast.style.display = 'block';
+            toast.style.background = 'rgba(16, 185, 129, 0.2)';
+            toast.style.color = '#34d399';
+            setTimeout(() => {
+              window.location.href = `/owner/${inputTag}`;
+            }, 800);
+          } else {
+            toast.textContent = data.detail || 'Failed to link sticker';
+            toast.style.display = 'block';
+            toast.style.background = 'rgba(239, 68, 68, 0.2)';
+            toast.style.color = '#f87171';
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = '🔗 Link Sticker to My Vehicle';
           }
+        } catch (err) {
+          alert('Error connecting to server: ' + err.message);
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '🔗 Link Sticker to My Vehicle';
+        }
+      } else {
+        btnSubmit.textContent = 'Generating vehicle tag...';
+        try {
+          const resp = await fetch('/api/register-vehicle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicle_name: vehicleName, owner_name: ownerName, custom_note: customNote })
+          });
+          const data = await resp.json();
+          if (resp.ok && data.tag_id) {
+            const newTagId = data.tag_id;
+            localStorage.setItem('pb_active_tag', newTagId);
 
-          toast.textContent = 'Tag generated! Opening your dashboard...';
-          toast.style.display = 'block';
-          toast.style.background = 'rgba(16, 185, 129, 0.2)';
-          toast.style.color = '#34d399';
-          setTimeout(() => {
-            window.location.href = `/owner/${newTagId}`;
-          }, 800);
-        } else {
-          toast.textContent = data.detail || 'Registration failed';
-          toast.style.display = 'block';
-          toast.style.background = 'rgba(239, 68, 68, 0.2)';
-          toast.style.color = '#f87171';
+            if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
+              window.ParkBuzzApp.onTagLoaded(newTagId);
+            }
+
+            toast.textContent = 'Tag generated! Opening your dashboard...';
+            toast.style.display = 'block';
+            toast.style.background = 'rgba(16, 185, 129, 0.2)';
+            toast.style.color = '#34d399';
+            setTimeout(() => {
+              window.location.href = `/owner/${newTagId}`;
+            }, 800);
+          } else {
+            toast.textContent = data.detail || 'Registration failed';
+            toast.style.display = 'block';
+            toast.style.background = 'rgba(239, 68, 68, 0.2)';
+            toast.style.color = '#f87171';
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
+          }
+        } catch (err) {
+          alert('Error connecting to server: ' + err.message);
           btnSubmit.disabled = false;
           btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
         }
-      } catch (err) {
-        alert('Error connecting to server: ' + err.message);
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = '⚡ Generate My Vehicle Tag & Sticker';
       }
     });
   </script>

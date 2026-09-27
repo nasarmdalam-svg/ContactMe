@@ -83,6 +83,22 @@ class MainActivity : ComponentActivity() {
         }
 
 
+        // Prompt for runtime permissions (Notifications & Audio)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            requestPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.POST_NOTIFICATIONS,
+                    android.Manifest.permission.RECORD_AUDIO
+                )
+            )
+        } else {
+            requestPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.RECORD_AUDIO
+                )
+            )
+        }
+
         // Initialize Firebase FCM Token and register with backend for millions-of-devices support
         try {
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->

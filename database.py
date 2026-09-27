@@ -32,6 +32,19 @@ def init_db():
             conn.execute("ALTER TABLE tags ADD COLUMN is_active INTEGER DEFAULT 1")
         except Exception:
             pass
+        for col_def in [
+            "ALTER TABLE tags ADD COLUMN blood_group TEXT DEFAULT ''",
+            "ALTER TABLE tags ADD COLUMN emergency_contact TEXT DEFAULT ''",
+            "ALTER TABLE tags ADD COLUMN emergency_phone TEXT DEFAULT ''",
+            "ALTER TABLE tags ADD COLUMN backup_phone TEXT DEFAULT ''",
+            "ALTER TABLE tags ADD COLUMN dnd_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE tags ADD COLUMN dnd_start TEXT DEFAULT '23:00'",
+            "ALTER TABLE tags ADD COLUMN dnd_end TEXT DEFAULT '07:00'",
+        ]:
+            try:
+                conn.execute(col_def)
+            except Exception:
+                pass
         conn.execute("""
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,6 +136,18 @@ def update_tag_profile(tag_id: str, vehicle_name: str, owner_name: str = "", cus
             WHERE tag_id = ?
             """,
             (vehicle_name, owner_name, custom_note, tag_id)
+        )
+        conn.commit()
+
+def update_emergency_profile(tag_id: str, blood_group: str = "", emergency_contact: str = "", emergency_phone: str = "", backup_phone: str = "", dnd_enabled: int = 0, dnd_start: str = "23:00", dnd_end: str = "07:00"):
+    with get_db() as conn:
+        conn.execute(
+            """
+            UPDATE tags
+            SET blood_group = ?, emergency_contact = ?, emergency_phone = ?, backup_phone = ?, dnd_enabled = ?, dnd_start = ?, dnd_end = ?
+            WHERE tag_id = ?
+            """,
+            (blood_group, emergency_contact, emergency_phone, backup_phone, dnd_enabled, dnd_start, dnd_end, tag_id)
         )
         conn.commit()
 

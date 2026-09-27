@@ -18,15 +18,48 @@
       {% endif %}
     </div>
 
-    <div class="privacy-banner">
-      <span>🛡️</span>
-      <span><strong>100% Private:</strong> Your phone number remains completely masked and confidential.</span>
+    <div class="privacy-banner" style="display:flex; flex-direction:column; gap:6px; text-align:left; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px 14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size: 18px;">🛡️</span>
+        <strong style="color: #34d399; font-size: 13px;">100% Safe & Private Scan</strong>
+        <span style="margin-left:auto; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">No App Needed</span>
+      </div>
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
+        Verified Secure • Zero Phone Numbers Exchanged • No APK or Script Downloads
+      </div>
     </div>
+
+    {% if tag.get('blood_group') or tag.get('emergency_contact') or tag.get('emergency_phone') %}
+    <div style="margin: 14px 0; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 12px 14px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="const d = document.getElementById('medicalDetails'); d.style.display = d.style.display === 'none' ? 'block' : 'none';">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🆘</span>
+          <strong style="color: #f87171; font-size: 13px;">Emergency & Medical Information</strong>
+        </div>
+        <span style="font-size: 12px; color: #f87171; font-weight: 600;">View Details ▼</span>
+      </div>
+      <div id="medicalDetails" style="display: none; margin-top: 10px; font-size: 13px; color: #e2e8f0; border-top: 1px dashed rgba(239, 68, 68, 0.3); padding-top: 8px;">
+        {% if tag.get('blood_group') %}
+        <div style="margin-bottom: 4px;">🩸 <strong>Blood Group:</strong> <span style="color: #ef4444; font-weight: 700; font-size: 14px;">{{ tag.blood_group }}</span></div>
+        {% endif %}
+        {% if tag.get('emergency_contact') %}
+        <div style="margin-bottom: 4px;">👤 <strong>Emergency Contact:</strong> {{ tag.emergency_contact }}</div>
+        {% endif %}
+        {% if tag.get('emergency_phone') %}
+        <div style="margin-top: 8px;">
+          <a href="tel:{{ tag.emergency_phone }}" style="display: inline-flex; align-items: center; gap: 6px; background: #ef4444; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">
+            <span>📞</span> Call Emergency Contact
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
 
     {% if tag.get('is_active', 1) == 0 %}
     <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 18px; color: #f87171; text-align: center;">
-      ⚠️ <strong>Owner is currently unavailable (Do Not Disturb)</strong><br>
-      <span style="font-size: 12px; color: #cbd5e1;">The owner has temporarily disconnected notifications.</span>
+      ⚠️ <strong>Owner is currently away (Do Not Disturb)</strong><br>
+      <span style="font-size: 12px; color: #cbd5e1;">Notifications may be muted.</span>
     </div>
     {% endif %}
 
@@ -39,8 +72,14 @@
     <!-- Voice Call Option -->
     <div class="call-btn-container">
       <button class="btn-primary" id="btnStartCall">
-        <span style="font-size: 20px;">📞</span> Call Owner (Free Voice Call)
+        <span style="font-size: 20px;">📞</span> Call Owner (Free Private Voice Call)
       </button>
+    </div>
+
+    <!-- Location Sharing Toggle -->
+    <div style="margin: 14px 0 10px 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; color: #94a3b8; background: rgba(255, 255, 255, 0.03); padding: 8px; border-radius: 8px;">
+      <input type="checkbox" id="attachLocation" checked style="accent-color: #3b82f6; width: 15px; height: 15px; cursor: pointer;">
+      <label for="attachLocation" style="cursor: pointer;">📍 Share approximate location to help owner find car</label>
     </div>
 
     <div class="section-title">Or Send an Instant Sound Alert</div>
@@ -139,6 +178,22 @@
       }
     }
 
+    async function getApproxLocation() {
+      const attachLoc = document.getElementById('attachLocation');
+      if (!attachLoc || !attachLoc.checked || !navigator.geolocation) return null;
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude.toFixed(5);
+            const lng = pos.coords.longitude.toFixed(5);
+            resolve(`https://maps.google.com/?q=${lat},${lng}`);
+          },
+          () => resolve(null),
+          { timeout: 2500, maximumAge: 60000 }
+        );
+      });
+    }
+
     // Send Alert handler with anti-spam button lock & auto re-enable
     async function sendAlert(type, message = '', clickedBtn = null) {
       if (isAlertInProgress) return;
@@ -146,11 +201,20 @@
 
       setButtonsState(true, clickedBtn, 'Delivering Alert to Owner...');
 
+      let locationUrl = null;
+      try {
+        locationUrl = await getApproxLocation();
+      } catch (e) {}
+
       try {
         const resp = await fetch(`/api/alert/${tagId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ alert_type: type, message: message })
+          body: JSON.stringify({ 
+            alert_type: type, 
+            message: message,
+            location: locationUrl || ''
+          })
         });
         const data = await resp.json();
 

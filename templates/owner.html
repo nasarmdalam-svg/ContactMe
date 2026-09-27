@@ -66,6 +66,38 @@
       </div>
     </div>
 
+    <!-- Emergency & Safety Profile Card -->
+    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🆘</span>
+          <strong style="font-size: 14px; color: white;">Emergency & Safety Profile</strong>
+        </div>
+        <button type="button" id="btnOpenEmergency" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 600;">
+          ✏️ Edit Profile
+        </button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Blood Group</span>
+          <strong id="cardBloodGroup" style="color: #ef4444; font-size: 13px;">{{ tag.blood_group if tag.blood_group else 'Not set' }}</strong>
+        </div>
+        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Emergency Contact</span>
+          <strong id="cardEmergencyContact" style="color: #e2e8f0; font-size: 13px;">{{ tag.emergency_contact if tag.emergency_contact else 'Not set' }}</strong>
+        </div>
+        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Emergency Phone</span>
+          <strong id="cardEmergencyPhone" style="color: #e2e8f0; font-size: 13px;">{{ tag.emergency_phone if tag.emergency_phone else 'Not set' }}</strong>
+        </div>
+        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Quiet Hours (DND)</span>
+          <strong id="cardDndStatus" style="color: #10b981; font-size: 13px;">{{ 'Active (23:00-07:00)' if tag.dnd_enabled else 'Disabled (Always Alert)' }}</strong>
+        </div>
+      </div>
+    </div>
+
     <!-- Recent Alerts History -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
       <div class="section-title" style="margin-bottom: 0;">Recent Alerts History</div>
@@ -121,6 +153,58 @@
         <div style="display: flex; gap: 10px;">
           <button type="button" id="btnCancelEdit" class="alert-btn" style="flex: 1; justify-content: center; padding: 10px;">Cancel</button>
           <button type="submit" id="btnSaveEdit" class="btn-primary" style="flex: 1; padding: 10px;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Emergency & Safety Modal -->
+  <div id="emergencyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #1e293b; border: 1px solid var(--border-color); border-radius: 16px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <div style="font-weight: 700; font-size: 17px; color: white;">🆘 Emergency & Safety Profile</div>
+        <button id="btnCloseEmergency" type="button" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      
+      <form id="emergencyForm">
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Blood Group</label>
+          <select id="inputBloodGroup" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+            <option value="" style="background: #1e293b;">Select Blood Group</option>
+            {% for bg in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] %}
+            <option value="{{ bg }}" style="background: #1e293b;" {% if tag.get('blood_group') == bg %}selected{% endif %}>{{ bg }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Emergency Contact Name (ICE)</label>
+          <input type="text" id="inputEmergencyContact" value="{{ tag.emergency_contact if tag.emergency_contact else '' }}" placeholder="e.g. Spouse / Brother" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Emergency Phone Number</label>
+          <input type="tel" id="inputEmergencyPhone" value="{{ tag.emergency_phone if tag.emergency_phone else '' }}" placeholder="e.g. +91 9876543210" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Secondary / Driver Backup Phone (Optional)</label>
+          <input type="tel" id="inputBackupPhone" value="{{ tag.backup_phone if tag.backup_phone else '' }}" placeholder="e.g. Family or Driver mobile" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px;">
+          <label style="display:flex; align-items:center; gap: 8px; font-size: 13px; color: white; cursor: pointer;">
+            <input type="checkbox" id="inputDndEnabled" {% if tag.get('dnd_enabled') %}checked{% endif %} style="accent-color: #10b981; width: 16px; height: 16px;">
+            <span>🌙 Enable Quiet Hours (11:00 PM – 7:00 AM)</span>
+          </label>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; padding-left: 24px;">
+            Non-urgent buzzer sound is muted during sleep hours. Emergency calls still ring.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btnCancelEmergency" class="alert-btn" style="flex: 1; justify-content: center; padding: 10px;">Cancel</button>
+          <button type="submit" id="btnSaveEmergency" class="btn-primary" style="flex: 1; padding: 10px;">Save Profile</button>
         </div>
       </form>
     </div>
@@ -257,6 +341,71 @@
         saveBtn.disabled = false;
       }
     });
+
+    // Emergency Modal handlers
+    const emergencyModal = document.getElementById('emergencyModal');
+    const btnOpenEmergency = document.getElementById('btnOpenEmergency');
+    const btnCloseEmergency = document.getElementById('btnCloseEmergency');
+    const btnCancelEmergency = document.getElementById('btnCancelEmergency');
+    const emergencyForm = document.getElementById('emergencyForm');
+
+    if (btnOpenEmergency) {
+      btnOpenEmergency.addEventListener('click', () => {
+        emergencyModal.style.display = 'flex';
+      });
+    }
+
+    function closeEmergencyModal() {
+      if (emergencyModal) emergencyModal.style.display = 'none';
+    }
+
+    if (btnCloseEmergency) btnCloseEmergency.addEventListener('click', closeEmergencyModal);
+    if (btnCancelEmergency) btnCancelEmergency.addEventListener('click', closeEmergencyModal);
+
+    if (emergencyForm) {
+      emergencyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('btnSaveEmergency');
+        saveBtn.textContent = 'Saving...';
+        saveBtn.disabled = true;
+
+        const bloodGroup = document.getElementById('inputBloodGroup').value;
+        const emergencyContact = document.getElementById('inputEmergencyContact').value.trim();
+        const emergencyPhone = document.getElementById('inputEmergencyPhone').value.trim();
+        const backupPhone = document.getElementById('inputBackupPhone').value.trim();
+        const dndEnabled = document.getElementById('inputDndEnabled').checked ? 1 : 0;
+
+        try {
+          const resp = await fetch(`/api/tag/${tagId}/emergency-profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              blood_group: bloodGroup,
+              emergency_contact: emergencyContact,
+              emergency_phone: emergencyPhone,
+              backup_phone: backupPhone,
+              dnd_enabled: dndEnabled
+            })
+          });
+
+          if (resp.ok) {
+            document.getElementById('cardBloodGroup').textContent = bloodGroup || 'Not set';
+            document.getElementById('cardEmergencyContact').textContent = emergencyContact || 'Not set';
+            document.getElementById('cardEmergencyPhone').textContent = emergencyPhone || 'Not set';
+            document.getElementById('cardDndStatus').textContent = dndEnabled ? 'Active (23:00-07:00)' : 'Disabled (Always Alert)';
+            closeEmergencyModal();
+            showToast('✅ Emergency & Safety profile updated!');
+          } else {
+            alert('Failed to update emergency profile. Please try again.');
+          }
+        } catch (err) {
+          alert('Network error updating profile: ' + err.message);
+        } finally {
+          saveBtn.textContent = 'Save Profile';
+          saveBtn.disabled = false;
+        }
+      });
+    }
 
     // Active / Disconnect Toggle
     const btnToggleActive = document.getElementById('btnToggleActive');

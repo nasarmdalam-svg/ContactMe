@@ -99,6 +99,16 @@ class UpdateProfileRequest(BaseModel):
 class AlertRequest(BaseModel):
     alert_type: str
     message: Optional[str] = ""
+    location: Optional[str] = ""
+
+class EmergencyProfileRequest(BaseModel):
+    blood_group: Optional[str] = ""
+    emergency_contact: Optional[str] = ""
+    emergency_phone: Optional[str] = ""
+    backup_phone: Optional[str] = ""
+    dnd_enabled: Optional[int] = 0
+    dnd_start: Optional[str] = "23:00"
+    dnd_end: Optional[str] = "07:00"
 
 class SubscriptionModel(BaseModel):
     endpoint: str
@@ -236,6 +246,20 @@ def api_update_tag(tag_id: str, data: UpdateProfileRequest):
     )
     return {"status": "ok", "vehicle_name": data.vehicle_name, "owner_name": data.owner_name, "custom_note": data.custom_note}
 
+@app.post("/api/tag/{tag_id}/emergency-profile")
+def api_update_emergency_profile(tag_id: str, data: EmergencyProfileRequest):
+    database.update_emergency_profile(
+        tag_id=tag_id,
+        blood_group=data.blood_group or "",
+        emergency_contact=data.emergency_contact or "",
+        emergency_phone=data.emergency_phone or "",
+        backup_phone=data.backup_phone or "",
+        dnd_enabled=data.dnd_enabled or 0,
+        dnd_start=data.dnd_start or "23:00",
+        dnd_end=data.dnd_end or "07:00"
+    )
+    return {"status": "ok", "message": "Emergency profile updated successfully"}
+
 @app.post("/api/tag/{tag_id}/toggle-active")
 def api_toggle_active(tag_id: str):
     new_state = database.toggle_tag_active(tag_id)
@@ -331,6 +355,8 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     # 1. Log alert in DB
     alert_title = f"🚨 {alert.alert_type.capitalize()} Alert"
     alert_body = alert.message if alert.message else f"Alert regarding your vehicle ({tag.get('vehicle_name', tag_id)})"
+    if alert.location:
+        alert_body += f" | 📍 Location: {alert.location}"
     database.log_alert(tag_id, alert.alert_type, alert_body)
 
     # 2. Notify active WebSocket owner connection immediately (if app is open)

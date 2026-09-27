@@ -34,31 +34,31 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v1.9.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v2.0.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v1.9-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v1.9.apk
+          name: ParkBuzz-v2.0-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v2.0.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.9
-          name: ParkBuzz Android App v1.9
+          tag_name: v2.0
+          name: ParkBuzz Android App v2.0
           body: |
-            ## ⚡ ParkBuzz v1.9
-            - **Status Bar Clean:** Suppressed all icons from the top status bar (battery/clock area). Zero persistent notification clutter.
-            - **Closed-App Alerts & Calls Restored:** Real-time dual-tone chime sound and heads-up pop-up alert when app is closed or phone is locked.
-            - **24/7 Keep-Alive Engine:** Added automatic 10-minute ping cron workflow preventing Render free instance from sleeping.
-            - **Branded Splash & Loading Shield:** Beautiful native ParkBuzz loading screen guarantees users never see Render spin-up or blank pages.
-            - **Active Call Disconnect Button:** Prominent red disconnect button both in native Android alert dialog and web overlay.
+            ## ⚡ ParkBuzz v2.0 — Unrestricted Background Protection & Official App Icon
+            - **No Blank Notification Box:** Replaced solid square with official crisp ParkBuzz monochrome stencil vector icon (`ic_stat_parkbuzz`) in status bar, and vibrant full-color app logo in notification shade.
+            - **Unrestricted Background Activity:** Prompts for Battery Optimization exemption at install so Android OS never kills or suspends the background service when the app is swiped away.
+            - **Never Terminate on Task Removal:** Added `android:stopWithTask="false"` and `BootReceiver` auto-restart mechanism.
+            - **Survives Device Reboot:** Automatically resumes monitoring after phone restarts or app updates (`RECEIVE_BOOT_COMPLETED`).
+            - **Top Status Bar Clean:** Zero icon when idle; only displays the official ParkBuzz icon when an actual parking alert or call arrives.
             - **Seamless 1-Tap Upgrade:** Signed with the permanent keystore so users update directly without uninstalling.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v1.9.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v2.0.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

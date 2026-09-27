@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
@@ -85,12 +86,13 @@ class ParkBuzzAlertService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // When user swipes away app from recent apps, restart service immediately
+        // When user swipes away app from recent apps, broadcast to BootReceiver to guarantee keep-alive
         try {
-            val restartIntent = Intent(applicationContext, ParkBuzzAlertService::class.java).apply {
+            val restartIntent = Intent(applicationContext, BootReceiver::class.java).apply {
+                action = "com.example.carsafetag.RESTART_SERVICE"
                 putExtra("TAG_ID", tagId)
             }
-            val pendingIntent = PendingIntent.getService(
+            val pendingIntent = PendingIntent.getBroadcast(
                 this, 101, restartIntent,
                 PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -147,7 +149,7 @@ class ParkBuzzAlertService : Service() {
         )
 
         return NotificationCompat.Builder(this, SILENT_KEEPER_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
             .setContentTitle("ParkBuzz Active")
             .setContentText("Monitoring silently in background")
             .setContentIntent(pendingIntent)
@@ -272,8 +274,12 @@ class ParkBuzzAlertService : Service() {
         val notifTitle = if (isCall) "📞 Incoming Voice Call" else "🚨 ParkBuzz: ${alertType.uppercase()} ALERT"
         val notifBigText = if (isCall) "📞 A bystander near your vehicle is calling you live.\n\nTap to Answer or Decline." else "🚨 $message\n\nTap to open app and silence."
 
-        val notif = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+        val appLogo = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) { null }
+
+        val notifBuilder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
             .setContentTitle(notifTitle)
             .setContentText(if (isCall) "Incoming Voice Call..." else message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(notifBigText))
@@ -284,7 +290,12 @@ class ParkBuzzAlertService : Service() {
             .setFullScreenIntent(fullScreenPendingIntent, true) // SCREEN POP-UP
             .setContentIntent(fullScreenPendingIntent)
             .setAutoCancel(true)
-            .build()
+
+        if (appLogo != null) {
+            notifBuilder.setLargeIcon(appLogo)
+        }
+
+        val notif = notifBuilder.build()
 
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify((System.currentTimeMillis() % 10000).toInt(), notif)

@@ -431,7 +431,6 @@ def get_qr_image(tag_id: str, request: Request):
 def get_sticker(tag_id: str, request: Request):
     from PIL import Image, ImageDraw, ImageFont
     import qrcode as _qrcode
-    import numpy as np
 
     base_url = str(request.base_url).rstrip("/")
     scan_url = f"{base_url}/c/{tag_id}"
@@ -481,15 +480,17 @@ def get_sticker(tag_id: str, request: Request):
 
         # Dynamically erase static template ID and draw the actual tag_id
         if tag_id:
-            arr = np.array(card)
-            y1, y2 = 982, 1024
-            x1, x2 = 362, 560
-            top_row = arr[y1, x1:x2, :].astype(float)
-            bottom_row = arr[y2, x1:x2, :].astype(float)
-            for y in range(y1, y2 + 1):
-                alpha = (y - y1) / float(y2 - y1)
-                arr[y, x1:x2, :] = (1.0 - alpha) * top_row + alpha * bottom_row
-            card = Image.fromarray(arr)
+            pixels = card.load()
+            for y in range(982, 1025):
+                alpha = (y - 982) / 42.0
+                for x in range(362, 560):
+                    t = pixels[x, 982]
+                    b = pixels[x, 1024]
+                    pixels[x, y] = (
+                        int((1.0 - alpha) * t[0] + alpha * b[0]),
+                        int((1.0 - alpha) * t[1] + alpha * b[1]),
+                        int((1.0 - alpha) * t[2] + alpha * b[2])
+                    )
 
             draw = ImageDraw.Draw(card)
             font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")

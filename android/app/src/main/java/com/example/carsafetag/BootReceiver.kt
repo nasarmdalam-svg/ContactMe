@@ -22,11 +22,7 @@ class BootReceiver : BroadcastReceiver() {
             val serviceIntent = Intent(context, ParkBuzzAlertService::class.java).apply {
                 putExtra("TAG_ID", tagId)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
+            context.startService(serviceIntent)
             Log.d(TAG, "ParkBuzzAlertService successfully started from BootReceiver")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start service from BootReceiver: ${e.message}", e)

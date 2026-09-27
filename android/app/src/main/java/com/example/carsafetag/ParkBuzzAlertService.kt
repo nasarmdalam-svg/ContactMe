@@ -60,22 +60,11 @@ class ParkBuzzAlertService : Service() {
             if (it.isNotBlank()) tagId = it
         }
 
-        // Android 14+ (API 34+) compatibility: MUST specify foregroundServiceType
+        // Cancel any previous keeper notification
         try {
-            val notification = buildKeeperNotification()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    KEEPER_NOTIF_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
-                )
-            } else {
-                startForeground(KEEPER_NOTIF_ID, notification)
-            }
-            Log.d(TAG, "Foreground service started silently for tag: $tagId")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to startForeground: ${e.message}", e)
-        }
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.cancel(KEEPER_NOTIF_ID)
+        } catch (_: Exception) {}
 
         if (!isRunning) {
             isRunning = true
@@ -112,21 +101,14 @@ class ParkBuzzAlertService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // 1. Silent keeper channel (MIN importance ensures NO icon on top status bar while keeping service alive)
-            val keeperChannel = NotificationChannel(
-                SILENT_KEEPER_CHANNEL_ID,
-                "ParkBuzz Background Service",
-                NotificationManager.IMPORTANCE_MIN
-            ).apply {
-                description = "Keeps ParkBuzz connected silently in background"
-                setShowBadge(false)
-                enableLights(false)
-                enableVibration(false)
-                setSound(null, null)
-            }
-            nm.createNotificationChannel(keeperChannel)
+            // Clean up any old keeper channels completely
+            try {
+                nm.deleteNotificationChannel(SILENT_KEEPER_CHANNEL_ID)
+                nm.deleteNotificationChannel("parkbuzz_silent_keeper_v7")
+                nm.deleteNotificationChannel("parkbuzz_silent_keeper_v5")
+            } catch (_: Exception) {}
 
-            // 2. High priority alert channel (Heads-up pop-up on screen)
+            // High priority alert channel for emergency vehicle notifications & calls
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
                 "ParkBuzz Emergency Alerts",
@@ -139,26 +121,6 @@ class ParkBuzzAlertService : Service() {
             }
             nm.createNotificationChannel(alertChannel)
         }
-    }
-
-    private fun buildKeeperNotification(): Notification {
-        val openIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Builder(this, SILENT_KEEPER_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("ParkBuzz Active")
-            .setContentText("Monitoring silently in background")
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setSilent(true)
-            .setShowWhen(false)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
-            .build()
     }
 
     private fun connectWebSocket() {

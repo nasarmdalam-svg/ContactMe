@@ -34,30 +34,30 @@ jobs:
 
       - name: Prepare Named APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v2.1.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/ParkBuzz-v2.2.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParkBuzz-v2.1-APK
-          path: android/app/build/outputs/apk/debug/ParkBuzz-v2.1.apk
+          name: ParkBuzz-v2.2-APK
+          path: android/app/build/outputs/apk/debug/ParkBuzz-v2.2.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v2.1
-          name: ParkBuzz Android App v2.1
+          tag_name: v2.2
+          name: ParkBuzz Android App v2.2
           body: |
-            ## ⚡ ParkBuzz v2.1 — Colorful Logo & Silent Isolated Background Process
-            - **No Battery Optimization Popups:** Removed all confusing battery optimization prompts and system screens.
-            - **Isolated Background Process (`:alert_service`):** Service runs in an independent Linux process that remains alive even when the user swipes away the app from recent apps.
-            - **Colorful ParkBuzz App Logo:** Displays the colorful app icon on the launch screen and in notifications.
-            - **Clean Launch Screen:** Replaced text with simple, elegant "Please wait..." and official branding.
-            - **Seamless 1-Tap Upgrade:** Signed with the permanent keystore so users update directly without uninstalling.
+            ## ⚡ ParkBuzz v2.2 — Clean Notification Drawer & Silent Isolated Background Process
+            - **100% Clean Notification Drawer:** Completely removed the ongoing background keeper notification. Zero persistent notifications cluttering the drawer.
+            - **Isolated Background Process (`:alert_service`):** Service runs in an independent Linux process that remains alive silently even when the app is swiped away from recent apps.
+            - **Colorful ParkBuzz App Logo:** Displays the colorful app icon on the launch screen and on emergency notification banners.
+            - **No Battery Optimization Popups:** Zero confusing battery prompts or system popups.
+            - **Emergency Alert Delivery:** High-priority heads-up banners with sound and vibration wake the screen instantly when an alert or call arrives.
           files: |
-            android/app/build/outputs/apk/debug/ParkBuzz-v2.1.apk
+            android/app/build/outputs/apk/debug/ParkBuzz-v2.2.apk
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

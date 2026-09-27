@@ -198,14 +198,14 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Image(
                                 painter = painterResource(id = R.mipmap.ic_launcher),
-                                contentDescription = "ParkBuzz Logo",
+                                contentDescription = "ParkingBuzz Logo",
                                 modifier = Modifier
                                     .size(92.dp)
                                     .clip(CircleShape)
                             )
                             Spacer(modifier = Modifier.height(20.dp))
                             Text(
-                                text = "ParkBuzz",
+                                text = "ParkingBuzz",
                                 color = Color.White,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold

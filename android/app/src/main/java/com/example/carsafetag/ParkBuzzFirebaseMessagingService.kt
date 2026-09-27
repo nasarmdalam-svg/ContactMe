@@ -70,7 +70,11 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun fireEmergencyAlert(alertType: String, message: String) {
-        // 1. Wake up the screen even if phone is deeply asleep / locked in pocket
+        Log.d(TAG, "fireEmergencyAlert triggered for: $alertType - $message")
+        // 1. Ensure high priority alert channel exists first!
+        createAlertChannelIfNeeded()
+
+        // 2. Wake up the screen even if phone is deeply asleep / locked in pocket
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             @Suppress("DEPRECATION")
@@ -79,7 +83,9 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
                 "ParkBuzz:FCMWakeLock"
             )
             wakeLock.acquire(10000)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "WakeLock error: ${e.message}")
+        }
 
         // 2. Play the loud chime sound
         try {
@@ -116,7 +122,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val isCall = alertType.equals("incoming_call", ignoreCase = true) || alertType.contains("call", ignoreCase = true)
-        val notifTitle = if (isCall) "📞 Incoming Voice Call" else "🚨 ParkBuzz: ${alertType.uppercase()} ALERT"
+        val notifTitle = if (isCall) "📞 Incoming Voice Call" else "🚨 ParkingBuzz: ${alertType.uppercase()} ALERT"
         val notifBigText = if (isCall) "📞 A bystander near your vehicle is calling you live.\n\nTap to Answer or Decline." else "🚨 $message\n\nTap to open app and silence."
 
         val appLogo = try {
@@ -151,7 +157,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
-                "ParkBuzz Emergency Alerts",
+                "ParkingBuzz Emergency Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Emergency heads-up alert when vehicle is blocked"

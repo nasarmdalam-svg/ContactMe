@@ -46,11 +46,13 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
     if not fcm_tokens:
         return {"success": False, "sent_count": 0, "detail": "No tokens provided"}
 
-    title = f"🚨 ParkBuzz: {alert_type.upper()} ALERT"
+    title = f"🚨 ParkingBuzz: {alert_type.upper()} ALERT"
     body = message if message else f"Someone is alerting your vehicle ({car_name or tag_id})"
 
     # High priority Android notification payload
-    # Uses DATA payload + AndroidConfig with HIGH priority so Android wakes up even when app is killed
+    # When sending pure DATA messages (without a top-level notification object),
+    # Android ALWAYS delivers the message directly to onMessageReceived() in ParkBuzzFirebaseMessagingService,
+    # waking up the app and executing our custom heads-up chime and screen wakeup logic!
     android_config = messaging.AndroidConfig(
         priority="high",
         ttl=3600,
@@ -64,13 +66,7 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
             default_sound=True,
             default_vibrate_timings=True,
             visibility="public"
-        ),
-        data={
-            "tag_id": tag_id,
-            "alert_type": alert_type,
-            "message": body,
-            "timestamp": str(os.times()[4])
-        }
+        )
     )
 
     multicast_message = messaging.MulticastMessage(
@@ -83,7 +79,7 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
             "tag_id": tag_id,
             "alert_type": alert_type,
             "message": body,
-            "click_action": "FLUTTER_NOTIFICATION_CLICK"
+            "title": title
         },
         android=android_config
     )

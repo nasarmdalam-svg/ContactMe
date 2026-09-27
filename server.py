@@ -16,7 +16,7 @@ import vapid_manager
 import generate_stickers
 import fcm_manager
 
-app = FastAPI(title="Car SafeTag System")
+app = FastAPI(title="ParkingBuzz System")
 
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")

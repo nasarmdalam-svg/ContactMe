@@ -25,7 +25,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "ParkBuzzFCM"
-        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v9"
+        const val ALERT_CHANNEL_ID = "parkbuzz_alert_horn_v10"
 
         fun registerTokenWithServer(context: Context, token: String, tagId: String = "CAR-D3AEED") {
             Thread {
@@ -129,6 +129,8 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
             BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
         } catch (_: Exception) { null }
 
+        val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+
         val notifBuilder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_parkbuzz)
             .setColor(0xFF38BDF8.toInt())
@@ -138,6 +140,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setSound(soundUri)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 1000))
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setContentIntent(fullScreenPendingIntent)
@@ -155,6 +158,12 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
     private fun createAlertChannelIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
+
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
                 "ParkingBuzz Emergency Alerts",
@@ -164,6 +173,8 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 1000)
+                setSound(soundUri, audioAttributes)
+                setBypassDnd(true)
             }
             nm.createNotificationChannel(alertChannel)
         }

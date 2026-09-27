@@ -39,7 +39,7 @@ class ParkBuzzAlertService : Service() {
     companion object {
         const val TAG = "ParkBuzzService"
         const val SILENT_KEEPER_CHANNEL_ID = "parkbuzz_silent_keeper_v9"
-        const val ALERT_CHANNEL_ID = "parkbuzz_alert_popup_v9"
+        const val ALERT_CHANNEL_ID = "parkbuzz_alert_horn_v10"
         const val KEEPER_NOTIF_ID = 8801
     }
 
@@ -146,16 +146,24 @@ class ParkBuzzAlertService : Service() {
                 nm.deleteNotificationChannel("parkbuzz_silent_keeper_v5")
             } catch (_: Exception) {}
 
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
+
             // High priority alert channel for emergency vehicle notifications & calls
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
-                "ParkBuzz Emergency Alerts",
+                "ParkingBuzz Emergency Alerts",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Emergency heads-up alert when vehicle is blocked"
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 1000)
+                setSound(soundUri, audioAttributes)
+                setBypassDnd(true)
             }
             nm.createNotificationChannel(alertChannel)
         }
@@ -278,6 +286,8 @@ class ParkBuzzAlertService : Service() {
             BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
         } catch (_: Exception) { null }
 
+        val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+
         val notifBuilder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_parkbuzz)
             .setColor(0xFF38BDF8.toInt())
@@ -287,6 +297,7 @@ class ParkBuzzAlertService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setSound(soundUri)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 1000))
             .setFullScreenIntent(fullScreenPendingIntent, true) // SCREEN POP-UP
             .setContentIntent(fullScreenPendingIntent)

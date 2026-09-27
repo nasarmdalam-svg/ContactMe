@@ -61,9 +61,9 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
             body=body,
             icon="ic_stat_parkbuzz",
             color="#38BDF8",
-            channel_id="parkbuzz_alert_popup_v9",
+            channel_id="parkbuzz_alert_horn_v10",
             priority="max",
-            default_sound=True,
+            sound="chime",
             default_vibrate_timings=True,
             visibility="public",
             image="https://contactme-go9v.onrender.com/static/images/p_logo.png"

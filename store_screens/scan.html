@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Vehicle Owner</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+.header { text-align: center; margin-bottom: 16px; }
+.brand-logo { width: 52px; height: 52px; margin: 0 auto 8px; display: block; }
+h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; color: #fff; }
+.vehicle-sub { font-size: 13px; color: #94a3b8; }
+.privacy-banner { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #34d399; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.btn-call { width: 100%; background: #10b981; color: #fff; font-size: 16px; font-weight: 700; padding: 15px; border: none; border-radius: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 20px rgba(16,185,129,0.3); margin-bottom: 18px; }
+.section-title { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.alerts-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.alert-item { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.alert-icon { font-size: 18px; }
+.custom-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; }
+textarea { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; resize: none; margin-bottom: 8px; }
+.btn-send { width: 100%; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; font-weight: 700; padding: 10px; border-radius: 10px; }
+</style>
+</head>
+<body>
+  <div class="container" style="padding: 20px;">
+    <div class="header">
+      <img src="/static/images/logo.png" class="brand-logo" alt="ParkingBuzz">
+      <h1>Contact Vehicle Owner</h1>
+      <div class="vehicle-sub">ParkingBuzz Tag ID: <strong>BUZZ-7821</strong></div>
+    </div>
+
+    <div class="privacy-banner">
+      <span style="font-size: 18px;">🛡️</span>
+      <span><strong>100% Private:</strong> Your phone number remains completely masked and confidential.</span>
+    </div>
+
+    <button class="btn-call">
+      <span>📞</span> Call Owner (Free Voice Call)
+    </button>
+
+    <div class="section-title">Instant Sound Alerts</div>
+    <div class="alerts-grid">
+      <div class="alert-item"><span class="alert-icon">🚗</span> Car is blocking someone / driveway</div>
+      <div class="alert-item"><span class="alert-icon">💡</span> Headlights or hazard lights left ON</div>
+      <div class="alert-item"><span class="alert-icon">🚨</span> Car alarm is going off</div>
+      <div class="alert-item"><span class="alert-icon">🪟</span> Window is left open / rolled down</div>
+      <div class="alert-item"><span class="alert-icon">⚠️</span> Towing warning / Emergency</div>
+    </div>
+
+    <div class="custom-box">
+      <div class="section-title">Custom Message</div>
+      <textarea rows="2" placeholder="e.g. Please move back 2 feet, thank you!"></textarea>
+      <button class="btn-send">✉️ Send Custom Alert</button>
+    </div>
+  </div>
+</body>
+</html>

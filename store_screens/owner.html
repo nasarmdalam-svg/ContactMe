@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Dashboard</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+.header-bar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 16px; }
+.brand-title { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; color: #fff; }
+.brand-logo { width: 34px; height: 34px; }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 16px; }
+.vehicle-box { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; padding: 16px; margin-bottom: 14px; text-align: center; }
+.masked-plate { font-family: monospace; font-size: 20px; font-weight: 800; letter-spacing: 3px; background: rgba(0,0,0,0.5); border: 1px dashed rgba(96,165,250,0.5); padding: 8px 18px; border-radius: 8px; display: inline-block; margin-top: 6px; color: #60a5fa; }
+.card-img { width: 100%; max-width: 320px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: block; margin: 10px auto; border: 1px solid rgba(255,255,255,0.15); }
+.alert-test-btn { width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 700; font-size: 15px; padding: 14px; border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(16,185,129,0.3); }
+</style>
+</head>
+<body>
+  <div class="container" style="padding: 20px;">
+    <div class="header-bar">
+      <div class="brand-title">
+        <img src="/static/images/logo.png" class="brand-logo" alt="Logo">
+        <span>ParkingBuzz</span>
+      </div>
+      <div class="status-pill">
+        <span>●</span> Active (Online)
+      </div>
+    </div>
+
+    <div class="vehicle-box">
+      <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Registered Vehicle</div>
+      <div class="masked-plate">DL 01 •• ••••</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Tag ID: BUZZ-7821 • Privacy Shield Enabled</div>
+    </div>
+
+    <div class="vehicle-box" style="padding: 12px;">
+      <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">Digital Windshield Sticker</div>
+      <img src="/static/images/parking_card_dual_store.jpg" class="card-img" alt="Card">
+    </div>
+
+    <button class="alert-test-btn">
+      <span>📢</span> Test Automotive Horn Alert
+    </button>
+  </div>
+</body>
+</html>

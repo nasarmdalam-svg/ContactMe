@@ -73,15 +73,29 @@
     </div>
 
     <!-- Generate New Stickers Section -->
-    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-      <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px;">🖨️ Create New Sticker Batch</div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-        Generate new unassigned QR stickers to print and distribute.
+    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+      <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+        <span>🖨️ Bulk Society Sticker Generator (Up to 200 Cars)</span>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+        Pre-print unassigned QR stickers for an entire residential society or office parking lot. Residents simply stick them on their windshield, scan to link their car plate, and install the ParkingBuzz app!
       </p>
-      <form action="/api/admin/generate-batch" method="POST" style="display: flex; gap: 10px;">
-        <input type="number" name="count" value="5" min="1" max="50" style="width: 90px; margin-bottom: 0;">
-        <button type="submit" class="btn-primary" style="padding: 10px 16px; font-size: 14px; flex: 1;">
-          + Generate Stickers
+      
+      <form action="/api/admin/generate-batch" method="POST" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <select name="count" style="padding: 10px 14px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); color: white; border: 1px solid var(--border-color); font-size: 14px;">
+          <option value="6">6 Stickers (1 A4 Sheet)</option>
+          <option value="30">30 Stickers (5 Sheets)</option>
+          <option value="50">50 Stickers</option>
+          <option value="100">100 Stickers</option>
+          <option value="200" selected>200 Stickers (Society Pack)</option>
+        </select>
+
+        <button type="submit" name="format" value="pdf" class="btn-primary" style="padding: 10px 18px; font-size: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          📄 Download Printable A4 PDF Sheet (300 DPI)
+        </button>
+
+        <button type="submit" name="format" value="admin" class="btn-primary" style="padding: 10px 14px; font-size: 14px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border-color);">
+          + Generate to Database
         </button>
       </form>
     </div>

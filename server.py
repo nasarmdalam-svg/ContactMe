@@ -244,10 +244,26 @@ def admin_page(request: Request):
     )
 
 @app.post("/api/admin/generate-batch")
-def admin_generate_batch(request: Request, count: int = Form(5)):
+def admin_generate_batch(request: Request, count: int = Form(5), format: str = Form("admin")):
     base_url = str(request.base_url).rstrip("/")
-    generate_stickers.generate_batch(count=count, base_url=base_url)
+    tag_ids, pdf_path = generate_stickers.generate_batch(count=min(count, 200), base_url=base_url)
+    if format == "pdf":
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="ParkingBuzz_Batch_{count}_Printable_Sheet.pdf"'}
+        )
     return RedirectResponse(url="/admin", status_code=303)
+
+@app.get("/api/admin/download-batch-pdf")
+def admin_download_batch_pdf(request: Request, count: int = 50):
+    base_url = str(request.base_url).rstrip("/")
+    tag_ids, pdf_path = generate_stickers.generate_batch(count=min(count, 200), base_url=base_url)
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="ParkingBuzz_{count}_Stickers_Sheet.pdf"'}
+    )
 
 # Push subscription endpoint (Web browsers)
 @app.post("/api/subscribe/{tag_id}")

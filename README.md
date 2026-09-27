@@ -163,10 +163,19 @@ Contact_Me/
 
 If you are an AI assistant tasked with enhancing or modifying this codebase:
 
-1. **App Identity**: The official application name is **ParkingBuzz**. Windshield stickers feature **BUZZme** at the top and **ParkingBuzz** at the bottom.
-2. **Secrets Rule**: NEVER commit `firebase_service_account.json` or any private key to git. Always use environment variable `FIREBASE_SERVICE_ACCOUNT_JSON` for cloud environments.
-3. **Android Status Bar Icons**: Android strictly requires notification status bar icons (`setSmallIcon`) to be monochrome vector drawables with `#FFFFFFFF` fill on transparent backgrounds (`ic_stat_parkbuzz.xml`). Do not use colored bitmaps as small icons.
-4. **Notification Large Image**: To display the rich, colorful P logo in notification shades, pass the transparent image URL (`static/images/p_logo.png`) or set `setLargeIcon()`.
-5. **Car Horn Audio**: The emergency notification sound is an authentic automotive dual-tone car horn located at `android/app/src/main/res/raw/chime.wav`.
-6. **Database Schema**: To add fields to vehicles or tags, update `database.py`. All table creations use `CREATE TABLE IF NOT EXISTS`.
-7. **Cloud Builds**: Keep Gradle tasks and GitHub workflows compatible with headless Ubuntu environments (`chmod +x android/gradlew`, `--no-daemon`).
+1. **App Identity**: The official application name is **ParkingBuzz**. Windshield stickers feature **Scan to BuzzMe** or **SCAN TO CONTACT VEHICLE OWNER** and **ParkingBuzz** at the bottom.
+2. **Google Play Console Release Bundle**:
+   * Build command: `./gradlew bundleRelease` inside `android/`.
+   * Output file: `android/app/build/outputs/bundle/release/app-release.aab`.
+   * Signed automatically with: `android/parkbuzz.keystore` (Key Alias: `parkbuzz`, Password: `parkbuzz2026`).
+3. **Secrets Rule**: NEVER commit plain-text Google private keys to git. In `fcm_manager.py`, credentials use environment variable `FIREBASE_SERVICE_ACCOUNT_JSON`, local `firebase_service_account.json` (gitignored), or the obfuscated embedded cloud fallback.
+4. **Application Architecture**:
+   * Custom Application class: `ParkBuzzApplication.kt` initializes Firebase before any services start.
+   * Emergency Alert Service: `ParkBuzzFirebaseMessagingService.kt` intercepts high-priority data payloads, acquires `SCREEN_BRIGHT_WAKE_LOCK`, and triggers `AlertSoundPlayer.playCarHorn()` on the `USAGE_ALARM` stream.
+   * Background WebSocket Keeper: `ParkBuzzAlertService.kt` maintains real-time keep-alive and handles instant alerts when the app is active.
+5. **Android Status Bar Icons**: Android strictly requires notification status bar icons (`setSmallIcon`) to be monochrome vector drawables with `#FFFFFFFF` fill on transparent backgrounds (`ic_stat_parkbuzz.xml`). Do not use colored bitmaps as small icons.
+6. **Notification Large Image**: To display the rich, colorful P logo in notification shades, pass the transparent image URL (`static/images/p_logo.png`) or set `setLargeIcon()`.
+7. **Car Horn Audio**: The emergency notification sound is an authentic automotive dual-tone car horn located at `android/app/src/main/res/raw/car_honk.wav` and `android/app/src/main/res/raw/chime.wav`.
+8. **Database Schema**: To add fields to vehicles or tags, update `database.py`. All table creations use `CREATE TABLE IF NOT EXISTS`.
+9. **Cloud Builds**: Keep Gradle tasks and GitHub workflows compatible with headless Ubuntu environments (`chmod +x android/gradlew`, `--no-daemon`).
+

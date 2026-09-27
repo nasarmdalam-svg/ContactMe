@@ -372,6 +372,13 @@ def get_qr_image(tag_id: str, request: Request):
 # Printable sticker download endpoint
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
+    metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
+    if os.path.exists(metallic_path):
+        return FileResponse(
+            metallic_path,
+            media_type="image/jpeg",
+            headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.jpg"'}
+        )
     base_url = str(request.base_url).rstrip("/")
     sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
     with open(sticker_path, "rb") as f:
@@ -392,6 +399,22 @@ def get_sticker_pdf(tag_id: str, request: Request):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="sticker_{tag_id}.pdf"'}
     )
+
+# Universal smart app download redirect (auto-detects iPhone vs Android)
+@app.get("/app")
+@app.get("/download")
+def redirect_app_download(request: Request):
+    user_agent = request.headers.get("user-agent", "").lower()
+    # iPhone / iPad -> Apple App Store
+    if "iphone" in user_agent or "ipad" in user_agent or "ipod" in user_agent:
+        apple_store_url = "https://apps.apple.com/app/parkingbuzz/id6470000000"
+        return RedirectResponse(url=apple_store_url, status_code=302)
+    # Android -> Google Play Store
+    elif "android" in user_agent:
+        play_store_url = "https://play.google.com/store/apps/details?id=com.example.carsafetag"
+        return RedirectResponse(url=play_store_url, status_code=302)
+    # Desktop / Other -> Landing page
+    return RedirectResponse(url="/", status_code=302)
 
 # WebSocket endpoint for real-time WebRTC signaling
 # WebSocket endpoint for real-time WebRTC signaling

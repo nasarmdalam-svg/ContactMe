@@ -151,9 +151,13 @@ def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
     draw.text((a4_w // 2, 220), "Printable A4 Sheet • Standard Windshield Size: 76 mm x 96 mm (3.0\" x 3.8\")", fill=(100, 116, 139), font=font_subhead, anchor="mm")
     draw.line([(180, 260), (a4_w - 180, 260)], fill=(226, 232, 240), width=3)
 
-    # Create the high-res sticker
-    sticker_path = create_sticker_image(tag_id, base_url)
-    st_im = Image.open(sticker_path).convert("RGB")
+    # Create / load the high-res sticker
+    metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
+    if os.path.exists(metallic_path):
+        st_im = Image.open(metallic_path).convert("RGB")
+    else:
+        sticker_path = create_sticker_image(tag_id, base_url)
+        st_im = Image.open(sticker_path).convert("RGB")
 
     # Center position for primary sticker
     st_w, st_h = st_im.size

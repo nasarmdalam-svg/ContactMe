@@ -31,9 +31,11 @@ def service_worker():
         headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
     )
 
-@app.api_route("/privacy", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def privacy_policy(request: Request):
-    return templates.TemplateResponse(request=request, name="privacy.html")
+@app.api_route("/privacy", methods=["GET", "HEAD"])
+def privacy_policy():
+    privacy_path = os.path.join(BASE_DIR, "templates", "privacy.html")
+    return FileResponse(privacy_path, media_type="text/html")
+
 
 
 

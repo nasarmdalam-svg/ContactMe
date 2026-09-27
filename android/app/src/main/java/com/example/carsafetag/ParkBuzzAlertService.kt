@@ -60,11 +60,20 @@ class ParkBuzzAlertService : Service() {
             if (it.isNotBlank()) tagId = it
         }
 
-        // Cancel any previous keeper notification
+        // Run as foreground service using a fully silent/invisible IMPORTANCE_NONE channel.
+        // Android suppresses IMPORTANCE_NONE notifications completely (no drawer entry, no icon,
+        // no sound) — but this still satisfies the foreground service requirement so Xiaomi/MIUI
+        // cannot kill this process when the user swipes the app away.
         try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.cancel(KEEPER_NOTIF_ID)
-        } catch (_: Exception) {}
+            val keeperNotif = buildInvisibleKeeperNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(KEEPER_NOTIF_ID, keeperNotif, ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING)
+            } else {
+                startForeground(KEEPER_NOTIF_ID, keeperNotif)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "startForeground failed: ${e.message}")
+        }
 
         if (!isRunning) {
             isRunning = true
@@ -72,6 +81,36 @@ class ParkBuzzAlertService : Service() {
         }
 
         return START_STICKY
+    }
+
+    private fun buildInvisibleKeeperNotification(): Notification {
+        // Create an IMPORTANCE_NONE channel — Android completely hides these from the user.
+        // No notification shade entry, no status bar icon, no sound. Invisible to the user.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val silentChannel = NotificationChannel(
+                SILENT_KEEPER_CHANNEL_ID,
+                "ParkBuzz Background",
+                NotificationManager.IMPORTANCE_NONE  // Completely invisible to user
+            ).apply {
+                setSound(null, null)
+                enableVibration(false)
+                enableLights(false)
+                setShowBadge(false)
+            }
+            nm.createNotificationChannel(silentChannel)
+        }
+
+        return NotificationCompat.Builder(this, SILENT_KEEPER_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("")
+            .setContentText("")
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setSilent(true)
+            .setOngoing(true)
+            .setShowWhen(false)
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+            .build()
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -101,9 +140,8 @@ class ParkBuzzAlertService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // Clean up any old keeper channels completely
+            // Clean up old legacy keeper channel versions
             try {
-                nm.deleteNotificationChannel(SILENT_KEEPER_CHANNEL_ID)
                 nm.deleteNotificationChannel("parkbuzz_silent_keeper_v7")
                 nm.deleteNotificationChannel("parkbuzz_silent_keeper_v5")
             } catch (_: Exception) {}

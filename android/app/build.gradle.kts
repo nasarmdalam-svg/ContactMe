@@ -2,6 +2,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.google.services)
 }
 
 android {
@@ -11,8 +12,8 @@ android {
         applicationId = "com.example.carsafetag"
         minSdk = 24
         targetSdk = 36
-        versionCode = 13
-        versionName = "2.2"
+        versionCode = 15
+        versionName = "2.4"
     }
 
     signingConfigs {
@@ -97,4 +98,8 @@ dependencies {
 
   // Real-time Background WebSocket Alerts
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+  // Firebase Cloud Messaging (FCM) - Works on millions of devices, all OEMs
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.messaging)
 }

@@ -20,6 +20,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.google.firebase.messaging.FirebaseMessaging
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,6 +68,21 @@ class MainActivity : ComponentActivity() {
         requestSilentPermissions()
         startAlertBackgroundService()
         checkIntentForAlert(intent)
+
+        // Initialize Firebase FCM Token and register with backend for millions-of-devices support
+        try {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    android.util.Log.d("ParkBuzzFCM", "Initial FCM token retrieved: $token")
+                    val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                    val tagId = prefs.getString("ACTIVE_TAG_ID", "CAR-D3AEED") ?: "CAR-D3AEED"
+                    ParkBuzzFirebaseMessagingService.registerTokenWithServer(this, token, tagId)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ParkBuzzFCM", "Failed to get FCM token: ${e.message}")
+        }
 
         setContent {
             var isLoading by remember { mutableStateOf(true) }
@@ -129,6 +145,17 @@ class MainActivity : ComponentActivity() {
 
                                 @JavascriptInterface
                                 fun getTagId(): String = "CAR-D3AEED"
+
+                                @JavascriptInterface
+                                fun onTagLoaded(newTagId: String) {
+                                    if (newTagId.isNotBlank()) {
+                                        val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                        prefs.edit().putString("ACTIVE_TAG_ID", newTagId).apply()
+                                        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+                                            ParkBuzzFirebaseMessagingService.registerTokenWithServer(this@MainActivity, token, newTagId)
+                                        }
+                                    }
+                                }
 
                                 @JavascriptInterface
                                 fun onCallEnded() {
@@ -269,7 +296,11 @@ class MainActivity : ComponentActivity() {
             val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
                 putExtra("TAG_ID", "CAR-D3AEED")
             }
-            startService(serviceIntent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

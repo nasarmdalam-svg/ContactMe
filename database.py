@@ -53,6 +53,17 @@ def init_db():
                 FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
             );
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS fcm_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tag_id TEXT NOT NULL,
+                fcm_token TEXT UNIQUE NOT NULL,
+                device_type TEXT DEFAULT 'android',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
+            );
+        """)
         conn.commit()
 
     # Ensure default tag exists without any hardcoded vehicle plate numbers
@@ -143,6 +154,31 @@ def get_subscriptions(tag_id: str) -> List[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.execute("SELECT * FROM subscriptions WHERE tag_id = ?", (tag_id,))
         return [dict(row) for row in cursor.fetchall()]
+
+def save_fcm_token(tag_id: str, fcm_token: str, device_type: str = "android"):
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO fcm_tokens (tag_id, fcm_token, device_type, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(fcm_token) DO UPDATE SET
+                tag_id = excluded.tag_id,
+                device_type = excluded.device_type,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (tag_id, fcm_token, device_type)
+        )
+        conn.commit()
+
+def get_fcm_tokens(tag_id: str) -> List[str]:
+    with get_db() as conn:
+        cursor = conn.execute("SELECT fcm_token FROM fcm_tokens WHERE tag_id = ?", (tag_id,))
+        return [row["fcm_token"] for row in cursor.fetchall()]
+
+def delete_invalid_fcm_token(fcm_token: str):
+    with get_db() as conn:
+        conn.execute("DELETE FROM fcm_tokens WHERE fcm_token = ?", (fcm_token,))
+        conn.commit()
 
 def log_alert(tag_id: str, alert_type: str, message: str = ""):
     with get_db() as conn:

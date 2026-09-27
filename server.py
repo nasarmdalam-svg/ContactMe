@@ -14,6 +14,7 @@ from pywebpush import webpush, WebPushException
 import database
 import vapid_manager
 import generate_stickers
+import fcm_manager
 
 app = FastAPI(title="Car SafeTag System")
 
@@ -88,6 +89,10 @@ class AlertRequest(BaseModel):
 class SubscriptionModel(BaseModel):
     endpoint: str
     keys: Dict[str, str]
+
+class FcmRegisterModel(BaseModel):
+    fcm_token: str
+    device_type: Optional[str] = "android"
 
 # --- Helper: Send Web Push ---
 def send_push_notification(subscription_info: dict, payload: dict):
@@ -244,7 +249,7 @@ def admin_generate_batch(request: Request, count: int = Form(5)):
     generate_stickers.generate_batch(count=count, base_url=base_url)
     return RedirectResponse(url="/admin", status_code=303)
 
-# Push subscription endpoint
+# Push subscription endpoint (Web browsers)
 @app.post("/api/subscribe/{tag_id}")
 def subscribe_push(tag_id: str, sub: SubscriptionModel):
     database.save_subscription(
@@ -254,6 +259,17 @@ def subscribe_push(tag_id: str, sub: SubscriptionModel):
         auth=sub.keys.get("auth", "")
     )
     return {"status": "subscribed"}
+
+# FCM registration endpoint (Android / iOS native apps)
+@app.post("/api/fcm/register/{tag_id}")
+def register_fcm_token(tag_id: str, reg: FcmRegisterModel):
+    database.save_fcm_token(
+        tag_id=tag_id,
+        fcm_token=reg.fcm_token,
+        device_type=reg.device_type or "android"
+    )
+    print(f"FCM token saved for tag: {tag_id}")
+    return {"status": "fcm_registered", "tag_id": tag_id}
 
 # Send Alert endpoint (Called by bystander)
 @app.post("/api/alert/{tag_id}")
@@ -270,14 +286,33 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     alert_body = alert.message if alert.message else f"Alert regarding your vehicle ({tag.get('vehicle_name', tag_id)})"
     database.log_alert(tag_id, alert.alert_type, alert_body)
 
-    # 2. Notify active WebSocket owner connection immediately
+    # 2. Notify active WebSocket owner connection immediately (if app is open)
     await manager.notify_owner(tag_id, {
         "type": "alert_received",
         "alert_type": alert.alert_type,
         "message": alert_body
     })
 
-    # 3. Trigger Web Push to all registered devices for this owner
+    # 3. Trigger Native Google FCM Push Notification (Wakes up app even when 100% closed, on ANY phone)
+    fcm_tokens = database.get_fcm_tokens(tag_id)
+    fcm_result = None
+    if fcm_tokens:
+        loop = asyncio.get_event_loop()
+        fcm_result = await loop.run_in_executor(
+            None,
+            fcm_manager.send_fcm_alert,
+            fcm_tokens,
+            tag_id,
+            alert.alert_type,
+            alert_body,
+            tag.get("vehicle_name", "")
+        )
+        # Clean up any stale tokens
+        if fcm_result and fcm_result.get("invalid_tokens"):
+            for bad_tok in fcm_result["invalid_tokens"]:
+                database.delete_invalid_fcm_token(bad_tok)
+
+    # 4. Trigger Web Push to all registered browsers for this owner
     subs = database.get_subscriptions(tag_id)
     payload = {
         "title": alert_title,
@@ -297,7 +332,12 @@ async def send_alert(tag_id: str, alert: AlertRequest):
         }
         loop.run_in_executor(None, send_push_notification, sub_info, payload)
 
-    return {"status": "alert_sent", "subscribers_notified": len(subs)}
+    return {
+        "status": "alert_sent",
+        "subscribers_notified": len(subs),
+        "fcm_notified": len(fcm_tokens) if fcm_tokens else 0,
+        "fcm_result": fcm_result
+    }
 
 # Dynamic QR code generation endpoint
 @app.get("/api/qr/{tag_id}")

@@ -133,6 +133,15 @@
   <script>
     const tagId = "{{ tag.tag_id }}";
     const vapidPublicKey = "{{ vapid_public_key }}";
+
+    // Notify native Android app wrapper of active tag ID for FCM push binding
+    if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
+      try {
+        window.ParkBuzzApp.onTagLoaded(tagId);
+      } catch (e) {
+        console.error("Failed to notify native app of tagId", e);
+      }
+    }
     const notifStatusBadge = document.getElementById('notifStatusBadge');
     const toast = document.getElementById('statusToast');
     const incomingCallOverlay = document.getElementById('incomingCallOverlay');

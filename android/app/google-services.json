@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97233097621",
+    "project_id": "parkbuzz-3e37f",
+    "storage_bucket": "parkbuzz-3e37f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97233097621:android:359eb4f294896946e75c9c",
+        "android_client_info": {
+          "package_name": "com.example.carsafetag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDGq0cNFM9Ac1hlvAgkJdiM-RRIIl8Rs8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

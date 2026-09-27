@@ -1,11 +1,42 @@
+# Python
 venv/
 __pycache__/
 *.pyc
-vapid_keys.json
+*.pyo
+*.pyd
+.Python
+env/
+.env
+.env.local
+.env.*.local
+
+# Databases & Runtime Data
 cartag.db
 stickers_output/
-.DS_Store
+*.db
+*.sqlite3
+
+# Security & Private Credentials - NEVER COMMIT
+firebase_service_account.json
+firebase-adminsdk*.json
+serviceAccountKey.json
+vapid_keys.json
 private_key.pem
+*.pem
+*.key
+*.p12
+
+# Android Build & Secrets
 android/**/build/
 android/.gradle/
 android/local.properties
+android/*.keystore
+android/*.jks
+android/.kotlin/
+
+# IDE & OS
+.DS_Store
+.idea/
+*.iml
+.vscode/
+Thumbs.db

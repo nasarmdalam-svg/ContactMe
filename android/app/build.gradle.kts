@@ -16,22 +16,31 @@ android {
         versionName = "2.4"
     }
 
+    val keystoreFile = file("${rootDir}/parkbuzz.keystore")
+    val hasKeystore = keystoreFile.exists()
+
     signingConfigs {
-        create("permanentRelease") {
-            storeFile = file("${rootDir}/parkbuzz.keystore")
-            storePassword = "parkbuzz2026"
-            keyAlias = "parkbuzz"
-            keyPassword = "parkbuzz2026"
+        if (hasKeystore) {
+            create("permanentRelease") {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "parkbuzz2026"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "parkbuzz"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "parkbuzz2026"
+            }
         }
     }
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("permanentRelease")
+            if (hasKeystore) {
+                signingConfig = signingConfigs.getByName("permanentRelease")
+            }
         }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("permanentRelease")
+            if (hasKeystore) {
+                signingConfig = signingConfigs.getByName("permanentRelease")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

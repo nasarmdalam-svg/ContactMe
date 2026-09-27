@@ -1,184 +1,172 @@
-# 🚗 Car SafeTag - 100% Free Anonymous Car QR Sticker System
+# 🅿️ ParkingBuzz — Smart Anonymous Vehicle Contact & Alert Ecosystem
 
-> **A completely free, privacy-first vehicle QR sticker system.**  
-> Anyone who scans a car's sticker can send instant parking alerts with loud alarm sounds and start direct in-browser voice calls with the car owner **without either party ever seeing or sharing their phone number**.
+> **A production-grade, privacy-first vehicle contact and emergency notification ecosystem.**  
+> Anyone who scans a car's windshield QR sticker can instantly alert the owner ("Car blocked", "Lights left on", "Alarm sounding") or start an anonymous masked voice call without either party ever sharing their phone number.
 
----
-
-## 📌 Project Overview & Philosophy
-
-Commercial vehicle parking tags (like Park+, AutoSticker, etc.) usually rely on expensive SMS gateways, paid telephony providers (Twilio/Exotel), or third-party bots (WhatsApp/Telegram). 
-
-**Car SafeTag was built with strict engineering constraints:**
-1. **$0.00 Running Cost**: No paid APIs, no per-minute telecom charges, no monthly subscriptions.
-2. **No Third-Party Messaging Apps**: No Telegram, no WhatsApp. Everything runs natively in mobile browsers.
-3. **Strict Privacy (Number Masking)**: Neither the bystander nor the car owner ever reveals their phone number, email, or identity.
-4. **24/7 Cloud Ready**: Runs completely free in the cloud (e.g. Render / Railway / Fly.io) directly from this GitHub repository. Your local computer does not need to stay on.
+[![Build ParkingBuzz Android App](https://github.com/nasarmdalam-svg/ContactMe/actions/workflows/android_build.yml/badge.svg)](https://github.com/nasarmdalam-svg/ContactMe/actions/workflows/android_build.yml)
+[![Backend Lint & Validation](https://github.com/nasarmdalam-svg/ContactMe/actions/workflows/backend_test.yml/badge.svg)](https://github.com/nasarmdalam-svg/ContactMe/actions/workflows/backend_test.yml)
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## 📌 Executive Summary & Key Highlights
+
+1. **100% Free & Open Ecosystem**: Zero telecom charges, zero SMS gateways, zero Twilio or WhatsApp billing.
+2. **True Anonymity & Privacy**: Bystanders scanning the car never see the owner's phone number or personal details. Calls are peer-to-peer WebRTC encrypted voice connections.
+3. **Closed-App Waking via Google FCM Push**: Works reliably across millions of devices and aggressive OEM battery savers (Xiaomi/MIUI, Samsung, Pixel, OnePlus). Alerts wake the device, display full heads-up notifications, and play an automotive car horn sound.
+4. **Cloud-Native CI/CD on GitHub**: All Android APK and backend builds happen automatically on GitHub via GitHub Actions. No local computer or desktop build environment is required.
+5. **Reverse Onboarding for Societies & Gated Communities**: Societies can bulk-generate and print sheets of 200+ windshield stickers before distributing them to residents. Residents simply install the app and scan the sticker once to link their car.
+
+---
+
+## 🏗️ Architecture & Component Overview
 
 ```
-[Bystander's Smartphone]                            [Car Owner's Device]
- (Scans sticker with camera)                         (PWA / Browser Dashboard)
-             │                                                   ▲
-             │ 1. Scans QR Code                                  │
-             ▼                                                   │
-┌─────────────────────────────┐                                  │
-│   Mobile Scanner UI (/c/..) │                                  │
-│ ─────────────────────────── │                                  │
-│ • "Blocking Driveway"       │─── 2. Send Alert / Call ──┐      │
-│ • "Lights Left On"          │                           │      │
-│ • "Call Owner (Voice)"      │                           ▼      │
-└─────────────────────────────┘                 ┌───────────────────┐
-             │                                  │   FastAPI Server  │
-             │                                  │  (server.py)      │
-             │                                  └─────────┬─────────┘
-             │                                            │
-             │                                3. Dispatches Web Push + WS
-             │                                            │
-             ▼                                            ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                 WebRTC Peer-to-Peer Voice Call                    │
-│    (Audio streamed directly between browsers via Google STUN)     │
-└───────────────────────────────────────────────────────────────────┘
+[Bystander's Mobile Browser]                     [Car Owner's Android Phone]
+ (Scans sticker with phone camera)              (Background / Locked / Closed App)
+              │                                                ▲
+              │ 1. Scans QR Code                               │
+              ▼                                                │
+┌──────────────────────────────┐                               │
+│  Public Scanner (/c/TAG_ID)  │                               │
+│ ──────────────────────────── │                               │
+│ • "Vehicle is Blocking"      │── 2. Dispatches Alert / Call  │
+│ • "Lights Left On"           │                               ▼
+│ • "Call Owner (Masked Voice)"│                    ┌──────────────────────┐
+└──────────────────────────────┘                    │    FastAPI Server    │
+              │                                     │ (contactme-go9v...)  │
+              │                                     └──────────┬───────────┘
+              │                                                │
+              │                               3. Sends Google FCM Push Message
+              │                                                │
+              ▼                                                ▼
+┌────────────────────────────────────────┐          ┌──────────────────────┐
+│        WebRTC Audio Signaling          │          │ Google Firebase FCM  │
+│ (Peer-to-peer masked audio via Google) │          │ (High Priority Push) │
+└────────────────────────────────────────┘          └──────────────────────┘
 ```
 
-- **Backend**: Python 3.11 + FastAPI + Uvicorn (Asynchronous HTTP + native WebSockets).
-- **Database**: SQLite (`cartag.db`) - simple, zero-configuration local database.
-- **Real-Time Signaling**: WebSockets (`/ws/{tag_id}/{role}`).
-- **Voice Calling**: WebRTC Peer-to-Peer Audio with Google's free public STUN servers (`stun:stun.l.google.com:19302`).
-- **Sound Alerts**: Web Audio API oscillator synthesis (urgent car horn alarms and phone ringtones generated client-side with zero audio file dependencies).
-- **Push Notifications**: W3C Web Push API (VAPID) supported natively by Android Chrome and iOS Safari (PWA).
-- **Sticker Generation**: Python `qrcode` + `Pillow` generating high-DPI printable PNG stickers.
+### Components:
+* **Backend Server (`server.py`)**: Asynchronous Python 3.11 FastAPI server handling WebSocket signaling, REST APIs, QR generation, rate limiting, and push dispatch.
+* **Database (`database.py`)**: SQLite (`cartag.db`) storing tags, activation status, masked owner preferences, and FCM registration tokens.
+* **Push Manager (`fcm_manager.py`)**: Google Firebase Cloud Messaging Admin SDK dispatcher sending high-priority wake-up notifications to Android devices.
+* **Android Native App (`android/`)**: Modern Jetpack Compose Android client featuring:
+  * Foreground & Background alert listener services.
+  * WakeLock & screen-bright heads-up display on emergency incoming alerts.
+  * Dual-tone automotive car horn sound (`res/raw/chime.wav`).
+  * Monochrome vector silhouette status-bar icon (`ic_stat_parkbuzz.xml`).
+  * 100% transparent high-resolution vector emblem (`p_logo.png`).
+* **Sticker Generator (`generate_stickers.py`)**: High-DPI (300 DPI) windshield sticker generator with rainbow borders and bulk A4 PDF sheet arrangement (6 stickers per page).
 
 ---
 
-## 📂 Project Directory Structure
+## 🔒 Security Architecture & Secrets Management
+
+Security is a primary pillar of ParkingBuzz:
+
+### 1. No Secrets Committed to GitHub
+* **Server Private Key**: The Firebase Service Account Private Key (`firebase_service_account.json`) is **NEVER committed to git**. It is strictly listed in `.gitignore`.
+* **Cloud Deployments (Render / Docker)**: The key is supplied securely as an environment variable:
+  ```bash
+  FIREBASE_SERVICE_ACCOUNT_JSON='{"type": "service_account", ...}'
+  ```
+* **Client App**: The Android client uses standard `google-services.json` which contains only client-facing project identifiers (per Google Firebase specification), not the admin private key.
+
+### 2. Rate Limiting & Anti-Spam
+* Public alert endpoints are rate-limited to prevent abuse or malicious denial-of-service spam to vehicle owners.
+* WebSocket connections are authenticated and scoped strictly per vehicle tag ID (`/ws/{tag_id}/{role}`).
+
+### 3. Absolute Privacy (Masked Identity)
+* When a bystander scans a sticker, the owner's phone number, name, and identity are **never** returned in the HTTP response.
+* Voice calls establish an end-to-end WebRTC peer connection using ephemeral session descriptions; phone numbers are never exchanged.
+
+---
+
+## ⚙️ Automated GitHub Actions CI/CD Pipeline
+
+**You do NOT need a local development machine or Android Studio to build the app.** Everything is built automatically on GitHub:
+
+1. **Trigger**: Every `git push` to `main` automatically triggers `.github/workflows/android_build.yml`.
+2. **Build Environment**: GitHub's cloud runners set up JDK 17, restore Gradle caches, compile the Android application, and package the release APK.
+3. **Downloading the APK**:
+   * Navigate to the **Actions** tab on this GitHub repository.
+   * Click on the latest workflow run.
+   * Under the **Artifacts** section at the bottom, download **`ParkingBuzz-Debug-APK`**.
+   * Unzip and install directly onto any Android phone!
+
+---
+
+## 🏷️ Bulk Sticker Generation & Society Distribution
+
+To deploy in an apartment society, gated community, or parking lot:
+
+### Option A: Via Admin Web Panel
+1. Open the Admin Panel at `/admin` (e.g. `https://contactme-go9v.onrender.com/admin`).
+2. Enter the number of stickers needed (e.g. `6`, `30`, `200`).
+3. Select **Format: Printable A4 PDF Sheet (6 per page)**.
+4. Click **Download Batch**.
+5. Print the PDF directly on standard sticker paper or A4 sheets.
+
+### Option B: Via Command Line
+```bash
+python3 generate_stickers.py --count 200 --domain https://contactme-go9v.onrender.com
+```
+This automatically outputs `stickers_output/batch_200_stickers.pdf` containing ready-to-cut stickers formatted at 75mm × 95mm (300 DPI).
+
+---
+
+## 📂 Repository File Layout
 
 ```text
 Contact_Me/
-├── server.py              # Main FastAPI app: HTTP endpoints, WebSockets, Web Push dispatch
-├── database.py            # SQLite operations: tags, activations, alerts, subscriptions, stats
-├── vapid_manager.py       # Auto-generates and persists VAPID keypair for Web Push
-├── generate_stickers.py   # CLI tool to batch-generate high-res printable QR code stickers
-├── render.yaml            # Render.com Infrastructure-as-Code for 1-click free cloud hosting
-├── Procfile               # Cloud process launcher for uvicorn
-├── requirements.txt       # Python package dependencies
-├── .gitignore             # Git ignore file for local db, venv, and cache
+├── .github/workflows/
+│   ├── android_build.yml       # Cloud CI/CD: Builds Android APK on GitHub
+│   └── backend_test.yml        # Cloud CI/CD: Validates Python syntax & dependencies
+├── android/                    # Android Native App (Jetpack Compose + Kotlin)
+│   ├── app/
+│   │   ├── src/main/
+│   │   │   ├── AndroidManifest.xml
+│   │   │   ├── java/com/example/carsafetag/
+│   │   │   │   ├── MainActivity.kt                      # Main UI WebView & FCM registration
+│   │   │   │   ├── ParkBuzzFirebaseMessagingService.kt  # FCM receiver & screen wake-up
+│   │   │   │   └── ParkBuzzAlertService.kt              # Background keeper service
+│   │   │   └── res/
+│   │   │       ├── drawable/ic_stat_parkbuzz.xml        # Monochrome status bar silhouette icon
+│   │   │       ├── mipmap-*/ic_launcher.png             # Transparent colorful P logo
+│   │   │       └── raw/chime.wav                        # Dual-tone automotive car horn sound
+│   │   └── build.gradle.kts
+│   └── gradlew
+├── templates/                  # Frontend HTML templates
+│   ├── scan.html               # Bystander UI (Alert buttons & call trigger)
+│   ├── owner.html              # Vehicle Owner Dashboard
+│   ├── activate.html           # Tag activation & setup
+│   └── admin.html              # Bulk generator & tag management
 ├── static/
-│   ├── css/
-│   │   └── style.css      # Dark-mode, mobile-first responsive layout
+│   ├── images/
+│   │   ├── p_logo.png          # Master 512x512 transparent P emblem
+│   │   └── logo.png            # Original branding artwork
 │   ├── js/
-│   │   ├── sound.js       # Web Audio API synthesizer (urgent horn siren & telephone ringtone)
-│   │   └── webrtc.js      # WebRTC VoiceCallClient class handling peer connections & signaling
-│   ├── icons/             # PWA app icons (192x192, 512x512, badge)
-│   ├── sw.js              # Service Worker for background Web Push alerts & wake-up
-│   └── manifest.json      # PWA manifest for "Add to Home Screen"
-├── templates/
-│   ├── scan.html          # Public page for bystanders scanning the sticker
-│   ├── owner.html         # Car Owner Dashboard & PWA (alarms, sound controls, call answer)
-│   ├── activate.html      # First-scan sticker activation page
-│   └── admin.html         # Admin Dashboard (stats, registered cars list, batch generator)
-└── stickers_output/       # Directory where generated printable PNG stickers are saved
+│   │   ├── sound.js            # In-browser Web Audio API chime generator
+│   │   └── webrtc.js           # WebRTC voice call client
+│   └── manifest.json           # PWA Web Manifest
+├── server.py                   # FastAPI REST backend & WebSocket server
+├── database.py                 # SQLite database storage & query interface
+├── fcm_manager.py              # Firebase Admin SDK notification dispatcher
+├── generate_stickers.py        # 300 DPI sticker & A4 PDF sheet generator
+├── requirements.txt            # Python dependencies
+├── render.yaml                 # 1-click cloud deployment config
+└── README.md                   # System documentation
 ```
 
 ---
 
-## 🔌 API & WebSocket Specifications
+## 🤖 Instructions for AI Agents & Automated Contributors
 
-### HTTP Endpoints
+If you are an AI assistant tasked with enhancing or modifying this codebase:
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/` | System landing page. |
-| `GET` | `/c/{tag_id}` | Public scanner entrypoint. If unactivated, redirects to `/activate/{tag_id}`; otherwise renders `scan.html`. |
-| `GET` | `/activate/{tag_id}` | Shows sticker activation form (`activate.html`). |
-| `POST` | `/api/activate/{tag_id}` | Activates sticker with `vehicle_name` and `custom_note`. Returns `owner_token`. |
-| `GET` | `/owner/{tag_id}` | Owner dashboard (`owner.html`) to receive alerts and live voice calls. |
-| `POST` | `/api/subscribe/{tag_id}`| Registers a Web Push subscription (endpoint, p256dh, auth). |
-| `POST` | `/api/alert/{tag_id}` | Triggers an alert (e.g. `blocking`, `lights`, `alarm`, `custom`). Dispatches Web Push and WebSocket notifications. |
-| `GET` | `/api/qr/{tag_id}` | Returns a dynamically generated PNG QR code image for this tag. |
-| `GET` | `/api/sticker/{tag_id}` | Downloads a full, printable high-res card sticker PNG. |
-| `GET` | `/admin` | Admin dashboard (`admin.html`) showing registered cars, alerts, and sticker batches. |
-| `POST` | `/api/admin/generate-batch` | Generates a new batch of unassigned stickers on the fly. |
-
-### WebSocket Signaling Protocol (`/ws/{tag_id}/{role}`)
-
-The WebSocket handles real-time signaling between `caller` (bystander) and `owner`:
-
-- `{"type": "alert_received", "alert_type": "blocking", "message": "..."}`: Real-time alert dispatched to owner.
-- `{"type": "call_request"}`: Caller requests voice call. Owner's device triggers `incoming_call` and plays ringtone.
-- `{"type": "call_accepted"}`: Owner accepts call. Caller initiates WebRTC offer.
-- `{"type": "call_rejected"}`: Owner declines call.
-- `{"type": "call_ended"}`: Either party hangs up.
-- `{"type": "webrtc_offer", "sdp": ...}`: WebRTC SDP offer.
-- `{"type": "webrtc_answer", "sdp": ...}`: WebRTC SDP answer.
-- `{"type": "ice_candidate", "candidate": ...}`: ICE candidate exchange for NAT traversal.
-
----
-
-## 🤖 Instructions for AI Agents & Developers Making Modifications
-
-If you are an AI assistant or software engineer instructed to update this codebase, follow these guidelines:
-
-### 1. Modifying the Alert Sound or Ringtone
-- All sounds are generated procedurally in [`static/js/sound.js`](file:///Users/nasarmdalam/Desktop/Contact_Me/static/js/sound.js).
-- `playAlertSound(repeatCount)`: Synthesizes urgent dual-tone car horn pulses using sawtooth oscillators.
-- `startRingtone()`: Synthesizes standard 440Hz/480Hz telephone ringing cycles.
-- *Tip for AI:* Do NOT replace this with external audio file URLs unless you bundle the MP3 directly in `static/sounds/` to prevent external CDN/network failures.
-
-### 2. Modifying the Sticker Template & Dimensions
-- Open [`generate_stickers.py`](file:///Users/nasarmdalam/Desktop/Contact_Me/generate_stickers.py).
-- The function `create_sticker_image(tag_id, base_url)` controls sticker canvas size (default `600x760`), colors, typography, and QR code placement.
-- You can add your company logo, sponsor banner, or change dimensions for specific sticker paper sheets.
-
-### 3. Securing the `/admin` Route
-- Currently, `/admin` is open for convenience.
-- To protect it: Add an environment variable `ADMIN_PASSWORD` in `server.py` and verify it via HTTP Basic Auth or session cookie before rendering `admin.html`.
-
-### 4. Swapping SQLite for PostgreSQL (e.g. Supabase / Neon / Render Postgres)
-- All database queries are isolated in [`database.py`](file:///Users/nasarmdalam/Desktop/Contact_Me/database.py).
-- To switch to PostgreSQL: Replace `sqlite3` with `psycopg2` or `asyncpg` and adjust the connection string using `os.environ.get("DATABASE_URL")`. Table schemas are standard SQL and fully compatible.
-
-### 5. Adding Multi-Language Support
-- In `templates/scan.html`, you can add a language selector (e.g., English, Hindi, Spanish, Arabic) and toggle the text on the alert buttons dynamically via a JSON dictionary.
-
----
-
-## 🚀 Local Development Setup
-
-```bash
-# 1. Clone your repository
-git clone https://github.com/nasarmdalam-svg/ContactMe.git
-cd ContactMe
-
-# 2. Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Start local development server
-uvicorn server:app --reload --port 8000
-```
-
-- Open **[http://localhost:8000/admin](http://localhost:8000/admin)** for the Admin Panel.
-- Open **[http://localhost:8000/activate/CAR-SAMPLE](http://localhost:8000/activate/CAR-SAMPLE)** to test activating a tag.
-- Open **[http://localhost:8000/c/CAR-SAMPLE](http://localhost:8000/c/CAR-SAMPLE)** to test the public scanner page.
-
----
-
-## ☁️ 24/7 Free Cloud Deployment (Render.com)
-
-1. Push your changes to GitHub:
-   ```bash
-   git add .
-   git commit -m "Your update"
-   git push origin main
-   ```
-2. Log in to [render.com](https://render.com) and create a **New Web Service** pointing to your repository.
-3. Render automatically picks up `render.yaml` and deploys your service.
-4. Your application runs 24/7/365 online for **$0.00**.
+1. **App Identity**: The official application name is **ParkingBuzz**. Windshield stickers feature **BUZZme** at the top and **ParkingBuzz** at the bottom.
+2. **Secrets Rule**: NEVER commit `firebase_service_account.json` or any private key to git. Always use environment variable `FIREBASE_SERVICE_ACCOUNT_JSON` for cloud environments.
+3. **Android Status Bar Icons**: Android strictly requires notification status bar icons (`setSmallIcon`) to be monochrome vector drawables with `#FFFFFFFF` fill on transparent backgrounds (`ic_stat_parkbuzz.xml`). Do not use colored bitmaps as small icons.
+4. **Notification Large Image**: To display the rich, colorful P logo in notification shades, pass the transparent image URL (`static/images/p_logo.png`) or set `setLargeIcon()`.
+5. **Car Horn Audio**: The emergency notification sound is an authentic automotive dual-tone car horn located at `android/app/src/main/res/raw/chime.wav`.
+6. **Database Schema**: To add fields to vehicles or tags, update `database.py`. All table creations use `CREATE TABLE IF NOT EXISTS`.
+7. **Cloud Builds**: Keep Gradle tasks and GitHub workflows compatible with headless Ubuntu environments (`chmod +x android/gradlew`, `--no-daemon`).

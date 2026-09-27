@@ -87,24 +87,8 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
             Log.e(TAG, "WakeLock error: ${e.message}")
         }
 
-        // 2. Play the loud chime sound
-        try {
-            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
-            val mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build()
-                )
-                setDataSource(applicationContext, soundUri)
-                prepare()
-                start()
-            }
-            mediaPlayer.setOnCompletionListener { it.release() }
-        } catch (e: Exception) {
-            Log.e(TAG, "Chime playback error: ${e.message}")
-        }
+        // 2. Play the loud car horn sound using AlertSoundPlayer
+        AlertSoundPlayer.playCarHorn(this)
 
         // 3. Ensure high priority alert channel exists
         createAlertChannelIfNeeded()

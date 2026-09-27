@@ -24,95 +24,74 @@ def get_font(size: int, bold: bool = False):
 def create_sticker_image(tag_id: str, base_url: str) -> str:
     """
     Standard Real-World Windshield Sticker Size:
-    Dimensions: 75mm x 95mm (~3.0 x 3.75 inches).
+    Dimensions: 76mm x 96mm (~3.0 x 3.8 inches).
     High-Resolution Print: 900 x 1140 px (300 DPI Ultra Sharp).
     Design:
-      - Thin vibrant gradient / rainbow outer border.
-      - Top bold callout: 'BUZZme'
+      - 100% Pure white background (no dark patches, no grey boxes).
+      - Top bold callout: 'Scan to BuzzMe'
       - High-contrast QR code with embedded colorful 'P' logo in center.
-      - Clear call-to-action: 'SCAN IF VEHICLE IS BLOCKED'.
-      - Bottom footer branding: 'ParkingBuzz' + Tag ID.
+      - Bold instructions: 'Point Camera to Scan • No App Needed'
+      - Feature highlights: Sound Horn Alarm + Masked Audio Call.
+      - Footer: ParkingBuzz + Tag ID.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     scan_url = f"{base_url.rstrip('/')}/c/{tag_id}"
 
     width, height = 900, 1140
-    sticker = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    sticker = Image.new("RGB", (width, height), (255, 255, 255))
     draw = ImageDraw.Draw(sticker)
 
-    # Fonts
-    font_buzzme = get_font(56, bold=True)
-    font_sub_top = get_font(21, bold=True)
-    font_instruction = get_font(24, bold=True)
-    font_features = get_font(20, bold=False)
-    font_brand_bottom = get_font(42, bold=True)
-    font_tag_bottom = get_font(26, bold=True)
+    font_title = get_font(62, bold=True)
+    font_sub = get_font(23, bold=True)
+    font_big_inst = get_font(30, bold=True)
+    font_feature = get_font(23, bold=True)
+    font_brand = get_font(30, bold=True)
     font_footer_sub = get_font(18, bold=False)
 
-    # 1. Thin Vibrant Rainbow / Gradient Border (Multi-color outline)
+    # 1. Subtle Elegant Rainbow Border
     rainbow_colors = [
-        (34, 197, 94, 255),    # Lime Green
-        (14, 165, 233, 255),   # Sky Cyan
-        (168, 85, 247, 255),   # Purple
-        (236, 72, 153, 255),   # Hot Pink
-        (239, 68, 68, 255),    # Bright Red
-        (245, 158, 11, 255)    # Amber Yellow
+        (14, 165, 233),   # Cyan
+        (59, 130, 246),   # Blue
+        (168, 85, 247),   # Purple
+        (236, 72, 153),   # Pink
+        (239, 68, 68),    # Red
+        (245, 158, 11),   # Amber
+        (34, 197, 94)     # Green
     ]
+    border_thick = 8
+    for i in range(border_thick):
+        c = rainbow_colors[int((i / border_thick) * len(rainbow_colors)) % len(rainbow_colors)]
+        draw.rounded_rectangle([(10 + i, 10 + i), (width - 10 - i, height - 10 - i)], radius=24, outline=c, width=1)
 
-    border_thickness = 10
-    for i in range(border_thickness):
-        c_idx = int((i / border_thickness) * len(rainbow_colors)) % len(rainbow_colors)
-        color = rainbow_colors[c_idx]
-        draw.rounded_rectangle(
-            [(8 + i, 8 + i), (width - 8 - i, height - 8 - i)],
-            radius=26,
-            outline=color,
-            width=1
-        )
+    # Inner subtle boundary line
+    draw.rounded_rectangle([(24, 24), (width - 24, height - 24)], radius=18, outline=(226, 232, 240), width=2)
 
-    # 2. Modern Dark Navy Header Banner
-    banner_margin = 24
-    draw.rounded_rectangle(
-        [(banner_margin, banner_margin), (width - banner_margin, 185)],
-        radius=18,
-        fill=(15, 23, 42, 255) # Sleek Slate/Navy
-    )
+    # 2. Top Header (Pure White Background, Big Bold: 'Scan to BuzzMe')
+    draw.text((width // 2, 68), "Scan to BuzzMe", fill=(15, 23, 42), font=font_title, anchor="mm")
+    draw.text((width // 2, 120), "VEHICLE BLOCKED? SCAN TO CONTACT OWNER", fill=(2, 132, 199), font=font_sub, anchor="mm")
+    draw.line([(50, 146), (width - 50, 146)], fill=(226, 232, 240), width=2)
 
-    # Accent thin rainbow stripe right under the banner
-    stripe_y = 181
-    stripe_w = (width - 2 * banner_margin) / len(rainbow_colors)
-    for idx, c in enumerate(rainbow_colors):
-        sx = banner_margin + (idx * stripe_w)
-        draw.rectangle([(sx, stripe_y), (sx + stripe_w, stripe_y + 4)], fill=c)
-
-    # Top Header Text: BUZZme (Bold & friendly)
-    draw.text((width // 2, 85), "BUZZme", fill=(255, 255, 255, 255), font=font_buzzme, anchor="mm")
-    draw.text((width // 2, 145), "VEHICLE BLOCKED? SCAN TO CONTACT OWNER", fill=(56, 189, 248, 255), font=font_sub_top, anchor="mm")
-
-    # 3. Generate QR Code (High error correction to allow center emblem)
+    # 3. QR Code with centered P Logo
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=13,
-        border=2,
+        border=1,
     )
     qr.add_data(scan_url)
     qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="#0f172a", back_color="white").convert('RGBA')
+    qr_img = qr.make_image(fill_color="#0f172a", back_color="white").convert("RGBA")
 
-    # Embed colorful 'P' logo in center of QR
     logo_path = os.path.join(os.path.dirname(__file__), "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png")
     if os.path.exists(logo_path):
         try:
             p_logo = Image.open(logo_path).convert("RGBA")
-            logo_size = int(qr_img.size[0] * 0.23)
-            p_logo = p_logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-            
-            plate = Image.new("RGBA", (logo_size + 14, logo_size + 14), (255, 255, 255, 255))
+            l_size = int(qr_img.size[0] * 0.23)
+            p_logo = p_logo.resize((l_size, l_size), Image.Resampling.LANCZOS)
+            plate = Image.new("RGBA", (l_size + 14, l_size + 14), (255, 255, 255, 255))
             plate_draw = ImageDraw.Draw(plate)
-            plate_draw.rounded_rectangle([(0, 0), (logo_size + 13, logo_size + 13)], radius=12, fill="white")
+            plate_draw.rounded_rectangle([(0, 0), (plate.size[0] - 1, plate.size[1] - 1)], radius=12, fill="white")
             plate.paste(p_logo, (7, 7), p_logo)
-            
             pos = ((qr_img.size[0] - plate.size[0]) // 2, (qr_img.size[1] - plate.size[1]) // 2)
             qr_img.paste(plate, pos, plate)
         except Exception as e:
@@ -120,36 +99,121 @@ def create_sticker_image(tag_id: str, base_url: str) -> str:
 
     qr_w, qr_h = qr_img.size
     qr_x = (width - qr_w) // 2
-    qr_y = 230
+    qr_y = 175
     sticker.paste(qr_img, (qr_x, qr_y), qr_img)
 
-    # 4. Instructions under QR
-    draw.text((width // 2, qr_y + qr_h + 38), "Point phone camera to scan • No app needed for bystander", fill=(15, 23, 42, 255), font=font_instruction, anchor="mm")
-    draw.text((width // 2, qr_y + qr_h + 75), "Instant Alarm & Masked Voice Call • 100% Private", fill=(100, 116, 139, 255), font=font_features, anchor="mm")
+    # 4. Big Clear Instructions Under QR
+    y_text = qr_y + qr_h + 38
+    draw.text((width // 2, y_text), "Point Camera to Scan • No App Needed", fill=(15, 23, 42), font=font_big_inst, anchor="mm")
 
-    # 5. Bottom Card / Branding: ParkingBuzz
-    card_top = height - 195
-    draw.rounded_rectangle(
-        [(banner_margin, card_top), (width - banner_margin, height - banner_margin)],
-        radius=18,
-        fill=(248, 250, 252, 255),
-        outline=(226, 232, 240, 255),
-        width=2
-    )
+    # Feature Badges
+    y_text += 50
+    pill_h = 44
+    draw.rounded_rectangle([(50, y_text - 12), (width - 50, y_text + pill_h - 12)], radius=10, fill=(240, 249, 255), outline=(186, 230, 253), width=1)
+    draw.text((width // 2, y_text + 10), "SOUND ALARM: Instant Car Horn Alert on Owner Phone", fill=(3, 105, 161), font=font_feature, anchor="mm")
 
-    # ParkingBuzz branding line
-    draw.text((width // 2, card_top + 45), "ParkingBuzz", fill=(15, 23, 42, 255), font=font_brand_bottom, anchor="mm")
-    draw.text((width // 2, card_top + 95), f"VEHICLE SECURITY ID:  {tag_id}", fill=(59, 130, 246, 255), font=font_tag_bottom, anchor="mm")
-    draw.text((width // 2, card_top + 135), "STICK ON CAR WINDSHIELD (INSIDE FACING OUT)", fill=(148, 163, 184, 255), font=font_footer_sub, anchor="mm")
+    y_text += 58
+    draw.rounded_rectangle([(50, y_text - 12), (width - 50, y_text + pill_h - 12)], radius=10, fill=(240, 253, 244), outline=(187, 247, 208), width=1)
+    draw.text((width // 2, y_text + 10), "FREE AUDIO CALL: 100% Private (No Phone Numbers Shared)", fill=(21, 128, 61), font=font_feature, anchor="mm")
+
+    # 5. Footer: Tag ID & Mounting Guide
+    y_text += 68
+    draw.line([(50, y_text), (width - 50, y_text)], fill=(226, 232, 240), width=2)
+
+    y_text += 32
+    draw.text((width // 2, y_text), f"ParkingBuzz • Security Tag: {tag_id}", fill=(15, 23, 42), font=font_brand, anchor="mm")
+
+    y_text += 36
+    draw.text((width // 2, y_text), "STICK ON CAR WINDSHIELD (INSIDE FACING OUT)", fill=(100, 116, 139), font=font_footer_sub, anchor="mm")
 
     output_path = os.path.join(OUTPUT_DIR, f"sticker_{tag_id}.png")
     sticker.save(output_path, "PNG", dpi=(300, 300))
     return output_path
 
+def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
+    """
+    Generates a ready-to-print standard A4 PDF (210mm x 297mm) at 300 DPI for a single tag.
+    Includes the official 76mm x 96mm windshield sticker with cut marks and mounting instructions.
+    """
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    pdf_path = os.path.join(OUTPUT_DIR, f"sticker_{tag_id}_A4.pdf")
+    a4_w, a4_h = 2480, 3508  # A4 at 300 DPI
+    page = Image.new("RGB", (a4_w, a4_h), (255, 255, 255))
+    draw = ImageDraw.Draw(page)
+
+    font_header = get_font(52, bold=True)
+    font_subhead = get_font(28, bold=False)
+    font_guide_title = get_font(32, bold=True)
+    font_guide_body = get_font(24, bold=False)
+
+    # Top Sheet Header
+    draw.text((a4_w // 2, 160), "ParkingBuzz — Official Vehicle Security Sticker", fill=(15, 23, 42), font=font_header, anchor="mm")
+    draw.text((a4_w // 2, 220), "Printable A4 Sheet • Standard Windshield Size: 76 mm x 96 mm (3.0\" x 3.8\")", fill=(100, 116, 139), font=font_subhead, anchor="mm")
+    draw.line([(180, 260), (a4_w - 180, 260)], fill=(226, 232, 240), width=3)
+
+    # Create the high-res sticker
+    sticker_path = create_sticker_image(tag_id, base_url)
+    st_im = Image.open(sticker_path).convert("RGB")
+
+    # Center position for primary sticker
+    st_w, st_h = st_im.size
+    pos_x = (a4_w - st_w) // 2
+    pos_y = 350
+
+    # Draw dashed cut lines around the sticker
+    cut_margin = 12
+    draw.rounded_rectangle(
+        [(pos_x - cut_margin, pos_y - cut_margin), (pos_x + st_w + cut_margin, pos_y + st_h + cut_margin)],
+        radius=30,
+        outline=(148, 163, 184),
+        width=3
+    )
+    draw.text((pos_x - cut_margin + 20, pos_y - cut_margin - 16), "✂️ CUT ALONG DOTTED LINE", fill=(100, 116, 139), font=font_guide_body)
+
+    # Paste sticker
+    page.paste(st_im, (pos_x, pos_y))
+
+    # Mounting & Printing Guide Box
+    box_y = pos_y + st_h + 100
+    draw.rounded_rectangle(
+        [(220, box_y), (a4_w - 220, box_y + 420)],
+        radius=18,
+        fill=(248, 250, 252),
+        outline=(203, 213, 225),
+        width=2
+    )
+
+    draw.text((260, box_y + 40), "📋 Easy Printing & Windshield Installation Guide", fill=(15, 23, 42), font=font_guide_title)
+    draw.text((260, box_y + 100), "1. Printing: Set your printer scale to '100%' or 'Actual Size' (Do not shrink / fit to page).", fill=(51, 65, 85), font=font_guide_body)
+    draw.text((260, box_y + 155), "2. Material: Print on standard A4 paper, transparent sticker sheet, or self-adhesive vinyl.", fill=(51, 65, 85), font=font_guide_body)
+    draw.text((260, box_y + 210), "3. Cutting: Cut neatly around the rounded border following the scissor guide.", fill=(51, 65, 85), font=font_guide_body)
+    draw.text((260, box_y + 265), "4. Affixing: Stick on the inside of the front windshield facing outward (top-left or behind rearview mirror).", fill=(51, 65, 85), font=font_guide_body)
+    draw.text((260, box_y + 320), "5. Ready: Anyone blocking your vehicle scans to alert you instantly with sound and voice call!", fill=(14, 165, 233), font=font_guide_body)
+
+    # Second / Spare Sticker at the bottom
+    spare_scale = 0.82
+    spare_w = int(st_w * spare_scale)
+    spare_h = int(st_h * spare_scale)
+    st_spare = st_im.resize((spare_w, spare_h), Image.Resampling.LANCZOS)
+    spare_x = (a4_w - spare_w) // 2
+    spare_y = box_y + 480
+
+    draw.rounded_rectangle(
+        [(spare_x - 10, spare_y - 10), (spare_x + spare_w + 10, spare_y + spare_h + 10)],
+        radius=24,
+        outline=(203, 213, 225),
+        width=2
+    )
+    draw.text((spare_x, spare_y - 32), "✂️ SPARE / BACKUP STICKER (FOR SECOND VEHICLE OR GLOVEBOX)", fill=(100, 116, 139), font=font_guide_body)
+    page.paste(st_spare, (spare_x, spare_y))
+
+    page.save(pdf_path, "PDF", resolution=300)
+    return pdf_path
+
 def generate_printable_pdf_sheet(tag_ids: list, base_url: str, output_pdf_name: str = "parkingbuzz_stickers_sheet.pdf") -> str:
     """
     Arranges stickers onto standard A4 printable sheets (6 per page: 2 columns x 3 rows).
-    At 300 DPI, each sticker is 75mm x 95mm (standard vehicle windshield sticker size).
+    At 300 DPI, each sticker is 76mm x 96mm (standard vehicle windshield sticker size).
     """
     pdf_path = os.path.join(OUTPUT_DIR, output_pdf_name)
     a4_w, a4_h = 2480, 3508 # A4 at 300 DPI
@@ -159,7 +223,6 @@ def generate_printable_pdf_sheet(tag_ids: list, base_url: str, output_pdf_name: 
     spacing_x = 100
     spacing_y = 90
     
-    # Calculate sticker target render size on sheet
     st_w = 900
     st_h = 1140
     target_w = (a4_w - (2 * margin_x) - spacing_x) // 2
@@ -167,7 +230,6 @@ def generate_printable_pdf_sheet(tag_ids: list, base_url: str, output_pdf_name: 
 
     pages = []
     current_page = None
-    draw_page = None
     count_on_page = 0
 
     for idx, tag_id in enumerate(tag_ids):
@@ -202,7 +264,6 @@ def generate_batch(count: int = 5, base_url: str = "http://localhost:8000"):
         database.create_tag(tag_id)
         generated_ids.append(tag_id)
     
-    # Also generate the ready-to-print A4 PDF sheet
     pdf_path = generate_printable_pdf_sheet(generated_ids, base_url, f"batch_{count}_stickers.pdf")
     print(f"\nAll {count} stickers generated! Printable A4 PDF sheet ready at: {pdf_path}")
     return generated_ids, pdf_path
@@ -214,3 +275,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generate_batch(args.count, args.domain)
+

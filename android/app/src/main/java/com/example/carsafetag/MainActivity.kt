@@ -24,6 +24,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.firebase.FirebaseApp
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -64,10 +65,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        createLoudNotificationChannel()
-        requestSilentPermissions()
-        startAlertBackgroundService()
-        checkIntentForAlert(intent)
+        // Firebase initialized via Application class
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val packageName = packageName
+            val hasIgnored = pm.isIgnoringBatteryOptimizations(packageName)
+            if (!hasIgnored) {
+                val intent = Intent()
+                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                intent.data = Uri.parse("package:" + packageName)
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Device may not support this intent
+                }
+            }
+        }
+
 
         // Initialize Firebase FCM Token and register with backend for millions-of-devices support
         try {
@@ -278,10 +292,12 @@ class MainActivity : ComponentActivity() {
                     .setTitle("🚨 URGENT PARKING ALERT")
                     .setMessage(msg)
                     .setPositiveButton("I Am On My Way") { d, _ ->
+                        AlertSoundPlayer.stop()
                         webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
                         d.dismiss()
                     }
                     .setNegativeButton("Dismiss") { d, _ ->
+                        AlertSoundPlayer.stop()
                         webViewInstance?.evaluateJavascript("if (window.soundManager) { window.soundManager.stopAlarm(); }", null)
                         d.dismiss()
                     }

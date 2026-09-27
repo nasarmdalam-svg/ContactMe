@@ -382,6 +382,18 @@ def get_sticker(tag_id: str, request: Request):
         headers={"Content-Disposition": f'attachment; filename="sticker_{tag_id}.png"'}
     )
 
+# PDF sticker download endpoint (single sticker on A4)
+@app.get("/api/sticker-pdf/{tag_id}")
+def get_sticker_pdf(tag_id: str, request: Request):
+    base_url = str(request.base_url).rstrip("/")
+    pdf_path = generate_stickers.generate_single_sticker_a4_pdf(tag_id, base_url)
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="sticker_{tag_id}.pdf"'}
+    )
+
+# WebSocket endpoint for real-time WebRTC signaling
 # WebSocket endpoint for real-time WebRTC signaling
 @app.websocket("/ws/{tag_id}/{role}")
 async def websocket_signaling(websocket: WebSocket, tag_id: str, role: str):

@@ -247,24 +247,8 @@ class ParkBuzzAlertService : Service() {
             wakeLock.acquire(10000)
         } catch (_: Exception) {}
 
-        // 2. Play the clean chime audio file embedded inside the app (res/raw/chime.wav)
-        try {
-            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
-            val mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build()
-                )
-                setDataSource(applicationContext, soundUri)
-                prepare()
-                start()
-            }
-            mediaPlayer.setOnCompletionListener { it.release() }
-        } catch (e: Exception) {
-            Log.e(TAG, "Chime playback error: ${e.message}")
-        }
+        // 2. Play the loud automotive horn sound
+        AlertSoundPlayer.playCarHorn(this)
 
         // 3. Show Heads-Up Screen Pop-Up Notification
         val openIntent = Intent(this, MainActivity::class.java).apply {

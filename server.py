@@ -429,8 +429,9 @@ def get_qr_image(tag_id: str, request: Request):
 # Printable sticker download endpoint — composites a real scannable QR onto the metallic card template
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
     import qrcode as _qrcode
+    import numpy as np
 
     base_url = str(request.base_url).rstrip("/")
     scan_url = f"{base_url}/c/{tag_id}"
@@ -473,10 +474,44 @@ def get_sticker(tag_id: str, request: Request):
 
     # Overlay real QR onto the metallic card template
     if os.path.exists(metallic_path):
-        card = Image.open(metallic_path)
+        card = Image.open(metallic_path).convert("RGB")
         paste_x = QR_X1 + (qr_w - qr_size) // 2
         paste_y = QR_Y1 + (qr_h - qr_size) // 2
         card.paste(qr_img, (paste_x, paste_y))
+
+        # Dynamically erase static template ID and draw the actual tag_id
+        if tag_id:
+            arr = np.array(card)
+            y1, y2 = 982, 1024
+            x1, x2 = 362, 560
+            top_row = arr[y1, x1:x2, :].astype(float)
+            bottom_row = arr[y2, x1:x2, :].astype(float)
+            for y in range(y1, y2 + 1):
+                alpha = (y - y1) / float(y2 - y1)
+                arr[y, x1:x2, :] = (1.0 - alpha) * top_row + alpha * bottom_row
+            card = Image.fromarray(arr)
+
+            draw = ImageDraw.Draw(card)
+            font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")
+            font = None
+            if os.path.exists(font_path):
+                try:
+                    font = ImageFont.truetype(font_path, 30)
+                except Exception:
+                    font = None
+            if not font:
+                for sys_font in ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+                    if os.path.exists(sys_font):
+                        try:
+                            font = ImageFont.truetype(sys_font, 30)
+                            break
+                        except Exception:
+                            pass
+            if not font:
+                font = ImageFont.load_default()
+
+            draw.text((366, 990), tag_id, fill=(25, 30, 40), font=font)
+
         buf = io.BytesIO()
         card.save(buf, format="JPEG", quality=95)
         return Response(

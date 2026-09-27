@@ -9,6 +9,7 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "stickers_output")
 
 def get_font(size: int, bold: bool = False):
     font_paths = [
+        os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf") if bold else os.path.join(os.path.dirname(__file__), "static/fonts/Arial.ttf"),
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/System/Library/Fonts/SFNSMono.ttf",
         "/System/Library/Fonts/Geneva.ttf"

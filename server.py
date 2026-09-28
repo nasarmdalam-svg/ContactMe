@@ -403,6 +403,13 @@ def subscribe_push(tag_id: str, sub: SubscriptionModel):
     )
     return {"status": "subscribed"}
 
+@app.post("/api/unsubscribe/{tag_id}")
+def unsubscribe_push(tag_id: str, sub: Dict[str, Any]):
+    endpoint = sub.get("endpoint", "")
+    if endpoint:
+        database.delete_subscription(endpoint)
+    return {"status": "unsubscribed", "tag_id": tag_id}
+
 # FCM registration endpoint (Android / iOS native apps)
 @app.post("/api/fcm/register/{tag_id}")
 def register_fcm_token(tag_id: str, reg: FcmRegisterModel):
@@ -413,6 +420,13 @@ def register_fcm_token(tag_id: str, reg: FcmRegisterModel):
     )
     print(f"FCM token saved for tag: {tag_id}")
     return {"status": "fcm_registered", "tag_id": tag_id}
+
+# FCM unregister endpoint on owner logout
+@app.post("/api/fcm/unregister/{tag_id}")
+def unregister_fcm_token(tag_id: str, reg: FcmRegisterModel):
+    database.delete_fcm_token(reg.fcm_token, tag_id)
+    print(f"FCM token unregistered for tag: {tag_id}")
+    return {"status": "fcm_unregistered", "tag_id": tag_id}
 
 # Send Alert endpoint (Called by bystander)
 @app.post("/api/alert/{tag_id}")

@@ -1180,7 +1180,24 @@
         }
       }).catch(() => {});
 
-    function handleLogout() {
+    async function handleLogout() {
+      try {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+              await sub.unsubscribe().catch(() => {});
+              await fetch(`/api/unsubscribe/${tagId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: sub.endpoint })
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch (e) {}
+
       try {
         localStorage.clear();
         sessionStorage.clear();

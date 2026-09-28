@@ -262,9 +262,27 @@ def get_fcm_tokens(tag_id: str) -> List[str]:
         tokens = [row["fcm_token"] for row in cursor.fetchall() if row["fcm_token"]]
         return list(dict.fromkeys(tokens))
 
+def delete_subscription(endpoint: str):
+    with get_db() as conn:
+        conn.execute("DELETE FROM subscriptions WHERE endpoint = ?", (endpoint,))
+        conn.commit()
+
 def delete_invalid_fcm_token(fcm_token: str):
     with get_db() as conn:
         conn.execute("DELETE FROM fcm_tokens WHERE fcm_token = ?", (fcm_token,))
+        conn.commit()
+
+def delete_fcm_token(fcm_token: str, tag_id: Optional[str] = None):
+    with get_db() as conn:
+        if tag_id:
+            clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+            buzz_id = f"BUZZ-{clean_id}"
+            conn.execute(
+                "DELETE FROM fcm_tokens WHERE fcm_token = ? AND (UPPER(tag_id) = ? OR UPPER(tag_id) = ? OR UPPER(tag_id) = ?)",
+                (fcm_token, tag_id.strip().upper(), buzz_id, clean_id)
+            )
+        else:
+            conn.execute("DELETE FROM fcm_tokens WHERE fcm_token = ?", (fcm_token,))
         conn.commit()
 
 def log_alert(tag_id: str, alert_type: str, message: str = ""):

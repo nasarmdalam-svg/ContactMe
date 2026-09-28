@@ -410,117 +410,28 @@ def get_qr_image(tag_id: str, request: Request):
     img.save(buf, format="PNG")
     return Response(content=buf.getvalue(), media_type="image/png")
 
-# Printable sticker download endpoint — composites a real scannable QR onto the metallic card template
+# Printable sticker download endpoint — returns the official 76mm x 96mm luxury brushed aluminum card
 @app.get("/api/sticker/{tag_id}")
 def get_sticker(tag_id: str, request: Request):
-    from PIL import Image, ImageDraw, ImageFont
-    import qrcode as _qrcode
-
     base_url = str(request.base_url).rstrip("/")
-    scan_url = f"{base_url}/c/{tag_id}"
-
-    metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
-    logo_path = os.path.join(os.path.dirname(__file__), "ParkBuzz_No_Disc_Transparent.png")
-
-    # Embed real scannable QR seamlessly into the brushed metallic card
-    if os.path.exists(metallic_path):
-        import numpy as np
-
-        card = Image.open(metallic_path).convert("RGB")
-        arr = np.array(card)
-
-        # 1. Cleanly erase the old template QR zone (x: 178..718, y: 254..776)
-        y1, y2 = 254, 776
-        x1, x2 = 178, 718
-        c_left = arr[y1:y2, x1:x1+1, :].astype(float)
-        c_right = arr[y1:y2, x2:x2+1, :].astype(float)
-        alphas = np.linspace(0, 1, x2 - x1).reshape(1, -1, 1)
-        arr[y1:y2, x1:x2, :] = ((1.0 - alphas) * c_left + alphas * c_right).astype(np.uint8)
-
-        card = Image.fromarray(arr).convert("RGBA")
-
-        # 2. Inpaint static template ID CAR-D3AEED inside the white card
-        draw_card = ImageDraw.Draw(card)
-        bg_card_tint = (235, 237, 240, 255)
-        draw_card.rectangle([240, 892, 685, 946], fill=bg_card_tint)
-
-        # 3. Generate high error-correction QR code (size = 480 px)
-        qr_size = 480
-        qr = _qrcode.QRCode(
-            error_correction=_qrcode.constants.ERROR_CORRECT_H,
-            box_size=10,
-            border=1
-        )
-        qr.add_data(scan_url)
-        qr.make(fit=True)
-
-        qr_raw = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
-        arr_qr = np.array(qr_raw)
-        is_white = (arr_qr[:, :, 0] > 180) & (arr_qr[:, :, 1] > 180) & (arr_qr[:, :, 2] > 180)
-        arr_qr[is_white, 3] = 0
-        arr_qr[~is_white, 0] = 20
-        arr_qr[~is_white, 1] = 25
-        arr_qr[~is_white, 2] = 35
-
-        qr_transparent = Image.fromarray(arr_qr).resize((qr_size, qr_size), Image.Resampling.NEAREST)
-
-        # 4. Embed Elevated 3D Chrome Emblem in center of QR
-        badge_path = os.path.join(os.path.dirname(__file__), "static/images/official_chrome_p_badge.png")
-        badge_size = 142
-        if os.path.exists(badge_path):
-            badge = Image.open(badge_path).convert("RGBA")
-            badge = badge.resize((badge_size, badge_size), Image.LANCZOS)
-            b_pos = ((qr_size - badge_size) // 2, (qr_size - badge_size) // 2)
-            qr_transparent.paste(badge, b_pos, badge)
-
-        paste_x = (896 - qr_size) // 2
-        paste_y = 270
-        card.paste(qr_transparent, (paste_x, paste_y), qr_transparent)
-
-        # 5. Draw clean Vehicle ID in the white box
-        card = card.convert("RGB")
-        draw = ImageDraw.Draw(card)
-        font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")
-        font_bold = None
-        if os.path.exists(font_path):
-            try:
-                font_bold = ImageFont.truetype(font_path, 33)
-            except Exception:
-                font_bold = None
-        if not font_bold:
-            for sys_font in ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
-                if os.path.exists(sys_font):
-                    try:
-                        font_bold = ImageFont.truetype(sys_font, 33)
-                        break
-                    except Exception:
-                        pass
-        if not font_bold:
-            font_bold = ImageFont.load_default()
-
-        if tag_id:
-            text = f"Vehicle ID: {tag_id}"
-            bbox = draw.textbbox((0, 0), text, font=font_bold)
-            tw = bbox[2] - bbox[0]
-            draw.text(((896 - tw) // 2, 903), text, fill=(20, 24, 33), font=font_bold)
-
+    try:
+        card = generate_stickers.generate_metallic_sticker_card(tag_id, base_url)
         buf = io.BytesIO()
-        card.save(buf, format="JPEG", quality=95)
+        card.save(buf, format="JPEG", quality=98)
         return Response(
             content=buf.getvalue(),
             media_type="image/jpeg",
             headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.jpg"'}
         )
-
-    # Fallback: plain generated sticker if metallic card missing
-    sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
-    with open(sticker_path, "rb") as f:
-        content = f.read()
-    return Response(
-        content=content,
-        media_type="image/png",
-        headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.png"'}
-    )
+    except Exception as e:
+        sticker_path = generate_stickers.create_sticker_image(tag_id, base_url)
+        with open(sticker_path, "rb") as f:
+            content = f.read()
+        return Response(
+            content=content,
+            media_type="image/png",
+            headers={"Content-Disposition": f'inline; filename="ParkingBuzz_Sticker_{tag_id}.png"'}
+        )
 
 
 

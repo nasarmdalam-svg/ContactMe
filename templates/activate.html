@@ -9,6 +9,14 @@
 </head>
 <body>
   <div class="container">
+    <!-- Top Action Bar with Back Button -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+      <button type="button" id="btnGoBack" onclick="if (localStorage.getItem('last_active_tag')) { window.location.href = '/owner/' + localStorage.getItem('last_active_tag'); } else if (history.length > 1) { history.back(); } else { window.location.href = '/'; }" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        ← Back
+      </button>
+      <span style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">PARKINGBUZZ</span>
+    </div>
+
     <div class="header" style="margin-bottom: 14px;">
       <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.45)); margin-bottom: 8px;">
       <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 3px;">Activate New Sticker</h1>

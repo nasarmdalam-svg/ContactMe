@@ -2,132 +2,383 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contact Vehicle Owner - ParkingBuzz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Contact Vehicle Owner — ParkingBuzz</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
+  <style>
+    :root {
+      --bg-dark: #080c14;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --cyan-glow: #38bdf8;
+      --green-glow: #10b981;
+      --red-glow: #ef4444;
+    }
+
+    body {
+      background: #080c14 !important;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: block !important;
+      width: 100% !important;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .bystander-wrap {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 20px 16px 40px 16px;
+      box-sizing: border-box;
+    }
+
+    .glass-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .call-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .call-btn:active {
+      transform: scale(0.98);
+      filter: brightness(0.9);
+    }
+
+    .alerts-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .alert-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .alert-card:active {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: scale(0.99);
+    }
+
+    .alert-card .icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
+    }
+
+    .alert-card .alert-content {
+      flex: 1;
+    }
+
+    .alert-card .alert-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 2px;
+    }
+
+    .alert-card .alert-desc {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .alert-card .alert-arrow {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    /* Dedicated Call Overlay */
+    .call-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    .call-overlay.active {
+      display: flex;
+    }
+
+    .pulse-ring {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 46px;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+      animation: pulse 1.8s infinite ease-in-out;
+      margin-bottom: 24px;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.96); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+      50% { transform: scale(1.08); box-shadow: 0 0 50px rgba(16, 185, 129, 0.6); }
+      100% { transform: scale(0.96); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+    }
+
+    .btn-end {
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      padding: 16px 44px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+      margin-top: 30px;
+    }
+
+    .toast-pill {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      z-index: 10000;
+      display: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header" style="margin-bottom: 16px;">
-      <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 52px; height: 52px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 3px 12px rgba(56, 189, 248, 0.4)); margin-bottom: 6px;">
-      <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 3px;">Contact Vehicle Owner</h1>
-      <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Vehicle: <strong style="color: #f8fafc;">{{ tag.vehicle_name if tag.vehicle_name else 'Registered Vehicle' }}</strong> (ID: {{ tag.tag_id }})</p>
-      {% if tag.owner_name %}
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">Owner / Contact: <strong>{{ tag.owner_name }}</strong></div>
-      {% endif %}
-    </div>
+  <div class="bystander-wrap">
 
-    <div class="privacy-banner" style="display:flex; flex-direction:column; gap:6px; text-align:left; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px 14px;">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size: 18px;">🛡️</span>
-        <strong style="color: #34d399; font-size: 13px;">100% Safe & Private Scan</strong>
-        <span style="margin-left:auto; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">No App Needed</span>
+    <!-- Top Luxury Header -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 4px 18px rgba(56, 189, 248, 0.45)); margin-bottom: 10px;">
+      <div style="font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1.2px; text-transform: uppercase;">
+        PARKINGBUZZ CONNECT
       </div>
-      <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
-        Verified Secure • Zero Phone Numbers Exchanged • No APK or Script Downloads
+      <h1 style="font-size: 22px; font-weight: 900; color: #f8fafc; margin: 4px 0 2px 0;">
+        Contact Vehicle Owner
+      </h1>
+      <div style="font-size: 13px; color: #94a3b8;">
+        Vehicle: <strong style="color: #f1f5f9;">{{ tag.vehicle_name if tag.vehicle_name else 'Vehicle' }}</strong>
+        <span style="opacity: 0.5;">•</span>
+        <span style="color: #38bdf8; font-weight: 700;">{{ tag.tag_id }}</span>
       </div>
     </div>
 
+    <!-- 100% Privacy Shield Banner -->
+    <div style="background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 22px;">🛡️</span>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">
+        <strong style="color: #34d399;">100% Private Contact:</strong> Your phone number is never revealed. Calls & buzzer alerts connect directly to the owner.
+      </div>
+    </div>
+
+    <!-- Emergency Medical Info (if configured) -->
     {% if tag.get('blood_group') or tag.get('emergency_contact') or tag.get('emergency_phone') %}
-    <div style="margin: 14px 0; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 12px 14px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="const d = document.getElementById('medicalDetails'); d.style.display = d.style.display === 'none' ? 'block' : 'none';">
+    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="const d = document.getElementById('medBox'); d.style.display = d.style.display === 'none' ? 'block' : 'none';">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">🆘</span>
-          <strong style="color: #f87171; font-size: 13px;">Emergency & Medical Information</strong>
+          <strong style="color: #f87171; font-size: 13px;">Emergency / Medical Contact</strong>
         </div>
-        <span style="font-size: 12px; color: #f87171; font-weight: 600;">View Details ▼</span>
+        <span style="font-size: 11px; color: #f87171; font-weight: 700;">TAP TO VIEW ▼</span>
       </div>
-      <div id="medicalDetails" style="display: none; margin-top: 10px; font-size: 13px; color: #e2e8f0; border-top: 1px dashed rgba(239, 68, 68, 0.3); padding-top: 8px;">
+      <div id="medBox" style="display: none; margin-top: 10px; font-size: 13px; color: #f1f5f9; border-top: 1px dashed rgba(239, 68, 68, 0.3); padding-top: 10px;">
         {% if tag.get('blood_group') %}
-        <div style="margin-bottom: 4px;">🩸 <strong>Blood Group:</strong> <span style="color: #ef4444; font-weight: 700; font-size: 14px;">{{ tag.blood_group }}</span></div>
+        <div style="margin-bottom: 6px;">🩸 Blood Group: <strong style="color: #ef4444;">{{ tag.blood_group }}</strong></div>
         {% endif %}
         {% if tag.get('emergency_contact') %}
-        <div style="margin-bottom: 4px;">👤 <strong>Emergency Contact:</strong> {{ tag.emergency_contact }}</div>
+        <div style="margin-bottom: 6px;">👤 Contact Person: <strong>{{ tag.emergency_contact }}</strong></div>
         {% endif %}
         {% if tag.get('emergency_phone') %}
-        <div style="margin-top: 8px;">
-          <a href="tel:{{ tag.emergency_phone }}" style="display: inline-flex; align-items: center; gap: 6px; background: #ef4444; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600;">
-            <span>📞</span> Call Emergency Contact
-          </a>
-        </div>
+        <a href="tel:{{ tag.emergency_phone }}" style="display: inline-flex; align-items: center; gap: 6px; background: #ef4444; color: white; padding: 9px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 800; margin-top: 4px;">
+          📞 Call ICE Emergency Contact
+        </a>
         {% endif %}
       </div>
     </div>
     {% endif %}
 
-    {% if tag.get('is_active', 1) == 0 %}
-    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 18px; color: #f87171; text-align: center;">
-      ⚠️ <strong>Owner is currently away (Do Not Disturb)</strong><br>
-      <span style="font-size: 12px; color: #cbd5e1;">Notifications may be muted.</span>
-    </div>
-    {% endif %}
-
-    {% if tag.custom_note %}
-    <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 20px;">
-      <strong>Note from owner:</strong> {{ tag.custom_note }}
-    </div>
-    {% endif %}
-
-    <!-- Voice Call Option -->
-    <div class="call-btn-container">
-      <button class="btn-primary" id="btnStartCall">
-        <span style="font-size: 20px;">📞</span> Call Owner (Free Private Voice Call)
-      </button>
+    <!-- Real-time Owner Response Banner -->
+    <div id="ownerResponseBanner" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 16px; padding: 14px 18px; margin-bottom: 18px; text-align: left; animation: fadeIn 0.3s ease;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <span style="font-size: 16px;">🟢</span>
+        <strong style="color: #34d399; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;">Owner Acknowledged</strong>
+      </div>
+      <div id="ownerResponseText" style="color: #f8fafc; font-size: 15px; font-weight: 800; line-height: 1.3;"></div>
     </div>
 
-    <!-- Location Sharing Toggle -->
-    <div style="margin: 14px 0 10px 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; color: #94a3b8; background: rgba(255, 255, 255, 0.03); padding: 8px; border-radius: 8px;">
-      <input type="checkbox" id="attachLocation" checked style="accent-color: #3b82f6; width: 15px; height: 15px; cursor: pointer;">
-      <label for="attachLocation" style="cursor: pointer;">📍 Share approximate location to help owner find car</label>
+    <!-- Anti-Spam Cooldown Notice -->
+    <div id="cooldownNotice" style="display: none; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; font-weight: 700; color: #38bdf8; text-align: center;">
+      ⏳ Buttons temporarily locked (10s) to prevent spamming...
     </div>
 
-    <div class="section-title">Or Send an Instant Sound Alert</div>
+    <!-- Primary Action: Free Voice Call (Always Unrestricted for Emergencies) -->
+    <div style="margin-bottom: 18px;">
+      <button class="call-btn" id="btnStartCall">
+        <span style="font-size: 22px;">📞</span>
+        <span>Call Owner (Free Private Voice Call)</span>
+      </button>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: #64748b; margin-top: 8px;">
+        <span>🔒</span> Masked WebRTC Call • Zero App Required
+      </div>
+    </div>
 
-    <div class="alerts-grid">
-      <button class="alert-btn" data-type="blocking">
-        <span class="icon">🚗</span>
-        <span>Car is blocking someone / driveway</span>
-      </button>
-      <button class="alert-btn" data-type="lights">
-        <span class="icon">💡</span>
-        <span>Headlights or hazard lights left ON</span>
-      </button>
-      <button class="alert-btn" data-type="alarm">
-        <span class="icon">🚨</span>
-        <span>Car alarm is going off</span>
-      </button>
-      <button class="alert-btn" data-type="window">
-        <span class="icon">🪟</span>
-        <span>Window is left open / rolled down</span>
-      </button>
-      <button class="alert-btn" data-type="emergency">
-        <span class="icon">⚠️</span>
-        <span>Towing warning / Emergency</span>
+    <!-- Location Checkbox -->
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 18px; background: rgba(255,255,255,0.03); padding: 9px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); font-size: 12px; color: #94a3b8;">
+      <input type="checkbox" id="attachLocation" checked style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+      <label for="attachLocation" style="cursor: pointer;">📍 Share approximate location to help owner find vehicle</label>
+    </div>
+
+    <!-- Quick Alerts Grid -->
+    <div class="glass-panel" style="padding: 16px;">
+      <div style="font-size: 12px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+        Instant Vehicle Alerts
+      </div>
+
+      <div class="alerts-grid">
+        <button type="button" class="alert-card" data-type="blocking" data-text="Car is blocking someone / driveway">
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.12); color: #f87171;">🚗</div>
+          <div class="alert-content">
+            <div class="alert-title">Car is Blocking Someone</div>
+            <div class="alert-desc">Send immediate chime to move vehicle</div>
+          </div>
+          <span class="alert-arrow">→</span>
+        </button>
+
+        <button type="button" class="alert-card" data-type="lights" data-text="Headlights or hazard lights left ON">
+          <div class="icon-box" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24;">💡</div>
+          <div class="alert-content">
+            <div class="alert-title">Headlights / Hazard Lights ON</div>
+            <div class="alert-desc">Prevent car battery from draining</div>
+          </div>
+          <span class="alert-arrow">→</span>
+        </button>
+
+        <button type="button" class="alert-card" data-type="alarm" data-text="Car alarm is going off">
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.12); color: #f87171;">🚨</div>
+          <div class="alert-content">
+            <div class="alert-title">Car Alarm Going Off</div>
+            <div class="alert-desc">Notify owner of security alarm sounding</div>
+          </div>
+          <span class="alert-arrow">→</span>
+        </button>
+
+        <button type="button" class="alert-card" data-type="window" data-text="Window is left open / rolled down">
+          <div class="icon-box" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">🪟</div>
+          <div class="alert-content">
+            <div class="alert-title">Window Left Open</div>
+            <div class="alert-desc">Protect against rain or theft</div>
+          </div>
+          <span class="alert-arrow">→</span>
+        </button>
+
+        <button type="button" class="alert-card" data-type="emergency" data-text="Towing warning / Emergency">
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
+          <div class="alert-content">
+            <div class="alert-title" style="color: #f87171;">Towing / Immediate Emergency</div>
+            <div class="alert-desc">Critical warning to move immediately</div>
+          </div>
+          <span class="alert-arrow">→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Message Box -->
+    <div class="glass-panel" style="padding: 16px;">
+      <div style="font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">
+        Custom Message
+      </div>
+      <textarea id="customMessage" rows="2" placeholder="e.g. Please move 2 feet back so I can take my car out..." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; font-size: 14px; margin-bottom: 10px; resize: none;"></textarea>
+      <button type="button" id="btnSendCustom" style="width: 100%; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-weight: 800; padding: 12px; border-radius: 12px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>✉️ Send Custom Note</span>
       </button>
     </div>
 
-    <div class="custom-msg-box">
-      <div class="section-title">Custom Message</div>
-      <textarea id="customMessage" rows="2" placeholder="e.g. Please move back 2 feet, thank you!"></textarea>
-      <button class="alert-btn" id="btnSendCustom" style="justify-content: center; background: rgba(59, 130, 246, 0.15); border-color: #3b82f6;">
-        <span>✉️ Send Custom Alert</span>
-      </button>
+    <!-- Footer -->
+    <div style="text-align: center; font-size: 11px; color: #475569; margin-top: 24px;">
+      Protected by ParkingBuzz • Instant QR Vehicle Contact Network
     </div>
 
-    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
   </div>
 
-  <!-- In-Call Fullscreen Modal -->
+  <!-- Dedicated In-Call Overlay -->
   <div class="call-overlay" id="callOverlay">
-    <div class="pulse-avatar" id="avatarIcon">📞</div>
-    <div class="call-status-text" id="callStatusText">Connecting...</div>
-    <div class="call-subtext" id="callSubText">Ring is playing on the owner's phone</div>
-
-    <div class="call-controls">
-      <button class="action-circle-btn btn-hangup" id="btnEndCall" title="Hang Up">✕</button>
+    <div class="pulse-ring">📞</div>
+    <div id="callStatusText" style="font-size: 20px; font-weight: 800; color: #f8fafc; margin-bottom: 6px;">
+      Calling Owner...
     </div>
+    <div id="callSubText" style="font-size: 13px; color: #94a3b8; text-align: center; max-width: 280px; line-height: 1.4;">
+      Owner's phone is ringing. Please stay on this screen.
+    </div>
+
+    <div id="callDuration" style="font-size: 16px; font-weight: 700; color: #34d399; margin-top: 14px; display: none;">
+      00:00
+    </div>
+
+    <button type="button" class="btn-end" id="btnEndCall">
+      <span>🔴 End Call</span>
+    </button>
   </div>
+
+  <!-- Status Toast Pill -->
+  <div class="toast-pill" id="statusToast"></div>
 
   <audio id="remoteAudio" autoplay playsinline></audio>
 
@@ -139,43 +390,16 @@
     const callOverlay = document.getElementById('callOverlay');
     const callStatusText = document.getElementById('callStatusText');
     const callSubText = document.getElementById('callSubText');
+    const callDuration = document.getElementById('callDuration');
     const remoteAudio = document.getElementById('remoteAudio');
 
+    let toastTimer = null;
     function showToast(text, isError = false) {
+      if (toastTimer) clearTimeout(toastTimer);
       statusToast.textContent = text;
+      statusToast.style.background = isError ? '#ef4444' : '#10b981';
       statusToast.style.display = 'block';
-      statusToast.style.background = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
-      statusToast.style.color = isError ? '#f87171' : '#34d399';
-      setTimeout(() => { statusToast.style.display = 'none'; }, 4000);
-    }
-
-    let isAlertInProgress = false;
-
-    function setButtonsState(disabled, activeBtn = null, loadingText = '') {
-      const allButtons = document.querySelectorAll('.alert-btn, #btnSendCustom, #btnCallOwner');
-      const textarea = document.getElementById('customMessage');
-      if (textarea) textarea.disabled = disabled;
-
-      allButtons.forEach(btn => {
-        btn.disabled = disabled;
-        if (disabled) {
-          btn.style.opacity = '0.5';
-          btn.style.pointerEvents = 'none';
-        } else {
-          btn.style.opacity = '1';
-          btn.style.pointerEvents = 'auto';
-        }
-      });
-
-      if (activeBtn) {
-        activeBtn.style.opacity = '1';
-        if (disabled && loadingText) {
-          activeBtn.dataset.originalHtml = activeBtn.innerHTML;
-          activeBtn.innerHTML = `<span>⏳</span> <span>${loadingText}</span>`;
-        } else if (!disabled && activeBtn.dataset.originalHtml) {
-          activeBtn.innerHTML = activeBtn.dataset.originalHtml;
-        }
-      }
+      toastTimer = setTimeout(() => { statusToast.style.display = 'none'; }, 3500);
     }
 
     async function getApproxLocation() {
@@ -194,12 +418,70 @@
       });
     }
 
-    // Send Alert handler with anti-spam button lock & auto re-enable
-    async function sendAlert(type, message = '', clickedBtn = null) {
-      if (isAlertInProgress) return;
-      isAlertInProgress = true;
+    function startAlertCooldown(seconds = 10) {
+      const cards = document.querySelectorAll('.alert-card, #btnSendCustom');
+      cards.forEach(el => {
+        el.style.opacity = '0.5';
+        el.style.pointerEvents = 'none';
+      });
 
-      setButtonsState(true, clickedBtn, 'Delivering Alert to Owner...');
+      let remaining = seconds;
+      const notice = document.getElementById('cooldownNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        notice.textContent = `⏳ Buttons temporarily locked (${remaining}s) to prevent spamming...`;
+      }
+
+      const timer = setInterval(() => {
+        remaining--;
+        if (notice) {
+          notice.textContent = `⏳ Buttons temporarily locked (${remaining}s) to prevent spamming...`;
+        }
+        if (remaining <= 0) {
+          clearInterval(timer);
+          if (notice) notice.style.display = 'none';
+          cards.forEach(el => {
+            el.style.opacity = '1';
+            el.style.pointerEvents = 'auto';
+          });
+          isSendingAlert = false;
+        }
+      }, 1000);
+    }
+
+    function displayOwnerResponse(msg) {
+      const banner = document.getElementById('ownerResponseBanner');
+      const textEl = document.getElementById('ownerResponseText');
+      if (banner && textEl) {
+        textEl.textContent = `"${msg}"`;
+        banner.style.display = 'block';
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        showToast(`🟢 Owner responded: "${msg}"`);
+      }
+    }
+
+    // Check for prior owner response on load
+    fetch(`/api/owner/response/${tagId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.has_response && d.message) {
+          displayOwnerResponse(d.message);
+        }
+      })
+      .catch(() => {});
+
+    let isSendingAlert = false;
+    async function sendAlert(type, message, cardEl = null) {
+      if (isSendingAlert) return;
+      isSendingAlert = true;
+
+      const originalHtml = cardEl ? cardEl.innerHTML : '';
+      if (cardEl) {
+        cardEl.style.opacity = '0.7';
+        cardEl.style.pointerEvents = 'none';
+        const arrow = cardEl.querySelector('.alert-arrow');
+        if (arrow) arrow.textContent = '⏳';
+      }
 
       let locationUrl = null;
       try {
@@ -210,89 +492,110 @@
         const resp = await fetch(`/api/alert/${tagId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            alert_type: type, 
+          body: JSON.stringify({
+            alert_type: type,
             message: message,
             location: locationUrl || ''
           })
         });
-        const data = await resp.json();
+
+        const data = await resp.json().catch(() => ({}));
 
         if (resp.ok) {
-          if (clickedBtn) {
-            clickedBtn.innerHTML = `<span>✅</span> <span>Alert Delivered to Owner!</span>`;
+          if (data.status === 'rate_limited') {
+            showToast(data.message || 'Maximum 3 alerts reached. Please wait for owner to respond.', true);
+            startAlertCooldown(12);
+          } else if (data.status === 'snoozed') {
+            showToast(data.message || 'Owner is currently on Do Not Disturb.', false);
+            startAlertCooldown(10);
+          } else {
+            showToast('🔔 Alert delivered directly to vehicle owner!');
+            if (cardEl) {
+              const arrow = cardEl.querySelector('.alert-arrow');
+              if (arrow) arrow.textContent = '✅';
+            }
+            startAlertCooldown(10);
           }
-          showToast('🔔 Alert delivered! The owner\'s phone is ringing/notified.');
-
-          // Cooldown for 5 seconds before re-enabling all buttons
-          let remainingSeconds = 5;
-          const countdownInterval = setInterval(() => {
-            remainingSeconds--;
-            if (clickedBtn && remainingSeconds > 0) {
-              clickedBtn.innerHTML = `<span>✅</span> <span>Delivered! Ready in ${remainingSeconds}s...</span>`;
-            }
-            if (remainingSeconds <= 0) {
-              clearInterval(countdownInterval);
-              setButtonsState(false, clickedBtn);
-              isAlertInProgress = false;
-              showToast('Buttons ready. You can send another alert if needed.');
-            }
-          }, 1000);
-
         } else {
-          showToast('Failed to send alert: ' + (data.detail || 'Unknown error'), true);
-          setButtonsState(false, clickedBtn);
-          isAlertInProgress = false;
+          showToast('Failed to deliver alert. Please try again.', true);
+          isSendingAlert = false;
         }
       } catch (e) {
-        showToast('Network error sending alert', true);
-        setButtonsState(false, clickedBtn);
-        isAlertInProgress = false;
+        showToast('Network error delivering alert.', true);
+        isSendingAlert = false;
+      } finally {
+        if (cardEl) {
+          setTimeout(() => {
+            cardEl.innerHTML = originalHtml;
+          }, 2000);
+        }
       }
     }
 
-    document.querySelectorAll('.alert-btn[data-type]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.getAttribute('data-type');
-        const text = btn.querySelector('span:last-child').textContent;
-        sendAlert(type, text, btn);
+    document.querySelectorAll('.alert-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const type = card.getAttribute('data-type');
+        const text = card.getAttribute('data-text');
+        sendAlert(type, text, card);
       });
     });
 
     document.getElementById('btnSendCustom').addEventListener('click', () => {
       const msg = document.getElementById('customMessage').value.trim();
       if (!msg) {
-        alert('Please enter a message.');
+        alert('Please enter a note for the vehicle owner.');
         return;
       }
-      sendAlert('custom', msg, document.getElementById('btnSendCustom'));
+      sendAlert('custom', msg);
       document.getElementById('customMessage').value = '';
     });
 
-
     // Voice Call Logic
     let callClient = null;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+
+    function startTimer() {
+      callSeconds = 0;
+      callDuration.style.display = 'block';
+      callDuration.textContent = '00:00';
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        callDuration.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callDuration.style.display = 'none';
+      callSeconds = 0;
+    }
 
     function initCallClient() {
       callClient = new VoiceCallClient(
         tagId,
         'caller',
         (state) => {
-          console.log('Caller state:', state);
           if (state === 'calling') {
             callOverlay.classList.add('active');
-            callStatusText.textContent = 'Calling Owner...';
-            callSubText.textContent = 'Owner has been notified and phone is ringing';
-            window.soundManager.startRingtone();
+            callStatusText.textContent = 'Calling Vehicle Owner...';
+            callSubText.textContent = 'Owner phone is ringing. Please wait...';
+            stopTimer();
+            if (window.soundManager) window.soundManager.startRingtone();
           } else if (state === 'call_accepted') {
-            window.soundManager.stopRingtone();
-            callStatusText.textContent = 'Connecting Audio...';
+            if (window.soundManager) window.soundManager.stopRingtone();
+            callStatusText.textContent = 'Connecting Secure Audio...';
           } else if (state === 'in_call') {
-            window.soundManager.stopRingtone();
-            callStatusText.textContent = 'In Call (Live Audio)';
-            callSubText.textContent = 'Speaking directly with owner';
+            if (window.soundManager) window.soundManager.stopRingtone();
+            callStatusText.textContent = 'Call Connected (Live Audio)';
+            callSubText.textContent = 'Speaking privately with vehicle owner';
+            startTimer();
           } else if (state === 'call_ended' || state === 'call_rejected' || state === 'idle') {
-            window.soundManager.stopRingtone();
+            if (window.soundManager) window.soundManager.stopRingtone();
+            stopTimer();
             callOverlay.classList.remove('active');
             showToast(state === 'call_rejected' ? 'Call was declined by owner' : 'Call ended');
           }
@@ -302,18 +605,18 @@
           remoteAudio.play().catch(e => console.log('Audio autoplay error:', e));
         }
       );
+      callClient.onOwnerResponse = (msg) => {
+        displayOwnerResponse(msg.message);
+      };
       callClient.connectSignaling();
     }
 
+    // Connect signaling on load to receive instant owner responses
+    initCallClient();
+
     document.getElementById('btnStartCall').addEventListener('click', async () => {
-      // Send an alert first so push notification wakes up the owner
       await sendAlert('incoming_call', 'Incoming Voice Call Request');
-      if (!callClient) {
-        initCallClient();
-        setTimeout(() => {
-          callClient.startCall();
-        }, 600);
-      } else {
+      if (callClient) {
         callClient.startCall();
       }
     });
@@ -322,6 +625,8 @@
       if (callClient) {
         callClient.endCall();
       }
+      callOverlay.classList.remove('active');
+      stopTimer();
     });
   </script>
 </body>

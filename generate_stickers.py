@@ -135,94 +135,68 @@ def create_sticker_image(tag_id: str, base_url: str) -> str:
 
 def generate_metallic_sticker_card(tag_id: str, base_url: str) -> Image.Image:
     """
-    Renders the official luxury brushed aluminum windshield card.
+    Renders the official luxury brushed aluminum windshield card with Google Play Store badge.
     Exact dimensions: 898 x 1134 px (76 mm x 96 mm at 300 DPI).
     Features:
-      - Photorealistic brushed metal with chamfered bevel & rainbow holographic rim
-      - High-contrast scannable QR code in a micro-beveled frame
-      - Center-embedded elevated 3D Chrome ParkingBuzz badge
-      - Laser-engraved Vehicle ID, security subtitles, and windshield mounting instructions
+      - Photorealistic brushed metal substrate with chamfered bevel & rainbow holographic rim
+      - High-contrast scannable QR code centered with Chrome ParkingBuzz badge
+      - Bottom pill with Global Parking Service, Chrome emblem, clean Vehicle ID: {tag_id}
+      - Official Google Play Store download badge and mini scannable app download QR
     """
     scan_url = f"{base_url.rstrip('/')}/c/{tag_id}"
-    substrate_path = os.path.join(os.path.dirname(__file__), "static/images/official_metallic_card_substrate.png")
+    template_path = os.path.join(os.path.dirname(__file__), "static/images/official_parkingbuzz_playstore_template.png")
 
-    W, H = 898, 1134
-    if os.path.exists(substrate_path):
-        base = Image.open(substrate_path).convert("RGBA")
-        card = base.resize((W, H), Image.Resampling.LANCZOS)
+    if os.path.exists(template_path):
+        template = Image.open(template_path).convert("RGBA")
     else:
-        card = Image.new("RGBA", (W, H), (230, 233, 238, 255))
+        fallback_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_with_playstore.jpg")
+        template = Image.open(fallback_path).convert("RGBA")
 
-    draw = ImageDraw.Draw(card)
+    # 1. Seamlessly erase old 'CAR-D3AEED' and render clean Vehicle ID
+    strip = template.crop((350, 990, 351, 1035))
+    erase_patch = strip.resize((540 - 365, 1035 - 990))
+    template.paste(erase_patch, (365, 990))
 
-    # 1. Generate scannable QR code
-    qr_size = 530
+    font_id = get_font(28, bold=True)
+    draw = ImageDraw.Draw(template)
+    draw.text((368, 999), tag_id, fill=(15, 23, 42), font=font_id)
+
+    # 2. Generate high-contrast scannable QR code
     qr = qrcode.QRCode(
         error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=10,
-        border=1
+        border=0
     )
     qr.add_data(scan_url)
     qr.make(fit=True)
-
     qr_img = qr.make_image(fill_color=(15, 23, 42), back_color="white").convert("RGBA")
-    qr_resized = qr_img.resize((qr_size, qr_size), Image.Resampling.NEAREST)
 
-    # 2. Embed 3D Chrome Emblem in center of QR
+    # 3. Center Chrome Emblem in QR
     badge_path = os.path.join(os.path.dirname(__file__), "static/images/official_chrome_p_badge.png")
     if os.path.exists(badge_path):
         badge = Image.open(badge_path).convert("RGBA")
-        b_size = 148
+        b_size = int(qr_img.size[0] * 0.28)
         badge = badge.resize((b_size, b_size), Image.Resampling.LANCZOS)
-        b_pos = ((qr_size - b_size) // 2, (qr_size - b_size) // 2)
-        qr_resized.paste(badge, b_pos, badge)
+        b_pos = ((qr_img.size[0] - b_size) // 2, (qr_img.size[1] - b_size) // 2)
+        qr_img.paste(badge, b_pos, badge)
 
-    # 3. Micro-beveled precision plate for QR
-    qr_mask = Image.new("L", (qr_size, qr_size), 0)
-    qr_mask_draw = ImageDraw.Draw(qr_mask)
-    qr_mask_draw.rounded_rectangle([(0, 0), (qr_size, qr_size)], radius=32, fill=255)
+    qr_resized = qr_img.resize((456, 456), Image.Resampling.LANCZOS)
+    container = Image.new("RGBA", (480, 480), (0, 0, 0, 0))
+    c_draw = ImageDraw.Draw(container)
+    c_draw.rounded_rectangle([(0, 0), (479, 479)], radius=24, fill=(255, 255, 255, 255), outline=(210, 215, 224, 255), width=2)
+    container.paste(qr_resized, (12, 12), qr_resized)
 
-    qr_plate = Image.new("RGBA", (qr_size + 16, qr_size + 16), (0, 0, 0, 0))
-    plate_draw = ImageDraw.Draw(qr_plate)
-    plate_draw.rounded_rectangle([(0, 0), (qr_size + 15, qr_size + 15)], radius=36, fill=(0, 0, 0, 45))
-    plate_draw.rounded_rectangle([(4, 4), (qr_size + 11, qr_size + 11)], radius=34, fill=(240, 243, 246, 255), outline=(180, 185, 195, 255), width=2)
-    qr_plate.paste(qr_resized, (8, 8), qr_mask)
+    # Paste centered at x=(template.width - 480)//2, y=268
+    template.paste(container, ((template.width - 480) // 2, 268), container)
 
-    qr_x = (W - (qr_size + 16)) // 2
-    qr_y = 225
-    card.paste(qr_plate, (qr_x, qr_y), qr_plate)
-
-    # 4. Clean Laser-Engraved Typography
-    font_id = get_font(42, bold=True)
-    font_sub = get_font(23, bold=True)
-    font_sub2 = get_font(20, bold=False)
-
-    tag_text = f"VEHICLE ID: {tag_id}"
-    bbox = draw.textbbox((0, 0), tag_text, font=font_id)
-    tw = bbox[2] - bbox[0]
-    draw.text(((W - tw) // 2, 815), tag_text, fill=(15, 23, 42), font=font_id)
-
-    sub1 = "100% PRIVACY PROTECTED • INSTANT CONNECT"
-    bbox1 = draw.textbbox((0, 0), sub1, font=font_sub)
-    tw1 = bbox1[2] - bbox1[0]
-    draw.text(((W - tw1) // 2, 878), sub1, fill=(51, 65, 85), font=font_sub)
-
-    sub2 = "PLACE ON WINDSHIELD (FACING OUTWARD)"
-    bbox2 = draw.textbbox((0, 0), sub2, font=font_sub2)
-    tw2 = bbox2[2] - bbox2[0]
-    draw.text(((W - tw2) // 2, 924), sub2, fill=(100, 116, 139), font=font_sub2)
-
-    brand = "PARKINGBUZZ CONNECT"
-    bbox_b = draw.textbbox((0, 0), brand, font=font_sub2)
-    tw_b = bbox_b[2] - bbox_b[0]
-    draw.text(((W - tw_b) // 2, 990), brand, fill=(148, 163, 184), font=font_sub2)
-
-    return card.convert("RGB")
+    # Scale to standard 76 mm x 102 mm (3" x 4") @ 300 DPI (898 x 1200 px)
+    final_card = template.resize((898, 1200), Image.Resampling.LANCZOS).convert("RGB")
+    return final_card
 
 def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
     """
     Generates a ready-to-print standard A4 PDF (210mm x 297mm) at 300 DPI for a single tag.
-    Includes EXACTLY TWO pieces (76 mm x 96 mm each) side-by-side at 100% physical scale.
+    Includes EXACTLY TWO pieces (76 mm x 102 mm each, 3" x 4") side-by-side at 100% physical scale.
     """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     pdf_path = os.path.join(OUTPUT_DIR, f"sticker_{tag_id}_A4.pdf")
@@ -238,10 +212,10 @@ def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
 
     # Top Sheet Header
     draw.text((a4_w // 2, 170), "PARKINGBUZZ — OFFICIAL VEHICLE SECURITY STICKER", fill=(15, 23, 42), font=font_header, anchor="mm")
-    draw.text((a4_w // 2, 235), '100% Scale Printable Sheet • Exactly 76 mm x 96 mm (3.0" x 3.8") per sticker', fill=(100, 116, 139), font=font_subhead, anchor="mm")
+    draw.text((a4_w // 2, 235), '100% Scale Printable Sheet • Standard 76 mm x 102 mm (3.0" x 4.0") per sticker', fill=(100, 116, 139), font=font_subhead, anchor="mm")
     draw.line([(180, 280), (a4_w - 180, 280)], fill=(226, 232, 240), width=3)
 
-    # Load high-res metallic sticker (exact 898 x 1134 px = 76mm x 96mm @ 300 DPI)
+    # Load high-res metallic sticker (exact 898 x 1200 px = 76mm x 102mm @ 300 DPI)
     st_im = generate_metallic_sticker_card(tag_id, base_url)
     st_w, st_h = st_im.size
 
@@ -249,7 +223,7 @@ def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
     gap = 140
     total_w = (st_w * 2) + gap
     start_x = (a4_w - total_w) // 2
-    pos_y = 420
+    pos_y = 400
 
     labels = ["PIECE 1: FRONT WINDSHIELD", "PIECE 2: REAR WINDSHIELD / SPARE"]
     for idx, label in enumerate(labels):
@@ -259,13 +233,13 @@ def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
         # Scissor guideline around sticker
         m = 16
         draw.rounded_rectangle([(x - m, pos_y - m), (x + st_w + m, pos_y + st_h + m)], radius=36, outline=(148, 163, 184), width=3)
-        draw.text((x + 20, pos_y - m - 20), "CUT ALONG DOTTED LINE (76 mm x 96 mm)", fill=(100, 116, 139), font=font_cut)
+        draw.text((x + 20, pos_y - m - 20), "CUT ALONG DOTTED LINE (76 mm x 102 mm • 3\" x 4\")", fill=(100, 116, 139), font=font_cut)
 
         # Paste card at 100% exact size
         page.paste(st_im, (x, pos_y))
 
     # Mounting & Printing Guide Box below
-    box_y = pos_y + st_h + 120
+    box_y = pos_y + st_h + 100
     draw.rounded_rectangle(
         [(200, box_y), (a4_w - 200, box_y + 450)],
         radius=24,
@@ -279,7 +253,7 @@ def generate_single_sticker_a4_pdf(tag_id: str, base_url: str) -> str:
     steps = [
         '1. Printer Setting: Select "Actual Size" or "Scale: 100%" (Do NOT select "Fit to Page" or "Shrink to Printable Area").',
         '2. Paper Choice: High-grade photo paper, transparent sticker sheet, or self-adhesive vinyl for best results.',
-        '3. Cutting: Cut neatly around the rounded scissor guideline for an exact 76 mm x 96 mm fit.',
+        '3. Cutting: Cut neatly around the rounded scissor guideline for an exact 76 mm x 102 mm (3" x 4") fit.',
         '4. Placement: Affix to the inside of your windshield facing outward (behind rearview mirror or passenger corner).',
         '5. Instant Buzz: Anyone blocking your vehicle scans to privately send an instant audible buzzer or initiate a voice call.'
     ]

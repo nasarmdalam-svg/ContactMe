@@ -78,7 +78,21 @@ class ConnectionManager:
             except Exception:
                 pass
 
+    async def notify_bystanders(self, tag_id: str, message: dict):
+        if tag_id not in self.rooms:
+            return
+        for ws in self.rooms[tag_id].get("caller", []):
+            try:
+                await ws.send_text(json.dumps(message))
+            except Exception:
+                pass
+
 manager = ConnectionManager()
+
+# --- Anti-Spam & Owner Response State ---
+ALERT_TIMESTAMPS: Dict[str, List[float]] = {}
+OWNER_SNOOZE: Dict[str, float] = {}
+LATEST_OWNER_RESPONSES: Dict[str, dict] = {}
 
 # --- Schemas ---
 class RegisterVehicleRequest(BaseModel):
@@ -117,6 +131,14 @@ class SubscriptionModel(BaseModel):
 class FcmRegisterModel(BaseModel):
     fcm_token: str
     device_type: Optional[str] = "android"
+
+class OwnerResponseRequest(BaseModel):
+    message: str
+    token: Optional[str] = ""
+
+class SnoozeRequest(BaseModel):
+    duration_minutes: Optional[int] = 60
+    token: Optional[str] = ""
 
 # --- Helper: Send Web Push ---
 def send_push_notification(subscription_info: dict, payload: dict):
@@ -336,6 +358,29 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     if tag.get("is_active", 1) == 0:
         return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}
 
+    now = time.time()
+
+    # Check Temporary Snooze
+    snooze_until = OWNER_SNOOZE.get(tag_id, 0)
+    if snooze_until > now:
+        mins_left = max(1, int((snooze_until - now) / 60))
+        return {
+            "status": "snoozed",
+            "message": f"Owner has temporarily snoozed alerts ({mins_left} min remaining). For urgent matters, please use Voice Call."
+        }
+
+    # Anti-Spam Rate Limiting: Maximum 3 alerts in 2 minutes (120s)
+    recent_alerts = [t for t in ALERT_TIMESTAMPS.get(tag_id, []) if now - t < 120.0]
+    if len(recent_alerts) >= 3:
+        wait_secs = int(120 - (now - recent_alerts[0]))
+        return {
+            "status": "rate_limited",
+            "message": f"Owner has received 3 alerts recently. Please wait {wait_secs}s before sending another alert, or use Voice Call for emergencies."
+        }
+
+    recent_alerts.append(now)
+    ALERT_TIMESTAMPS[tag_id] = recent_alerts
+
     # 1. Log alert in DB
     alert_title = f"🚨 {alert.alert_type.capitalize()} Alert"
     alert_body = alert.message if alert.message else f"Alert regarding your vehicle ({tag.get('vehicle_name', tag_id)})"
@@ -395,6 +440,67 @@ async def send_alert(tag_id: str, alert: AlertRequest):
         "fcm_notified": len(fcm_tokens) if fcm_tokens else 0,
         "fcm_result": fcm_result
     }
+
+# Owner Quick Response Endpoint (e.g. 'On my way! (2 mins)')
+@app.post("/api/owner/respond/{tag_id}")
+async def owner_respond(tag_id: str, req: OwnerResponseRequest):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    now = time.time()
+    LATEST_OWNER_RESPONSES[tag_id] = {
+        "message": req.message,
+        "timestamp": now
+    }
+    
+    await manager.notify_bystanders(tag_id, {
+        "type": "owner_response",
+        "message": req.message,
+        "tag_id": tag_id
+    })
+    
+    return {"status": "ok", "message": req.message}
+
+@app.get("/api/owner/response/{tag_id}")
+def get_owner_response(tag_id: str):
+    resp = LATEST_OWNER_RESPONSES.get(tag_id)
+    if not resp:
+        return {"has_response": False}
+    # Expire after 10 minutes
+    if time.time() - resp["timestamp"] > 600:
+        return {"has_response": False}
+    return {
+        "has_response": True,
+        "message": resp["message"],
+        "seconds_ago": int(time.time() - resp["timestamp"])
+    }
+
+# Owner Quick Snooze (1-Hour or Custom DND)
+@app.post("/api/owner/snooze/{tag_id}")
+def snooze_owner_alerts(tag_id: str, req: SnoozeRequest):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    duration = req.duration_minutes or 60
+    until = time.time() + (duration * 60)
+    OWNER_SNOOZE[tag_id] = until
+    return {"status": "snoozed", "duration_minutes": duration, "snooze_until": until}
+
+@app.post("/api/owner/unsnooze/{tag_id}")
+def unsnooze_owner_alerts(tag_id: str):
+    if tag_id in OWNER_SNOOZE:
+        del OWNER_SNOOZE[tag_id]
+    return {"status": "active"}
+
+@app.get("/api/owner/snooze-status/{tag_id}")
+def get_snooze_status(tag_id: str):
+    now = time.time()
+    snooze_until = OWNER_SNOOZE.get(tag_id, 0)
+    is_snoozed = snooze_until > now
+    mins_left = max(0, int((snooze_until - now) / 60)) if is_snoozed else 0
+    return {"is_snoozed": is_snoozed, "minutes_left": mins_left}
 
 # Dynamic QR code generation endpoint
 @app.get("/api/qr/{tag_id}")

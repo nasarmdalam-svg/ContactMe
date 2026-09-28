@@ -58,6 +58,12 @@ class VoiceCallClient {
         }
         break;
 
+      case 'owner_response':
+        if (this.onOwnerResponse) {
+          this.onOwnerResponse(msg);
+        }
+        break;
+
       case 'call_request':
       case 'incoming_call':
         if (this.role === 'owner') {

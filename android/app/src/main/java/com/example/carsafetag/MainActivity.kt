@@ -191,6 +191,16 @@ class MainActivity : ComponentActivity() {
                                         ongoingCallDialog?.dismiss()
                                     }
                                 }
+
+                                @JavascriptInterface
+                                fun logout() {
+                                    val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                    prefs.edit().remove("ACTIVE_TAG_ID").apply()
+                                    runOnUiThread {
+                                        webViewInstance?.clearCache(true)
+                                        webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register")
+                                    }
+                                }
                             }, "ParkBuzzApp")
 
                             setDownloadListener { url, _, _, _, _ ->

@@ -290,14 +290,22 @@ body {
 
 #statusToast {
   position: fixed;
-  top: 20px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 420px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: #f8fafc;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
   z-index: 10000;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-  font-weight: 600;
+  display: none;
   text-align: center;
-  border: 1px solid var(--border-color);
+  white-space: nowrap;
 }

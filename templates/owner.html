@@ -4,29 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ParkingBuzz - {{ tag.vehicle_name if tag.vehicle_name else 'Vehicle Dashboard' }}</title>
-  <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
   <style>
-    /* Luxury Dark Automotive Styling */
-    :root {
-      --bg-dark: #090d16;
-      --card-bg: rgba(22, 30, 49, 0.75);
-      --card-border: rgba(56, 189, 248, 0.18);
-      --accent-cyan: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.4);
-      --accent-green: #34d399;
-      --accent-red: #ef4444;
-    }
-
-    body {
-      background: radial-gradient(circle at 50% 0%, #131d33 0%, #080c14 100%);
-      color: #f1f5f9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Full Reset & Modern Dark Luxury Automotive Styling */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      display: block !important;
+      width: 100% !important;
+      min-height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: radial-gradient(circle at 50% 0%, #131d33 0%, #080c14 100%) !important;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow-x: hidden;
-      padding-bottom: 84px; /* Space for bottom tab bar */
+    }
+
+    .app-wrapper {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: 92px; /* Space for bottom tab bar */
     }
 
     /* Radar Intro Overlay */
@@ -39,7 +47,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
     }
     #radarIntro.fade-out {
       opacity: 0;
@@ -51,46 +59,124 @@
       position: absolute;
       border: 1.5px solid rgba(56, 189, 248, 0.6);
       border-radius: 50%;
-      animation: radarPulse 2s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+      animation: radarPulse 1.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
     }
-    .radar-circle:nth-child(2) { animation-delay: 0.5s; }
-    .radar-circle:nth-child(3) { animation-delay: 1.0s; }
+    .radar-circle:nth-child(2) { animation-delay: 0.45s; }
+    .radar-circle:nth-child(3) { animation-delay: 0.9s; }
 
     @keyframes radarPulse {
       0% { width: 40px; height: 40px; opacity: 1; transform: scale(0.6); }
-      100% { width: 320px; height: 320px; opacity: 0; transform: scale(1.6); }
+      100% { width: 280px; height: 280px; opacity: 0; transform: scale(1.6); }
     }
 
     /* Top Sticky Luxury Navbar */
     .top-navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(8, 12, 20, 0.85);
+      width: 100%;
+      background: rgba(10, 16, 28, 0.92);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 12px 16px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    /* Bottom Luxury Navigation Bar */
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .vehicle-pill {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tab Page Containers */
+    .tab-pane {
+      display: none;
+      width: 100%;
+      padding: 16px;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .tab-pane.active {
+      display: block !important;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Luxury Glass Cards */
+    .glass-card {
+      background: rgba(22, 30, 49, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 20px;
+      padding: 20px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 13px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .action-btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-cyan {
+      background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+      color: #040812;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-green {
+      background: rgba(34, 197, 94, 0.16);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #4ade80;
+    }
+
+    /* Bottom Fixed Tab Bar */
     .bottom-tabbar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
       z-index: 900;
-      background: rgba(10, 16, 28, 0.92);
+      background: rgba(9, 14, 25, 0.96);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
-      border-top: 1px solid rgba(255, 255, 255, 0.09);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       justify-content: space-around;
-      padding: 8px 12px 14px 12px;
-      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
+      padding: 8px 10px 14px 10px;
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     .tab-btn {
@@ -105,14 +191,15 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 12px;
       position: relative;
+      flex: 1;
     }
 
     .tab-btn.active {
       color: #38bdf8;
-      background: rgba(56, 189, 248, 0.1);
+      background: rgba(56, 189, 248, 0.12);
     }
     .tab-btn.active::after {
       content: '';
@@ -130,307 +217,312 @@
       line-height: 1;
     }
 
-    /* Tab Page Containers */
-    .tab-pane {
+    /* Call Overlay */
+    .call-overlay {
       display: none;
-      padding: 16px;
-      max-width: 500px;
-      margin: 0 auto;
-      animation: fadeIn 0.25s ease-out;
-    }
-    .tab-pane.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Luxury Glass Cards */
-    .glass-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
-      padding: 18px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
       backdrop-filter: blur(10px);
-    }
-
-    .action-pill {
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      color: #38bdf8;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 8px 14px;
-      border-radius: 10px;
-      text-decoration: none;
-      display: inline-flex;
+      z-index: 10001;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
+      padding: 24px;
+      text-align: center;
     }
-    .action-pill:active {
-      transform: scale(0.97);
+    .call-overlay.active {
+      display: flex;
     }
+    .pulse-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      animation: pulse 1.5s infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .call-status-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 6px;
+    }
+    .call-subtext {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 28px;
+    }
+    .call-controls {
+      display: flex;
+      gap: 32px;
+    }
+    .action-circle-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    .action-circle-btn:active { transform: scale(0.9); }
+    .btn-accept { background: #10b981; }
+    .btn-hangup { background: #ef4444; }
   </style>
 </head>
 <body>
 
-  <!-- Animated Automotive Radar Intro Screen (1.2s on startup) -->
+  <!-- Animated Automotive Radar Intro (1.2s on launch) -->
   <div id="radarIntro">
-    <div style="position: relative; width: 280px; height: 280px; display: flex; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center;">
       <div class="radar-circle"></div>
       <div class="radar-circle"></div>
       <div class="radar-circle"></div>
       
-      <!-- Holographic Car & Shield SVG -->
-      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 14px #38bdf8); z-index: 2;">
+      <!-- Holographic Sports Car & Shield SVG -->
+      <svg width="110" height="74" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 14px #38bdf8); z-index: 2;">
         <path d="M15 50L30 30L45 20H75L90 30L105 50L112 55V65H8V55L15 50Z" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" fill="rgba(56, 189, 248, 0.08)"/>
         <circle cx="32" cy="62" r="10" stroke="#38bdf8" stroke-width="2.5" fill="#080c14"/>
         <circle cx="88" cy="62" r="10" stroke="#38bdf8" stroke-width="2.5" fill="#080c14"/>
         <path d="M48 22L40 32H28" stroke="#38bdf8" stroke-width="1.8"/>
         <path d="M72 22L80 32H92" stroke="#38bdf8" stroke-width="1.8"/>
-        <path d="M52 22H68V32H52V22Z" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2 2"/>
       </svg>
     </div>
-    <div style="margin-top: 20px; text-align: center;">
-      <div style="font-size: 18px; font-weight: 800; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">
-        ParkingBuzz
+    <div style="margin-top: 18px; text-align: center;">
+      <div style="font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">
+        PARKINGBUZZ
       </div>
-      <div style="font-size: 12px; color: #94a3b8; margin-top: 4px; letter-spacing: 0.5px;">
+      <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
         360° Smart Vehicle Protection Active
       </div>
     </div>
   </div>
 
-  <!-- Top Sticky Navigation Bar -->
-  <header class="top-navbar">
-    <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-      <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 36px; height: 36px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4)); flex-shrink: 0;">
-      <div style="min-width: 0;">
-        <div style="font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.8px; text-transform: uppercase;">PARKINGBUZZ</div>
-        <div id="headingVehicleName" style="font-size: 15px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;">
-          {{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Right: Status Toggle Pill -->
-    <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(15, 23, 42, 0.7); padding: 6px 12px; border-radius: 999px; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s;">
-      {% if tag.get('is_active', 1) == 1 %}
-        <span id="activeDot" style="color: #34d399; font-size: 12px;">●</span>
-        <span id="activeStatusText" style="color: #34d399; font-weight: 700;">Online</span>
-      {% else %}
-        <span id="activeDot" style="color: #94a3b8; font-size: 12px;">○</span>
-        <span id="activeStatusText" style="color: #94a3b8; font-weight: 700;">Muted</span>
-      {% endif %}
-    </button>
-  </header>
-
-  <!-- ==================== TAB 1: STICKER & QR ==================== -->
-  <main id="tab-sticker" class="tab-pane active">
-    <!-- Hero Windshield Metallic Sticker Card -->
-    <div class="glass-card" style="text-align: center; padding: 20px 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <div style="font-weight: 800; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 6px;">
-          <span>🏷️</span> Official Windshield Card
-        </div>
-        <span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 700;">
-          Ready to Print
-        </span>
-      </div>
-
-      <!-- Elevated Metallic Card Preview -->
-      <div style="margin: 10px auto 16px auto; max-width: 290px; border-radius: 18px; overflow: hidden; box-shadow: 0 16px 36px rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.12); position: relative;">
-        <img src="/api/sticker/{{ tag.tag_id }}" alt="Official Parking Sticker" style="width: 100%; display: block;">
-      </div>
-
-      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
-        Standard Size: <strong>76 mm × 96 mm</strong> • Instant Camera QR Scan
-      </div>
-
-      <!-- 1-Tap Download Buttons -->
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <a href="/api/sticker/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.jpg" class="action-pill" style="flex: 1; padding: 11px 14px; font-size: 13px;">
-          📥 Download Image
-        </a>
-        <a href="/api/sticker-pdf/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.pdf" class="action-pill" style="flex: 1; padding: 11px 14px; font-size: 13px; background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.35); color: #4ade80;">
-          📄 Printable PDF
-        </a>
-      </div>
-    </div>
-
-    <!-- Quick Instruction Info -->
-    <div class="glass-card" style="padding: 14px 16px; background: rgba(56, 189, 248, 0.04); border-color: rgba(56, 189, 248, 0.2);">
-      <div style="display: flex; gap: 10px; align-items: flex-start;">
-        <span style="font-size: 20px;">🛡️</span>
-        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.45;">
-          <strong>100% Private Windshield Contact</strong><br>
-          Bystanders who scan your sticker can notify you or speak with you via live audio without ever seeing your personal phone number.
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- ==================== TAB 2: SAFETY & EMERGENCY SOS ==================== -->
-  <main id="tab-safety" class="tab-pane">
-    <div class="glass-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 20px;">🆘</span> Medical & Safety Profile
-        </div>
-        <button type="button" id="btnOpenEmergency" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; padding: 6px 12px; font-size: 11px; cursor: pointer; font-weight: 700;">
-          ✏️ Edit Profile
-        </button>
-      </div>
-
-      <!-- Blood Group Highlight Card -->
-      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+  <div class="app-wrapper">
+    <!-- Top Sticky Header: Brand + Vehicle Plate (Automatically Active) -->
+    <header class="top-navbar">
+      <div class="brand-section">
+        <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 38px; height: 38px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.45));">
         <div>
-          <span style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase;">Blood Group (ICE)</span>
-          <div id="cardBloodGroup" style="font-size: 22px; font-weight: 900; color: #f87171; margin-top: 2px;">
-            {{ tag.blood_group if tag.blood_group else 'Not set' }}
+          <div style="font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.8px; text-transform: uppercase;">PARKINGBUZZ</div>
+          <div id="headingVehicleName" style="font-size: 16px; font-weight: 900; color: #f8fafc; line-height: 1.1;">
+            {{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}
           </div>
         </div>
-        <div style="font-size: 28px;">🩸</div>
       </div>
 
-      <!-- Emergency Contacts Grid -->
-      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Primary Emergency Contact (ICE)</span>
-          <strong id="cardEmergencyContact" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
-            {{ tag.emergency_contact if tag.emergency_contact else 'Not configured' }}
-          </strong>
+      <!-- Vehicle Plate Pill -->
+      <div class="vehicle-pill">
+        {{ tag.vehicle_name if tag.vehicle_name else tag.tag_id }}
+      </div>
+    </header>
+
+    <!-- ==================== TAB 1: STICKER & QR (DEFAULT ACTIVE) ==================== -->
+    <main id="tab-sticker" class="tab-pane active">
+      <div class="glass-card" style="text-align: center; padding: 20px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div style="font-weight: 800; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 6px;">
+            <span>🏷️</span> Official Windshield Card
+          </div>
+          <span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 700;">
+            Ready to Print
+          </span>
         </div>
 
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Emergency Phone Number</span>
-          <strong id="cardEmergencyPhone" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
-            {{ tag.emergency_phone if tag.emergency_phone else 'Not configured' }}
-          </strong>
+        <!-- Full Centered Elevated Metallic Card Preview -->
+        <div style="margin: 8px auto 16px auto; max-width: 300px; border-radius: 20px; overflow: hidden; box-shadow: 0 16px 36px rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.12);">
+          <img src="/api/sticker/{{ tag.tag_id }}" alt="Official Parking Sticker" style="width: 100%; display: block;">
         </div>
 
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Quiet Hours (Do Not Disturb)</span>
-          <strong id="cardDndStatus" style="color: #10b981; font-size: 13px; margin-top: 2px; display: block;">
-            {{ 'Active (23:00 – 07:00)' if tag.dnd_enabled else 'Disabled (Always Alert)' }}
-          </strong>
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+          Windshield Size: <strong>76 mm × 96 mm</strong> • Instant QR Scan
+        </div>
+
+        <!-- 1-Tap Download Buttons -->
+        <div style="display: flex; gap: 10px;">
+          <a href="/api/sticker/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.jpg" class="action-btn btn-cyan">
+            📥 Download Card
+          </a>
+          <a href="/api/sticker-pdf/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.pdf" class="action-btn btn-green">
+            📄 Printable A4 PDF
+          </a>
         </div>
       </div>
-    </div>
-  </main>
 
-  <!-- ==================== TAB 3: ALERTS FEED ==================== -->
-  <main id="tab-alerts" class="tab-pane">
-    <div class="glass-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <div style="font-weight: 800; font-size: 16px; color: #fff;">
-          🔔 Live Alerts Feed
+      <!-- Privacy Notice Card -->
+      <div class="glass-card" style="padding: 14px 16px; background: rgba(56, 189, 248, 0.04); border-color: rgba(56, 189, 248, 0.2);">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+          <span style="font-size: 22px;">🛡️</span>
+          <div style="font-size: 12px; color: #cbd5e1; line-height: 1.45;">
+            <strong style="color: #38bdf8;">100% Privacy Protected</strong><br>
+            Bystanders scan your QR code and notify you without seeing your mobile number. Calls and buzzer alarms connect instantly and privately.
+          </div>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button id="btnSilenceAlarm" type="button" style="display:none; padding: 6px 12px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 12px; font-weight: 700; cursor: pointer;">
-            🔕 Silence Horn
+      </div>
+    </main>
+
+    <!-- ==================== TAB 2: SAFETY & EMERGENCY SOS ==================== -->
+    <main id="tab-safety" class="tab-pane">
+      <div class="glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🆘</span> Medical & Safety Profile
+          </div>
+          <button type="button" id="btnOpenEmergency" class="action-btn" style="flex: 0; padding: 6px 12px; font-size: 11px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;">
+            ✏️ Edit Profile
           </button>
-          <button id="btnClearHistory" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;">
-            🗑️ Clear
-          </button>
         </div>
-      </div>
 
-      <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 10px;">
-        {% if recent_alerts %}
-          {% for a in recent_alerts %}
-          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 14px; font-size: 13px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <strong style="color: #38bdf8;">🚨 {{ a.alert_type|capitalize }} Alert</strong>
-              <span style="color: #94a3b8; font-size: 11px;">{{ a.created_at }}</span>
+        <!-- Blood Group Badge -->
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div>
+            <span style="color: #94a3b8; font-size: 11px; font-weight: 700; text-transform: uppercase;">Blood Group (ICE)</span>
+            <div id="cardBloodGroup" style="font-size: 24px; font-weight: 900; color: #f87171; margin-top: 2px;">
+              {{ tag.blood_group if tag.blood_group else 'Not set' }}
             </div>
-            <div style="color: #e2e8f0;">{{ a.message if a.message else 'Alert received from vehicle scanner' }}</div>
           </div>
-          {% endfor %}
-        {% else %}
-          <div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 28px 16px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">
-            🛡️ Zero alerts received yet. Your vehicle protection is active!
+          <div style="font-size: 32px;">🩸</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Primary Emergency Contact (ICE)</span>
+            <strong id="cardEmergencyContact" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+              {{ tag.emergency_contact if tag.emergency_contact else 'Not configured' }}
+            </strong>
           </div>
-        {% endif %}
-      </div>
-    </div>
-  </main>
 
-  <!-- ==================== TAB 4: GARAGE & VEHICLE DETAILS ==================== -->
-  <main id="tab-garage" class="tab-pane">
-    <div class="glass-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="font-weight: 800; font-size: 16px; color: #fff;">
-          🚗 Vehicle & Profile Manager
-        </div>
-        <button id="btnOpenEdit" type="button" class="action-pill" style="font-size: 11px; padding: 6px 10px;">
-          ✏️ Edit Details
-        </button>
-      </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Emergency Phone Number</span>
+            <strong id="cardEmergencyPhone" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+              {{ tag.emergency_phone if tag.emergency_phone else 'Not configured' }}
+            </strong>
+          </div>
 
-      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Vehicle Plate / Identifier</span>
-          <strong style="color: #f1f5f9; font-size: 15px; margin-top: 2px; display: block;">
-            {{ tag.vehicle_name if tag.vehicle_name else 'Not configured' }}
-          </strong>
-        </div>
-
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Owner Display Name</span>
-          <strong style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
-            {{ tag.owner_name if tag.owner_name else 'Vehicle Owner' }}
-          </strong>
-        </div>
-
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Custom Scanner Note</span>
-          <div style="color: #cbd5e1; font-size: 13px; margin-top: 4px; line-height: 1.4;">
-            {{ tag.custom_note if tag.custom_note else 'No custom note set. Scanners will see standard contact options.' }}
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Quiet Hours (Do Not Disturb)</span>
+            <strong id="cardDndStatus" style="color: #10b981; font-size: 13px; margin-top: 2px; display: block;">
+              {{ 'Active (23:00 – 07:00)' if tag.dnd_enabled else 'Disabled (Always Alert)' }}
+            </strong>
           </div>
         </div>
+      </div>
+    </main>
 
-        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #94a3b8; font-size: 11px; display: block;">Unique Tag ID</span>
-          <code style="color: #38bdf8; font-size: 14px; font-weight: 700; margin-top: 2px; display: block;">
-            {{ tag.tag_id }}
-          </code>
+    <!-- ==================== TAB 3: ALERTS FEED ==================== -->
+    <main id="tab-alerts" class="tab-pane">
+      <div class="glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div style="font-weight: 800; font-size: 16px; color: #fff;">
+            🔔 Live Alerts Feed
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="btnSilenceAlarm" type="button" style="display:none; padding: 6px 12px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 12px; font-weight: 700; cursor: pointer;">
+              🔕 Silence Horn
+            </button>
+            <button id="btnClearHistory" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;">
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+
+        <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 10px;">
+          {% if recent_alerts %}
+            {% for a in recent_alerts %}
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 14px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <strong style="color: #38bdf8;">🚨 {{ a.alert_type|capitalize }} Alert</strong>
+                <span style="color: #94a3b8; font-size: 11px;">{{ a.created_at }}</span>
+              </div>
+              <div style="color: #e2e8f0;">{{ a.message if a.message else 'Alert received from vehicle scanner' }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 28px 16px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+              🛡️ Zero alerts received yet. Your vehicle protection is active!
+            </div>
+          {% endif %}
         </div>
       </div>
+    </main>
 
-      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
-        <a href="/register" style="width: 100%; box-sizing: border-box; text-decoration: none; padding: 12px; background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 12px; color: #38bdf8; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <span>➕</span> Add / Link Another Vehicle
-        </a>
+    <!-- ==================== TAB 4: GARAGE & VEHICLE DETAILS ==================== -->
+    <main id="tab-garage" class="tab-pane">
+      <div class="glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="font-weight: 800; font-size: 16px; color: #fff;">
+            🚗 Vehicle & Profile Manager
+          </div>
+          <button id="btnOpenEdit" type="button" class="action-btn" style="flex: 0; padding: 6px 10px; font-size: 11px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8;">
+            ✏️ Edit Details
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Vehicle Plate / Identifier</span>
+            <strong style="color: #f1f5f9; font-size: 15px; margin-top: 2px; display: block;">
+              {{ tag.vehicle_name if tag.vehicle_name else 'Not configured' }}
+            </strong>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Owner Display Name</span>
+            <strong style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+              {{ tag.owner_name if tag.owner_name else 'Vehicle Owner' }}
+            </strong>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Unique Tag ID</span>
+            <code style="color: #38bdf8; font-size: 14px; font-weight: 700; margin-top: 2px; display: block;">
+              {{ tag.tag_id }}
+            </code>
+          </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <a href="/register" style="width: 100%; box-sizing: border-box; text-decoration: none; padding: 12px; background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 12px; color: #38bdf8; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>➕</span> Add / Link Another Vehicle
+          </a>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
 
-  <!-- Bottom Floating Luxury Tab Bar -->
-  <nav class="bottom-tabbar">
-    <button type="button" class="tab-btn active" data-tab="tab-sticker">
-      <span class="tab-icon">🏷️</span>
-      <span>Sticker</span>
-    </button>
-    <button type="button" class="tab-btn" data-tab="tab-safety">
-      <span class="tab-icon">🆘</span>
-      <span>Safety SOS</span>
-    </button>
-    <button type="button" class="tab-btn" data-tab="tab-alerts">
-      <span class="tab-icon">🔔</span>
-      <span>Alerts</span>
-    </button>
-    <button type="button" class="tab-btn" data-tab="tab-garage">
-      <span class="tab-icon">🚗</span>
-      <span>Garage</span>
-    </button>
-  </nav>
+    <!-- Bottom Fixed Luxury Tab Bar -->
+    <nav class="bottom-tabbar">
+      <button type="button" class="tab-btn active" data-tab="tab-sticker">
+        <span class="tab-icon">🏷️</span>
+        <span>Sticker</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-safety">
+        <span class="tab-icon">🆘</span>
+        <span>Safety SOS</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-alerts">
+        <span class="tab-icon">🔔</span>
+        <span>Alerts</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-garage">
+        <span class="tab-icon">🚗</span>
+        <span>Garage</span>
+      </button>
+    </nav>
+  </div>
 
   <!-- Status Toast -->
   <div id="statusToast" style="display:none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 20px; border-radius: 12px; text-align: center; font-size: 13px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(10px); max-width: 90%;"></div>
@@ -454,14 +546,9 @@
           <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
-        <div style="margin-bottom: 18px;">
-          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Custom Note for Scanners (Optional)</label>
-          <textarea id="inputCustomNote" rows="2" placeholder="e.g. Doctor on call. Will move in 5 mins." style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">{{ tag.custom_note if tag.custom_note else '' }}</textarea>
-        </div>
-
         <div style="display: flex; gap: 10px;">
-          <button type="button" id="btnCancelEdit" class="action-pill" style="flex: 1; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; justify-content: center; padding: 11px;">Cancel</button>
-          <button type="submit" id="btnSaveEdit" class="action-pill" style="flex: 1; background: #38bdf8; color: #080c14; border-color: #38bdf8; justify-content: center; padding: 11px; font-weight: 800;">Save Changes</button>
+          <button type="button" id="btnCancelEdit" class="action-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1;">Cancel</button>
+          <button type="submit" id="btnSaveEdit" class="action-btn btn-cyan" style="font-weight: 800;">Save Changes</button>
         </div>
       </form>
     </div>
@@ -512,8 +599,8 @@
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <button type="button" id="btnCancelEmergency" class="action-pill" style="flex: 1; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; justify-content: center; padding: 11px;">Cancel</button>
-          <button type="submit" id="btnSaveEmergency" class="action-pill" style="flex: 1; background: #ef4444; border-color: #ef4444; color: white; justify-content: center; padding: 11px; font-weight: 800;">Save Profile</button>
+          <button type="button" id="btnCancelEmergency" class="action-btn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1;">Cancel</button>
+          <button type="submit" id="btnSaveEmergency" class="action-btn" style="background: #ef4444; color: white; font-weight: 800;">Save Profile</button>
         </div>
       </form>
     </div>
@@ -521,7 +608,7 @@
 
   <!-- Incoming Call Modal -->
   <div class="call-overlay" id="incomingCallOverlay">
-    <div class="pulse-avatar" style="background: #10b981;">📞</div>
+    <div class="pulse-avatar">📞</div>
     <div class="call-status-text" id="ownerCallStatus">Incoming Voice Call!</div>
     <div class="call-subtext">Someone scanned your car sticker and wants to speak with you</div>
 
@@ -531,7 +618,7 @@
     </div>
 
     <div class="call-controls" id="activeControls" style="display: none; flex-direction: column; align-items: center; gap: 14px; margin-top: 15px;">
-      <button class="btn-primary" id="btnHangupCall" style="background: #ef4444; border-color: #dc2626; color: white; padding: 14px 32px; font-size: 16px; font-weight: bold; border-radius: 30px; display: inline-flex; align-items: center; gap: 8px;">
+      <button class="action-btn" id="btnHangupCall" style="background: #ef4444; color: white; padding: 14px 32px; font-size: 16px; font-weight: bold; border-radius: 30px;">
         🔴 Disconnect / End Call
       </button>
     </div>
@@ -634,7 +721,6 @@
 
         const vehicleName = document.getElementById('inputVehicleName').value.trim();
         const ownerName = document.getElementById('inputOwnerName').value.trim();
-        const customNote = document.getElementById('inputCustomNote').value.trim();
 
         try {
           const resp = await fetch(`/api/tag/${tagId}/update`, {
@@ -642,15 +728,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               vehicle_name: vehicleName,
-              owner_name: ownerName,
-              custom_note: customNote
+              owner_name: ownerName
             })
           });
 
           if (resp.ok) {
             if (headingVehicleName) headingVehicleName.textContent = vehicleName;
             closeEditModal();
-            showToast('✅ Vehicle & Contact details updated!');
+            showToast('✅ Vehicle details updated!');
           } else {
             alert('Failed to update details. Please try again.');
           }
@@ -727,38 +812,6 @@
         }
       });
     }
-
-    // Active / Disconnect Toggle
-    const btnToggleActive = document.getElementById('btnToggleActive');
-    const activeDot = document.getElementById('activeDot');
-    const activeStatusText = document.getElementById('activeStatusText');
-
-    btnToggleActive.addEventListener('click', async () => {
-      btnToggleActive.style.opacity = '0.5';
-      try {
-        const resp = await fetch(`/api/tag/${tagId}/toggle-active`, { method: 'POST' });
-        const data = await resp.json();
-        if (resp.ok) {
-          if (data.is_active === 1) {
-            activeDot.textContent = '●';
-            activeDot.style.color = '#34d399';
-            activeStatusText.textContent = 'Online';
-            activeStatusText.style.color = '#34d399';
-            showToast('🟢 Connected: ParkingBuzz is active and receiving alerts!');
-          } else {
-            activeDot.textContent = '○';
-            activeDot.style.color = '#94a3b8';
-            activeStatusText.textContent = 'Muted';
-            activeStatusText.style.color = '#94a3b8';
-            showToast('⚪ Disconnected: Alerts muted & Do Not Disturb enabled');
-          }
-        }
-      } catch (e) {
-        alert('Network error toggling status: ' + e.message);
-      } finally {
-        btnToggleActive.style.opacity = '1';
-      }
-    });
 
     const btnSilence = document.getElementById('btnSilenceAlarm');
     if (btnSilence) {

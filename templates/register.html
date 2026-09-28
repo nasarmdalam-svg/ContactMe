@@ -52,12 +52,7 @@
         <input type="text" id="ownerName" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px;">
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label style="display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #f1f5f9;">
-          Custom Note for Scanners (Optional)
-        </label>
-        <textarea id="customNote" rows="2" placeholder="e.g. Will move in 2 mins, call before towing." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 14px;"></textarea>
-      </div>
+
 
       <!-- Privacy Policy Checkbox -->
       <div style="margin-bottom: 22px; display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
@@ -113,7 +108,7 @@
       e.preventDefault();
       const vehicleName = document.getElementById('vehicleName').value.trim();
       const ownerName = document.getElementById('ownerName').value.trim();
-      const customNote = document.getElementById('customNote').value.trim();
+      const customNote = '';
       const agree = document.getElementById('agreePrivacy').checked;
 
       if (!agree) {

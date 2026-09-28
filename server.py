@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import time
 import asyncio
 from typing import Dict, List, Optional
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form
@@ -478,12 +479,12 @@ def get_owner_response(tag_id: str):
 
 # Owner Quick Snooze (1-Hour or Custom DND)
 @app.post("/api/owner/snooze/{tag_id}")
-def snooze_owner_alerts(tag_id: str, req: SnoozeRequest):
+def snooze_owner_alerts(tag_id: str, req: Optional[SnoozeRequest] = None):
     tag = database.get_tag(tag_id)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    duration = req.duration_minutes or 60
+    duration = (req.duration_minutes if req and req.duration_minutes else 60)
     until = time.time() + (duration * 60)
     OWNER_SNOOZE[tag_id] = until
     return {"status": "snoozed", "duration_minutes": duration, "snooze_until": until}

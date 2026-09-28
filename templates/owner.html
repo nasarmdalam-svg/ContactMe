@@ -411,7 +411,7 @@
       <div class="glass-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">🆘</span> Medical & Safety Profile
+            <span style="font-size: 20px;">🛡️</span> Medical & Safety Profile
           </div>
           <button type="button" id="btnOpenEmergency" class="action-btn" style="flex: 0; padding: 6px 12px; font-size: 11px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;">
             ✏️ Edit Profile
@@ -471,26 +471,25 @@
           </div>
         </div>
 
-        <!-- Instant Quick Reply to Scanner -->
+        <!-- Instant Quick Reply to Scanner (Customizable) -->
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;">
           <div style="font-size: 11px; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-            <span>💬 Instant Reply to Scanner</span>
-            <span id="responseStatusBadge" style="font-size: 10px; color: #94a3b8; font-weight: 500;">Tap to send</span>
+            <span style="display: flex; align-items: center; gap: 5px;">💬 Instant Reply to Scanner</span>
+            <span id="responseStatusBadge" style="font-size: 10px; color: #94a3b8; font-weight: 600;">TAP TO SEND</span>
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
-            <button type="button" class="quick-reply-btn" onclick="sendOwnerResponse('🏃 On my way! (2 mins)')">
-              🏃 On my way! (2 mins)
-            </button>
-            <button type="button" class="quick-reply-btn" onclick="sendOwnerResponse('⏳ Reaching in 5 mins')">
-              ⏳ Reaching in 5 mins
-            </button>
-            <button type="button" class="quick-reply-btn" onclick="sendOwnerResponse('🚗 Moving vehicle right now')">
-              🚗 Moving vehicle now
-            </button>
-            <button type="button" class="quick-reply-btn" onclick="sendOwnerResponse('🔑 Key with building guard / valet')">
-              🔑 Key with valet / guard
-            </button>
+
+          <!-- Dynamic Preset Reply Chips -->
+          <div id="quickReplyChipsList" style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px;">
+            <!-- Rendered dynamically by renderQuickReplyChips() -->
           </div>
+
+          <!-- Custom Message Input Field -->
+          <form onsubmit="handleCustomReplySubmit(event)" style="display: flex; gap: 8px; margin-top: 6px;">
+            <input type="text" id="inputCustomReply" placeholder="Type custom reply to scanner..." style="flex: 1; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 9px 12px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.15)'">
+            <button type="submit" id="btnSendCustomReply" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: white; border-radius: 10px; padding: 0 14px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+              Send 📤
+            </button>
+          </form>
         </div>
 
         <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 10px;">
@@ -990,6 +989,106 @@
       callClient.endCall();
     });
 
+    // Dynamic and Customizable Quick Reply Chips
+    const DEFAULT_QUICK_REPLIES = [
+      '🏃 On my way! (2 mins)',
+      '⏳ Reaching in 5 mins',
+      '🚗 Moving vehicle now',
+      '🔑 Key with valet / guard'
+    ];
+
+    function getQuickReplies() {
+      try {
+        const stored = localStorage.getItem('pb_custom_quick_replies');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+      return [...DEFAULT_QUICK_REPLIES];
+    }
+
+    function saveQuickReplies(replies) {
+      try {
+        localStorage.setItem('pb_custom_quick_replies', JSON.stringify(replies));
+      } catch (e) {}
+    }
+
+    function renderQuickReplyChips() {
+      const container = document.getElementById('quickReplyChipsList');
+      if (!container) return;
+      const replies = getQuickReplies();
+      container.innerHTML = '';
+
+      replies.forEach((text, idx) => {
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; overflow: hidden; font-size: 12px; font-weight: 600; color: #f1f5f9; transition: all 0.2s;';
+        
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = text;
+        btn.style.cssText = 'background: transparent; border: none; color: inherit; font: inherit; padding: 6px 10px; cursor: pointer; display: flex; align-items: center;';
+        btn.onclick = () => sendOwnerResponse(text);
+
+        chip.appendChild(btn);
+
+        if (replies.length > 1) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.innerHTML = '&times;';
+          delBtn.title = 'Remove chip';
+          delBtn.style.cssText = 'background: transparent; border: none; color: #94a3b8; font-size: 14px; padding: 0 8px 0 2px; cursor: pointer; line-height: 1;';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeQuickReplyChip(idx);
+          };
+          chip.appendChild(delBtn);
+        }
+
+        container.appendChild(chip);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.innerHTML = '➕ Add Preset';
+      addBtn.style.cssText = 'background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 20px; color: #38bdf8; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;';
+      addBtn.onclick = promptAddQuickReplyChip;
+      container.appendChild(addBtn);
+    }
+
+    function promptAddQuickReplyChip() {
+      const newText = prompt('Enter new quick reply preset (e.g. "Coming down in elevator"):');
+      if (newText && newText.trim()) {
+        const replies = getQuickReplies();
+        replies.push(newText.trim());
+        saveQuickReplies(replies);
+        renderQuickReplyChips();
+        showToast('✓ Added quick reply preset!');
+      }
+    }
+
+    function removeQuickReplyChip(idx) {
+      const replies = getQuickReplies();
+      replies.splice(idx, 1);
+      saveQuickReplies(replies);
+      renderQuickReplyChips();
+    }
+
+    function handleCustomReplySubmit(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('inputCustomReply');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) {
+        showToast('Please type a message first.', true);
+        return;
+      }
+      sendOwnerResponse(text);
+      input.value = '';
+    }
+
+    renderQuickReplyChips();
+
     async function sendOwnerResponse(messageText) {
       const badge = document.getElementById('responseStatusBadge');
       if (badge) badge.textContent = 'Sending...';
@@ -1003,7 +1102,7 @@
           if (badge) {
             badge.textContent = '✓ Sent to scanner!';
             badge.style.color = '#34d399';
-            setTimeout(() => { badge.textContent = 'Tap to send'; badge.style.color = '#94a3b8'; }, 3000);
+            setTimeout(() => { badge.textContent = 'TAP TO SEND'; badge.style.color = '#94a3b8'; }, 3000);
           }
           showToast(`✓ Replied to scanner: "${messageText}"`);
         } else {

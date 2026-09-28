@@ -9,12 +9,9 @@
 </head>
 <body>
   <div class="container" style="max-width: 460px;">
-    <!-- Top Action Bar with Back Button -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-      <button type="button" id="btnGoBack" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-        ← Back
-      </button>
-      <span style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">PARKINGBUZZ</span>
+    <!-- Top Brand Header (First Screen - No Back Button) -->
+    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+      <span style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; background: rgba(255,255,255,0.04); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">PARKINGBUZZ OFFICIAL</span>
     </div>
 
     <div class="header" style="margin-bottom: 14px;">
@@ -112,20 +109,7 @@
       btnSubmit.textContent = '🔗 Link Sticker to My Vehicle';
     });
 
-    // Handle Back Button
-    const btnGoBack = document.getElementById('btnGoBack');
-    if (btnGoBack) {
-      btnGoBack.addEventListener('click', () => {
-        const savedTag = localStorage.getItem('last_active_tag');
-        if (savedTag) {
-          window.location.href = `/owner/${savedTag}`;
-        } else if (window.history.length > 1) {
-          window.history.back();
-        } else {
-          window.location.href = '/';
-        }
-      });
-    }
+
 
     // Auto-select tab if URL has ?mode=link
     const urlParams = new URLSearchParams(window.location.search);

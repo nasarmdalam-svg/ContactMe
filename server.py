@@ -243,6 +243,12 @@ def scan_qr(tag_id: str, request: Request):
     session_token = generate_scan_token(canonical_tag_id, now_ts)
     expires_at = now_ts + 900  # 15 minutes = 900 seconds
 
+    now_f = time.time()
+    recent_alerts = [t for t in ALERT_TIMESTAMPS.get(canonical_tag_id, []) if now_f - t < 120.0]
+    initial_sent_count = len(recent_alerts)
+    initial_remaining = max(0, 3 - initial_sent_count)
+    initial_wait_secs = max(1, int(120 - (now_f - recent_alerts[0]))) if initial_sent_count >= 3 else 0
+
     return templates.TemplateResponse(
         request=request,
         name="scan.html",
@@ -250,7 +256,10 @@ def scan_qr(tag_id: str, request: Request):
             "tag": tag,
             "session_token": session_token,
             "session_expires_at": expires_at,
-            "session_duration_secs": 900
+            "session_duration_secs": 900,
+            "initial_sent_count": initial_sent_count,
+            "initial_remaining": initial_remaining,
+            "initial_wait_secs": initial_wait_secs
         }
     )
 
@@ -439,10 +448,13 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     # Anti-Spam Rate Limiting: Maximum 3 alerts in 2 minutes (120s)
     recent_alerts = [t for t in ALERT_TIMESTAMPS.get(tag_id, []) if now - t < 120.0]
     if len(recent_alerts) >= 3:
-        wait_secs = int(120 - (now - recent_alerts[0]))
+        wait_secs = max(1, int(120 - (now - recent_alerts[0])))
         return {
             "status": "rate_limited",
-            "message": f"Owner has received 3 alerts recently. Please wait {wait_secs}s before sending another alert, or use Voice Call for emergencies."
+            "wait_seconds": wait_secs,
+            "alerts_sent_count": len(recent_alerts),
+            "alerts_remaining": 0,
+            "message": f"You have already sent 3 notifications. Please wait {wait_secs}s before sending another alert, or use Voice Call for urgent matters."
         }
 
     recent_alerts.append(now)
@@ -503,6 +515,9 @@ async def send_alert(tag_id: str, alert: AlertRequest):
 
     return {
         "status": "alert_sent",
+        "alerts_sent_count": len(recent_alerts),
+        "alerts_remaining": max(0, 3 - len(recent_alerts)),
+        "wait_seconds": max(1, int(120 - (now - recent_alerts[0]))) if len(recent_alerts) >= 3 else 10,
         "subscribers_notified": len(subs),
         "fcm_notified": len(fcm_tokens) if fcm_tokens else 0,
         "fcm_result": fcm_result

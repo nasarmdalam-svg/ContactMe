@@ -539,6 +539,9 @@
     const remoteAudio = document.getElementById('remoteAudio');
     const sessionToken = "{{ session_token if session_token else '' }}";
     const sessionExpiresAt = {{ session_expires_at if session_expires_at else 0 }};
+    const initialSentCount = {{ initial_sent_count if initial_sent_count is defined else 0 }};
+    const initialRemaining = {{ initial_remaining if initial_remaining is defined else 3 }};
+    const initialWaitSecs = {{ initial_wait_secs if initial_wait_secs is defined else 0 }};
     let isSessionExpired = false;
 
     function checkSessionExpiry() {
@@ -639,33 +642,69 @@
       });
     }
 
-    function startAlertCooldown(seconds = 10) {
+    let cooldownTimerInterval = null;
+    let cooldownRemaining = 0;
+
+    function formatCooldownTime(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      if (m > 0) {
+        return s > 0 ? `${m}m ${s}s` : `${m}m`;
+      }
+      return `${s}s`;
+    }
+
+    function startAlertCooldown(seconds = 10, isRateLimit = false, sentCount = 1, remainingAlerts = null) {
+      if (cooldownTimerInterval) {
+        clearInterval(cooldownTimerInterval);
+        cooldownTimerInterval = null;
+      }
+
       const cards = document.querySelectorAll('.alert-card, #btnSendCustom');
       cards.forEach(el => {
-        el.style.opacity = '0.5';
+        el.style.opacity = '0.45';
         el.style.pointerEvents = 'none';
       });
 
-      let remaining = seconds;
+      cooldownRemaining = seconds;
       const notice = document.getElementById('cooldownNotice');
-      if (notice) {
+
+      function updateNotice() {
+        if (!notice) return;
         notice.style.display = 'block';
-        notice.textContent = `⏳ Buttons temporarily locked (${remaining}s) to prevent spamming...`;
+        const timeFormatted = formatCooldownTime(cooldownRemaining);
+
+        if (isRateLimit || (remainingAlerts !== null && remainingAlerts <= 0) || sentCount >= 3) {
+          notice.style.background = 'rgba(239, 68, 68, 0.15)';
+          notice.style.border = '1px solid rgba(239, 68, 68, 0.45)';
+          notice.style.color = '#fca5a5';
+          notice.innerHTML = `🚫 <strong>Limit Reached:</strong> You have already sent 3 notifications. Please wait <span style="color: #ef4444; font-weight: 900; font-size: 13px;">${timeFormatted}</span> before sending another alert, or use <strong>Voice Call</strong> above.`;
+        } else {
+          notice.style.background = 'rgba(56, 189, 248, 0.12)';
+          notice.style.border = '1px solid rgba(56, 189, 248, 0.3)';
+          notice.style.color = '#38bdf8';
+          const remText = remainingAlerts !== null ? `${remainingAlerts} remaining` : `${3 - sentCount} remaining`;
+          notice.innerHTML = `⏳ <strong>Alert sent!</strong> Buttons paused for <strong>${timeFormatted}</strong> (Alert ${sentCount} of 3 sent • ${remText})`;
+        }
       }
 
-      const timer = setInterval(() => {
-        remaining--;
-        if (notice) {
-          notice.textContent = `⏳ Buttons temporarily locked (${remaining}s) to prevent spamming...`;
-        }
-        if (remaining <= 0) {
-          clearInterval(timer);
-          if (notice) notice.style.display = 'none';
+      updateNotice();
+
+      cooldownTimerInterval = setInterval(() => {
+        cooldownRemaining--;
+        if (cooldownRemaining > 0) {
+          updateNotice();
+        } else {
+          clearInterval(cooldownTimerInterval);
+          cooldownTimerInterval = null;
+          cooldownRemaining = 0;
+          if (notice) {
+            notice.style.display = 'none';
+          }
           cards.forEach(el => {
             el.style.opacity = '1';
             el.style.pointerEvents = 'auto';
           });
-          isSendingAlert = false;
         }
       }, 1000);
     }
@@ -746,6 +785,11 @@
         return;
       }
 
+      if (cooldownRemaining > 0) {
+        showToast(`Please wait ${formatCooldownTime(cooldownRemaining)} before sending another alert.`, true);
+        return;
+      }
+
       if (isSendingAlert) return;
       isSendingAlert = true;
 
@@ -782,33 +826,46 @@
             expireSession();
             return;
           } else if (data.status === 'rate_limited') {
-            showToast(data.message || 'Maximum 3 alerts reached. Please wait for owner to respond.', true);
-            startAlertCooldown(12);
+            const waitSecs = data.wait_seconds || 120;
+            showToast(data.message || `You have already sent 3 notifications. Please wait ${formatCooldownTime(waitSecs)}.`, true);
+            startAlertCooldown(waitSecs, true, 3, 0);
           } else if (data.status === 'snoozed') {
             showToast(data.message || 'Owner is currently on Do Not Disturb.', false);
-            startAlertCooldown(10);
+            startAlertCooldown(10, false, 1, null);
           } else {
             showToast('🔔 Alert delivered directly to vehicle owner!');
             if (cardEl) {
               const arrow = cardEl.querySelector('.alert-arrow');
               if (arrow) arrow.textContent = '✅';
             }
-            startAlertCooldown(10);
+            const sentCount = data.alerts_sent_count || 1;
+            const remaining = data.alerts_remaining !== undefined ? data.alerts_remaining : (3 - sentCount);
+            const waitSecs = data.wait_seconds || (remaining <= 0 ? 120 : 10);
+
+            if (remaining <= 0 || sentCount >= 3) {
+              startAlertCooldown(waitSecs, true, sentCount, 0);
+            } else {
+              startAlertCooldown(10, false, sentCount, remaining);
+            }
           }
         } else {
           showToast('Failed to deliver alert. Please try again.', true);
-          isSendingAlert = false;
         }
       } catch (e) {
         showToast('Network error delivering alert.', true);
-        isSendingAlert = false;
       } finally {
+        isSendingAlert = false;
         if (cardEl) {
           setTimeout(() => {
             cardEl.innerHTML = originalHtml;
           }, 2000);
         }
       }
+    }
+
+    // Trigger rate-limit cooldown immediately if tag is already at 3-alert limit on page load
+    if (initialWaitSecs > 0) {
+      startAlertCooldown(initialWaitSecs, true, initialSentCount, 0);
     }
 
     document.querySelectorAll('.alert-card').forEach(card => {

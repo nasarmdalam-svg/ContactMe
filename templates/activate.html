@@ -10,7 +10,7 @@
 <body>
   <div class="container">
     <div class="header" style="margin-bottom: 14px;">
-      <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 56px; height: 56px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 3px 12px rgba(56, 189, 248, 0.4)); margin-bottom: 6px;">
+      <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.45)); margin-bottom: 8px;">
       <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 3px;">Activate New Sticker</h1>
       <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Sticker ID: <strong style="color: #38bdf8;">{{ tag_id }}</strong></p>
     </div>
@@ -28,13 +28,6 @@
         <input type="text" id="vehicleName" placeholder="e.g. Blue Civic (ABC-1234)" required>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label style="display:block; font-size: 14px; margin-bottom: 6px; color: var(--text-secondary);">
-          Optional Note for People Who Scan
-        </label>
-        <textarea id="customNote" rows="2" placeholder="e.g. Please call before towing, I will come out immediately."></textarea>
-      </div>
-
       <div style="margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
         <input type="checkbox" id="agreePrivacy" required style="margin-top: 3px; cursor: pointer; width: 18px; height: 18px; accent-color: #38bdf8;">
         <label for="agreePrivacy" style="font-size: 13px; color: var(--text-secondary); cursor: pointer; line-height: 1.4;">
@@ -42,8 +35,7 @@
         </label>
       </div>
 
-
-      <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+      <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); color: #080c14; font-weight: 800; border: none; box-shadow: 0 4px 18px rgba(56, 189, 248, 0.35);">
         🚀 Activate Sticker & Open Dashboard
       </button>
 
@@ -60,7 +52,7 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const vehicleName = document.getElementById('vehicleName').value.trim();
-      const customNote = document.getElementById('customNote').value.trim();
+      const customNote = '';
 
       try {
         const resp = await fetch(`/api/activate/${tagId}`, {

@@ -363,7 +363,11 @@ def register_fcm_token(tag_id: str, reg: FcmRegisterModel):
 async def send_alert(tag_id: str, alert: AlertRequest):
     tag = database.get_tag(tag_id)
     if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
+        canonical_id = tag_id.strip().upper()
+        if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
+            canonical_id = f"BUZZ-{canonical_id}"
+        database.create_tag(canonical_id)
+        tag = database.get_tag(canonical_id)
 
     if tag.get("is_active", 1) == 0:
         return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}

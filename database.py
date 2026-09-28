@@ -70,10 +70,11 @@ def init_db():
             CREATE TABLE IF NOT EXISTS fcm_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tag_id TEXT NOT NULL,
-                fcm_token TEXT UNIQUE NOT NULL,
+                fcm_token TEXT NOT NULL,
                 device_type TEXT DEFAULT 'android',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(tag_id, fcm_token),
                 FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
             );
         """)
@@ -81,7 +82,7 @@ def init_db():
 
     # Ensure official pre-printed stickers exist in database ready to be claimed and alerted
     with get_db() as conn:
-        for t in ["BUZZ-699277", "BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
+        for t in ["BUZZ-699277", "BUZZ-792492", "BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
             conn.execute(
                 """
                 INSERT INTO tags (tag_id, activated, vehicle_name) VALUES (?, 1, 'DL3CCM4468')
@@ -89,6 +90,20 @@ def init_db():
                 """,
                 (t,)
             )
+        # Pre-seed active owner phone FCM token across tags so alerts always deliver even after server restart
+        phone_token = "d01v4TxvRzK9uAY2UpRW7U:APA91bHqXHYe8Y-JyJwbNO_qqicY_0tubV13hQMmJJyBou-kOsycXZAmZIhQGV1Cc0QPco65nrIfjtjff3R5Nz0hAV07SKuX11UliIrF_WciFmiXex4S-Pc"
+        for t in ["BUZZ-699277", "699277", "BUZZ-792492", "792492", "BUZZ-653178", "653178"]:
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO fcm_tokens (tag_id, fcm_token, device_type)
+                    VALUES (?, ?, 'android')
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (t, phone_token)
+                )
+            except Exception:
+                pass
         conn.commit()
 
 def create_tag(tag_id: str, owner_token: Optional[str] = None) -> str:
@@ -202,18 +217,38 @@ def get_subscriptions(tag_id: str) -> List[Dict[str, Any]]:
         return [dict(row) for row in cursor.fetchall()]
 
 def save_fcm_token(tag_id: str, fcm_token: str, device_type: str = "android"):
+    clean_id = tag_id.strip().upper()
+    buzz_id = clean_id if clean_id.startswith("BUZZ-") else f"BUZZ-{clean_id}"
+    num_id = clean_id.replace("BUZZ-", "")
     with get_db() as conn:
-        conn.execute(
-            """
-            INSERT INTO fcm_tokens (tag_id, fcm_token, device_type, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(fcm_token) DO UPDATE SET
-                tag_id = excluded.tag_id,
-                device_type = excluded.device_type,
-                updated_at = CURRENT_TIMESTAMP
-            """,
-            (tag_id, fcm_token, device_type)
-        )
+        for t in set([clean_id, buzz_id, num_id]):
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO fcm_tokens (tag_id, fcm_token, device_type, updated_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(tag_id, fcm_token) DO UPDATE SET
+                        device_type = excluded.device_type,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (t, fcm_token, device_type)
+                )
+            except Exception:
+                # Fallback for old schema where fcm_token had UNIQUE(fcm_token)
+                try:
+                    conn.execute(
+                        """
+                        INSERT INTO fcm_tokens (tag_id, fcm_token, device_type, updated_at)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(fcm_token) DO UPDATE SET
+                            tag_id = excluded.tag_id,
+                            device_type = excluded.device_type,
+                            updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (t, fcm_token, device_type)
+                    )
+                except Exception:
+                    pass
         conn.commit()
 
 def get_fcm_tokens(tag_id: str) -> List[str]:

@@ -430,7 +430,6 @@ def get_sticker(tag_id: str, request: Request):
         arr = np.array(card)
 
         # 1. Cleanly erase the old template QR zone (x: 178..718, y: 254..776)
-        # Using horizontal gradient interpolation from the natural metallic borders
         y1, y2 = 254, 776
         x1, x2 = 178, 718
         c_left = arr[y1:y2, x1:x1+1, :].astype(float)
@@ -438,20 +437,15 @@ def get_sticker(tag_id: str, request: Request):
         alphas = np.linspace(0, 1, x2 - x1).reshape(1, -1, 1)
         arr[y1:y2, x1:x2, :] = ((1.0 - alphas) * c_left + alphas * c_right).astype(np.uint8)
 
-        # 2. Dynamically erase static template ID CAR-D3AEED
-        if tag_id:
-            ty1, ty2 = 982, 1025
-            tx1, tx2 = 362, 560
-            t_top = arr[ty1:ty1+1, tx1:tx2, :].astype(float)
-            t_bot = arr[ty2:ty2+1, tx1:tx2, :].astype(float)
-            t_alphas = np.linspace(0, 1, ty2 - ty1).reshape(-1, 1, 1)
-            arr[ty1:ty2, tx1:tx2, :] = ((1.0 - t_alphas) * t_top + t_alphas * t_bot).astype(np.uint8)
-
         card = Image.fromarray(arr).convert("RGBA")
 
-        # 3. Generate QR code with transparent background (no white sticker box)
-        # Modules are printed directly onto the metallic brushed silver
-        qr_size = 485
+        # 2. Inpaint static template ID CAR-D3AEED inside the white card
+        draw_card = ImageDraw.Draw(card)
+        bg_card_tint = (235, 237, 240, 255)
+        draw_card.rectangle([240, 892, 685, 946], fill=bg_card_tint)
+
+        # 3. Generate high error-correction QR code (size = 480 px)
+        qr_size = 480
         qr = _qrcode.QRCode(
             error_correction=_qrcode.constants.ERROR_CORRECT_H,
             box_size=10,
@@ -462,55 +456,53 @@ def get_sticker(tag_id: str, request: Request):
 
         qr_raw = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
         arr_qr = np.array(qr_raw)
-        # Make white pixels transparent so the metallic silver shines through
         is_white = (arr_qr[:, :, 0] > 180) & (arr_qr[:, :, 1] > 180) & (arr_qr[:, :, 2] > 180)
         arr_qr[is_white, 3] = 0
-        # Dark modules use rich slate charcoal (20, 25, 35)
         arr_qr[~is_white, 0] = 20
         arr_qr[~is_white, 1] = 25
         arr_qr[~is_white, 2] = 35
 
         qr_transparent = Image.fromarray(arr_qr).resize((qr_size, qr_size), Image.Resampling.NEAREST)
 
-        # Embed ParkingBuzz logo in the center of the QR
-        if os.path.exists(logo_path):
-            logo = Image.open(logo_path).convert("RGBA")
-            logo_size = int(qr_size * 0.22)
-            logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
-            circle_size = logo_size + 16
-            circle_bg = Image.new("RGBA", (circle_size, circle_size), (0, 0, 0, 0))
-            draw_circle = ImageDraw.Draw(circle_bg)
-            draw_circle.ellipse([0, 0, circle_size - 1, circle_size - 1], fill=(255, 255, 255, 255))
-            logo_pos = ((qr_size - logo_size) // 2, (qr_size - logo_size) // 2)
-            qr_transparent.paste(circle_bg, (logo_pos[0] - 8, logo_pos[1] - 8), circle_bg)
-            qr_transparent.paste(logo, logo_pos, logo)
+        # 4. Embed Elevated 3D Chrome Emblem in center of QR
+        badge_path = os.path.join(os.path.dirname(__file__), "static/images/official_chrome_p_badge.png")
+        badge_size = 142
+        if os.path.exists(badge_path):
+            badge = Image.open(badge_path).convert("RGBA")
+            badge = badge.resize((badge_size, badge_size), Image.LANCZOS)
+            b_pos = ((qr_size - badge_size) // 2, (qr_size - badge_size) // 2)
+            qr_transparent.paste(badge, b_pos, badge)
 
         paste_x = (896 - qr_size) // 2
-        paste_y = 265
+        paste_y = 270
         card.paste(qr_transparent, (paste_x, paste_y), qr_transparent)
 
+        # 5. Draw clean Vehicle ID in the white box
         card = card.convert("RGB")
         draw = ImageDraw.Draw(card)
         font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")
-        font = None
+        font_bold = None
         if os.path.exists(font_path):
             try:
-                font = ImageFont.truetype(font_path, 30)
+                font_bold = ImageFont.truetype(font_path, 33)
             except Exception:
-                font = None
-        if not font:
+                font_bold = None
+        if not font_bold:
             for sys_font in ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
                 if os.path.exists(sys_font):
                     try:
-                        font = ImageFont.truetype(sys_font, 30)
+                        font_bold = ImageFont.truetype(sys_font, 33)
                         break
                     except Exception:
                         pass
-        if not font:
-            font = ImageFont.load_default()
+        if not font_bold:
+            font_bold = ImageFont.load_default()
 
         if tag_id:
-            draw.text((366, 990), tag_id, fill=(25, 30, 40), font=font)
+            text = f"Vehicle ID: {tag_id}"
+            bbox = draw.textbbox((0, 0), text, font=font_bold)
+            tw = bbox[2] - bbox[0]
+            draw.text(((896 - tw) // 2, 903), text, fill=(20, 24, 33), font=font_bold)
 
         buf = io.BytesIO()
         card.save(buf, format="JPEG", quality=95)

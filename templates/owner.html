@@ -2,222 +2,518 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Owner Dashboard - {{ tag.vehicle_name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ParkingBuzz - {{ tag.vehicle_name if tag.vehicle_name else 'Vehicle Dashboard' }}</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
+  <style>
+    /* Luxury Dark Automotive Styling */
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(22, 30, 49, 0.75);
+      --card-border: rgba(56, 189, 248, 0.18);
+      --accent-cyan: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-green: #34d399;
+      --accent-red: #ef4444;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #131d33 0%, #080c14 100%);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 84px; /* Space for bottom tab bar */
+    }
+
+    /* Radar Intro Overlay */
+    #radarIntro {
+      position: fixed;
+      inset: 0;
+      background: #080c14;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    #radarIntro.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .radar-circle {
+      position: absolute;
+      border: 1.5px solid rgba(56, 189, 248, 0.6);
+      border-radius: 50%;
+      animation: radarPulse 2s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+    }
+    .radar-circle:nth-child(2) { animation-delay: 0.5s; }
+    .radar-circle:nth-child(3) { animation-delay: 1.0s; }
+
+    @keyframes radarPulse {
+      0% { width: 40px; height: 40px; opacity: 1; transform: scale(0.6); }
+      100% { width: 320px; height: 320px; opacity: 0; transform: scale(1.6); }
+    }
+
+    /* Top Sticky Luxury Navbar */
+    .top-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Bottom Luxury Navigation Bar */
+    .bottom-tabbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 900;
+      background: rgba(10, 16, 28, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid rgba(255, 255, 255, 0.09);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 12px 14px 12px;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 6px 14px;
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      width: 18px;
+      height: 3px;
+      background: #38bdf8;
+      border-radius: 99px;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+
+    .tab-btn span.tab-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    /* Tab Page Containers */
+    .tab-pane {
+      display: none;
+      padding: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Luxury Glass Cards */
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(10px);
+    }
+
+    .action-pill {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .action-pill:active {
+      transform: scale(0.97);
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Compact Sleek Dashboard Header -->
-    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-        <!-- Left: Official Logo & Vehicle Details -->
-        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-          <img src="/static/images/p_logo.png" alt="ParkingBuzz" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.35)); flex-shrink: 0;">
-          <div style="min-width: 0;">
-            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px;">ParkingBuzz</div>
-            <div id="headingVehicleName" style="font-size: 17px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;">
-              {{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}
-            </div>
-            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-top: 1px;">Tag: <span style="color: #cbd5e1;">{{ tag.tag_id }}</span></div>
-          </div>
-        </div>
 
-        <!-- Right: Status Toggle Pill -->
-        <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.6); padding: 6px 12px; border-radius: 999px; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s;">
-          {% if tag.get('is_active', 1) == 1 %}
-            <span id="activeDot" style="color: #34d399; font-size: 12px;">●</span>
-            <span id="activeStatusText" style="color: #34d399; font-weight: 700;">Online</span>
-          {% else %}
-            <span id="activeDot" style="color: #94a3b8; font-size: 12px;">○</span>
-            <span id="activeStatusText" style="color: #94a3b8; font-weight: 700;">Muted</span>
-          {% endif %}
-        </button>
+  <!-- Animated Automotive Radar Intro Screen (1.2s on startup) -->
+  <div id="radarIntro">
+    <div style="position: relative; width: 280px; height: 280px; display: flex; align-items: center; justify-content: center;">
+      <div class="radar-circle"></div>
+      <div class="radar-circle"></div>
+      <div class="radar-circle"></div>
+      
+      <!-- Holographic Car & Shield SVG -->
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 14px #38bdf8); z-index: 2;">
+        <path d="M15 50L30 30L45 20H75L90 30L105 50L112 55V65H8V55L15 50Z" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" fill="rgba(56, 189, 248, 0.08)"/>
+        <circle cx="32" cy="62" r="10" stroke="#38bdf8" stroke-width="2.5" fill="#080c14"/>
+        <circle cx="88" cy="62" r="10" stroke="#38bdf8" stroke-width="2.5" fill="#080c14"/>
+        <path d="M48 22L40 32H28" stroke="#38bdf8" stroke-width="1.8"/>
+        <path d="M72 22L80 32H92" stroke="#38bdf8" stroke-width="1.8"/>
+        <path d="M52 22H68V32H52V22Z" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2 2"/>
+      </svg>
+    </div>
+    <div style="margin-top: 20px; text-align: center;">
+      <div style="font-size: 18px; font-weight: 800; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase;">
+        ParkingBuzz
       </div>
+      <div style="font-size: 12px; color: #94a3b8; margin-top: 4px; letter-spacing: 0.5px;">
+        360° Smart Vehicle Protection Active
+      </div>
+    </div>
+  </div>
 
-      <!-- Action Chips Row -->
-      <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
-        <button id="btnOpenEdit" type="button" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: #e2e8f0; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
-          ✏️ Edit Details
-        </button>
-        <a href="/register" style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); color: #38bdf8; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
-          ➕ Add Vehicle
-        </a>
-        <button id="btnSilenceAlarm" type="button" style="display:none; flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 12px; font-weight: 700; cursor: pointer; align-items: center; justify-content: center; gap: 5px;">
-          🔕 Silence
-        </button>
+  <!-- Top Sticky Navigation Bar -->
+  <header class="top-navbar">
+    <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+      <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 36px; height: 36px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4)); flex-shrink: 0;">
+      <div style="min-width: 0;">
+        <div style="font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.8px; text-transform: uppercase;">PARKINGBUZZ</div>
+        <div id="headingVehicleName" style="font-size: 15px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;">
+          {{ tag.vehicle_name if tag.vehicle_name else 'My Vehicle' }}
+        </div>
       </div>
     </div>
 
+    <!-- Right: Status Toggle Pill -->
+    <button id="btnToggleActive" type="button" style="cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(15, 23, 42, 0.7); padding: 6px 12px; border-radius: 999px; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s;">
+      {% if tag.get('is_active', 1) == 1 %}
+        <span id="activeDot" style="color: #34d399; font-size: 12px;">●</span>
+        <span id="activeStatusText" style="color: #34d399; font-weight: 700;">Online</span>
+      {% else %}
+        <span id="activeDot" style="color: #94a3b8; font-size: 12px;">○</span>
+        <span id="activeStatusText" style="color: #94a3b8; font-weight: 700;">Muted</span>
+      {% endif %}
+    </button>
+  </header>
 
-
-
-    <!-- Live QR / Sticker Section -->
-    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin-bottom: 20px; text-align: center;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 16px; color: #fff;">🅿️ Official Vehicle Sticker</div>
-        <span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600;">Ready to Print</span>
+  <!-- ==================== TAB 1: STICKER & QR ==================== -->
+  <main id="tab-sticker" class="tab-pane active">
+    <!-- Hero Windshield Metallic Sticker Card -->
+    <div class="glass-card" style="text-align: center; padding: 20px 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 800; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span>🏷️</span> Official Windshield Card
+        </div>
+        <span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 700;">
+          Ready to Print
+        </span>
       </div>
-      
-      <!-- Full Official Parking Sticker Preview -->
-      <div style="margin: 12px auto; max-width: 310px; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.1);">
+
+      <!-- Elevated Metallic Card Preview -->
+      <div style="margin: 10px auto 16px auto; max-width: 290px; border-radius: 18px; overflow: hidden; box-shadow: 0 16px 36px rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.12); position: relative;">
         <img src="/api/sticker/{{ tag.tag_id }}" alt="Official Parking Sticker" style="width: 100%; display: block;">
       </div>
 
-      <div style="font-size: 12px; color: var(--text-secondary); margin: 12px 0 14px 0;">
-        Windshield Sticker Size: <strong>76 mm × 96 mm</strong> • Instant QR Scan
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+        Standard Size: <strong>76 mm × 96 mm</strong> • Instant Camera QR Scan
       </div>
 
-      <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-        <a href="/api/sticker/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.png" class="alert-btn" style="flex: 1; min-width: 135px; justify-content: center; background: rgba(59, 130, 246, 0.18); border-color: #3b82f6; font-size: 13px; padding: 10px 14px;">
-          📥 Download PNG
+      <!-- 1-Tap Download Buttons -->
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <a href="/api/sticker/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.jpg" class="action-pill" style="flex: 1; padding: 11px 14px; font-size: 13px;">
+          📥 Download Image
         </a>
-        <a href="/api/sticker-pdf/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.pdf" class="alert-btn" style="flex: 1; min-width: 135px; justify-content: center; background: rgba(34, 197, 94, 0.18); border-color: #22c55e; font-size: 13px; padding: 10px 14px;">
-          📄 Printable A4 PDF
+        <a href="/api/sticker-pdf/{{ tag.tag_id }}" download="ParkingBuzz_Sticker_{{ tag.tag_id }}.pdf" class="action-pill" style="flex: 1; padding: 11px 14px; font-size: 13px; background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.35); color: #4ade80;">
+          📄 Printable PDF
         </a>
       </div>
     </div>
 
-    <!-- Emergency & Safety Profile Card -->
-    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 18px;">🆘</span>
-          <strong style="font-size: 14px; color: white;">Emergency & Safety Profile</strong>
+    <!-- Quick Instruction Info -->
+    <div class="glass-card" style="padding: 14px 16px; background: rgba(56, 189, 248, 0.04); border-color: rgba(56, 189, 248, 0.2);">
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <span style="font-size: 20px;">🛡️</span>
+        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.45;">
+          <strong>100% Private Windshield Contact</strong><br>
+          Bystanders who scan your sticker can notify you or speak with you via live audio without ever seeing your personal phone number.
         </div>
-        <button type="button" id="btnOpenEmergency" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 600;">
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== TAB 2: SAFETY & EMERGENCY SOS ==================== -->
+  <main id="tab-safety" class="tab-pane">
+    <div class="glass-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-weight: 800; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🆘</span> Medical & Safety Profile
+        </div>
+        <button type="button" id="btnOpenEmergency" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; padding: 6px 12px; font-size: 11px; cursor: pointer; font-weight: 700;">
           ✏️ Edit Profile
         </button>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
-        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Blood Group</span>
-          <strong id="cardBloodGroup" style="color: #ef4444; font-size: 13px;">{{ tag.blood_group if tag.blood_group else 'Not set' }}</strong>
+      <!-- Blood Group Highlight Card -->
+      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <div>
+          <span style="color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase;">Blood Group (ICE)</span>
+          <div id="cardBloodGroup" style="font-size: 22px; font-weight: 900; color: #f87171; margin-top: 2px;">
+            {{ tag.blood_group if tag.blood_group else 'Not set' }}
+          </div>
         </div>
-        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Emergency Contact</span>
-          <strong id="cardEmergencyContact" style="color: #e2e8f0; font-size: 13px;">{{ tag.emergency_contact if tag.emergency_contact else 'Not set' }}</strong>
+        <div style="font-size: 28px;">🩸</div>
+      </div>
+
+      <!-- Emergency Contacts Grid -->
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Primary Emergency Contact (ICE)</span>
+          <strong id="cardEmergencyContact" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+            {{ tag.emergency_contact if tag.emergency_contact else 'Not configured' }}
+          </strong>
         </div>
-        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Emergency Phone</span>
-          <strong id="cardEmergencyPhone" style="color: #e2e8f0; font-size: 13px;">{{ tag.emergency_phone if tag.emergency_phone else 'Not set' }}</strong>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Emergency Phone Number</span>
+          <strong id="cardEmergencyPhone" style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+            {{ tag.emergency_phone if tag.emergency_phone else 'Not configured' }}
+          </strong>
         </div>
-        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-          <span style="color: var(--text-secondary); display: block; font-size: 11px;">Quiet Hours (DND)</span>
-          <strong id="cardDndStatus" style="color: #10b981; font-size: 13px;">{{ 'Active (23:00-07:00)' if tag.dnd_enabled else 'Disabled (Always Alert)' }}</strong>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Quiet Hours (Do Not Disturb)</span>
+          <strong id="cardDndStatus" style="color: #10b981; font-size: 13px; margin-top: 2px; display: block;">
+            {{ 'Active (23:00 – 07:00)' if tag.dnd_enabled else 'Disabled (Always Alert)' }}
+          </strong>
         </div>
       </div>
     </div>
+  </main>
 
-    <!-- Recent Alerts History -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <div class="section-title" style="margin-bottom: 0;">Recent Alerts History</div>
-      <button id="btnClearHistory" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-        🗑️ Clear
-      </button>
-    </div>
-    <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 8px;">
-      {% if recent_alerts %}
-        {% for a in recent_alerts %}
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; font-size: 13px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <strong style="color: #38bdf8;">{{ a.alert_type|capitalize }} Alert</strong>
-            <span style="color: var(--text-secondary); font-size: 11px;">{{ a.created_at }}</span>
+  <!-- ==================== TAB 3: ALERTS FEED ==================== -->
+  <main id="tab-alerts" class="tab-pane">
+    <div class="glass-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="font-weight: 800; font-size: 16px; color: #fff;">
+          🔔 Live Alerts Feed
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnSilenceAlarm" type="button" style="display:none; padding: 6px 12px; border-radius: 8px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 12px; font-weight: 700; cursor: pointer;">
+            🔕 Silence Horn
+          </button>
+          <button id="btnClearHistory" type="button" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer;">
+            🗑️ Clear
+          </button>
+        </div>
+      </div>
+
+      <div id="alertsHistory" style="display: flex; flex-direction: column; gap: 10px;">
+        {% if recent_alerts %}
+          {% for a in recent_alerts %}
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px 14px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <strong style="color: #38bdf8;">🚨 {{ a.alert_type|capitalize }} Alert</strong>
+              <span style="color: #94a3b8; font-size: 11px;">{{ a.created_at }}</span>
+            </div>
+            <div style="color: #e2e8f0;">{{ a.message if a.message else 'Alert received from vehicle scanner' }}</div>
           </div>
-          <div>{{ a.message if a.message else 'Alert received' }}</div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">
-          No alerts received yet. Your sticker is ready!
-        </div>
-      {% endif %}
+          {% endfor %}
+        {% else %}
+          <div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 28px 16px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+            🛡️ Zero alerts received yet. Your vehicle protection is active!
+          </div>
+        {% endif %}
+      </div>
     </div>
+  </main>
 
-    <div id="statusToast" style="display:none; margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px;"></div>
-  </div>
+  <!-- ==================== TAB 4: GARAGE & VEHICLE DETAILS ==================== -->
+  <main id="tab-garage" class="tab-pane">
+    <div class="glass-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-weight: 800; font-size: 16px; color: #fff;">
+          🚗 Vehicle & Profile Manager
+        </div>
+        <button id="btnOpenEdit" type="button" class="action-pill" style="font-size: 11px; padding: 6px 10px;">
+          ✏️ Edit Details
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Vehicle Plate / Identifier</span>
+          <strong style="color: #f1f5f9; font-size: 15px; margin-top: 2px; display: block;">
+            {{ tag.vehicle_name if tag.vehicle_name else 'Not configured' }}
+          </strong>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Owner Display Name</span>
+          <strong style="color: #f1f5f9; font-size: 14px; margin-top: 2px; display: block;">
+            {{ tag.owner_name if tag.owner_name else 'Vehicle Owner' }}
+          </strong>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Custom Scanner Note</span>
+          <div style="color: #cbd5e1; font-size: 13px; margin-top: 4px; line-height: 1.4;">
+            {{ tag.custom_note if tag.custom_note else 'No custom note set. Scanners will see standard contact options.' }}
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #94a3b8; font-size: 11px; display: block;">Unique Tag ID</span>
+          <code style="color: #38bdf8; font-size: 14px; font-weight: 700; margin-top: 2px; display: block;">
+            {{ tag.tag_id }}
+          </code>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <a href="/register" style="width: 100%; box-sizing: border-box; text-decoration: none; padding: 12px; background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 12px; color: #38bdf8; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>➕</span> Add / Link Another Vehicle
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Floating Luxury Tab Bar -->
+  <nav class="bottom-tabbar">
+    <button type="button" class="tab-btn active" data-tab="tab-sticker">
+      <span class="tab-icon">🏷️</span>
+      <span>Sticker</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="tab-safety">
+      <span class="tab-icon">🆘</span>
+      <span>Safety SOS</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="tab-alerts">
+      <span class="tab-icon">🔔</span>
+      <span>Alerts</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="tab-garage">
+      <span class="tab-icon">🚗</span>
+      <span>Garage</span>
+    </button>
+  </nav>
+
+  <!-- Status Toast -->
+  <div id="statusToast" style="display:none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 20px; border-radius: 12px; text-align: center; font-size: 13px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(10px); max-width: 90%;"></div>
 
   <!-- Edit Details Modal -->
-  <div id="editModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: 16px;">
-    <div style="background: #1e293b; border: 1px solid var(--border-color); border-radius: 16px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+  <div id="editModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #111827; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 20px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-        <div style="font-weight: 700; font-size: 17px; color: white;">✏️ Edit Vehicle & Owner Details</div>
-        <button id="btnCloseEdit" type="button" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">✕</button>
+        <div style="font-weight: 800; font-size: 16px; color: white;">✏️ Edit Vehicle & Owner Details</div>
+        <button id="btnCloseEdit" type="button" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer;">✕</button>
       </div>
       
       <form id="editForm">
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Vehicle Name / Number Plate</label>
-          <input type="text" id="inputVehicleName" value="{{ tag.vehicle_name if tag.vehicle_name else '' }}" placeholder="e.g. MH 02 AB 1234 or Red Car" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Vehicle Name / Number Plate</label>
+          <input type="text" id="inputVehicleName" value="{{ tag.vehicle_name if tag.vehicle_name else '' }}" placeholder="e.g. MH 02 AB 1234 or Red Car" required style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Owner / Display Name (Optional)</label>
-          <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Owner / Display Name (Optional)</label>
+          <input type="text" id="inputOwnerName" value="{{ tag.owner_name if tag.owner_name else '' }}" placeholder="e.g. Vehicle Owner" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 18px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Custom Note for Scanners (Optional)</label>
-          <textarea id="inputCustomNote" rows="2" placeholder="e.g. Doctor on call. Will move in 5 mins." style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">{{ tag.custom_note if tag.custom_note else '' }}</textarea>
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Custom Note for Scanners (Optional)</label>
+          <textarea id="inputCustomNote" rows="2" placeholder="e.g. Doctor on call. Will move in 5 mins." style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">{{ tag.custom_note if tag.custom_note else '' }}</textarea>
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <button type="button" id="btnCancelEdit" class="alert-btn" style="flex: 1; justify-content: center; padding: 10px;">Cancel</button>
-          <button type="submit" id="btnSaveEdit" class="btn-primary" style="flex: 1; padding: 10px;">Save Changes</button>
+          <button type="button" id="btnCancelEdit" class="action-pill" style="flex: 1; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; justify-content: center; padding: 11px;">Cancel</button>
+          <button type="submit" id="btnSaveEdit" class="action-pill" style="flex: 1; background: #38bdf8; color: #080c14; border-color: #38bdf8; justify-content: center; padding: 11px; font-weight: 800;">Save Changes</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Emergency & Safety Modal -->
-  <div id="emergencyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; padding: 16px;">
-    <div style="background: #1e293b; border: 1px solid var(--border-color); border-radius: 16px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+  <div id="emergencyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #111827; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 20px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-        <div style="font-weight: 700; font-size: 17px; color: white;">🆘 Emergency & Safety Profile</div>
-        <button id="btnCloseEmergency" type="button" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">✕</button>
+        <div style="font-weight: 800; font-size: 16px; color: white;">🆘 Emergency & Safety Profile</div>
+        <button id="btnCloseEmergency" type="button" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer;">✕</button>
       </div>
       
       <form id="emergencyForm">
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Blood Group</label>
-          <select id="inputBloodGroup" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
-            <option value="" style="background: #1e293b;">Select Blood Group</option>
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Blood Group</label>
+          <select id="inputBloodGroup" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
+            <option value="" style="background: #111827;">Select Blood Group</option>
             {% for bg in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] %}
-            <option value="{{ bg }}" style="background: #1e293b;" {% if tag.get('blood_group') == bg %}selected{% endif %}>{{ bg }}</option>
+            <option value="{{ bg }}" style="background: #111827;" {% if tag.get('blood_group') == bg %}selected{% endif %}>{{ bg }}</option>
             {% endfor %}
           </select>
         </div>
 
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Emergency Contact Name (ICE)</label>
-          <input type="text" id="inputEmergencyContact" value="{{ tag.emergency_contact if tag.emergency_contact else '' }}" placeholder="e.g. Spouse / Brother" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Emergency Contact Name (ICE)</label>
+          <input type="text" id="inputEmergencyContact" value="{{ tag.emergency_contact if tag.emergency_contact else '' }}" placeholder="e.g. Spouse / Brother" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Emergency Phone Number</label>
-          <input type="tel" id="inputEmergencyPhone" value="{{ tag.emergency_phone if tag.emergency_phone else '' }}" placeholder="e.g. +91 9876543210" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Emergency Phone Number</label>
+          <input type="tel" id="inputEmergencyPhone" value="{{ tag.emergency_phone if tag.emergency_phone else '' }}" placeholder="e.g. +91 9876543210" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
         <div style="margin-bottom: 14px;">
-          <label style="display:block; font-size: 13px; margin-bottom: 6px; color: var(--text-secondary);">Secondary / Driver Backup Phone (Optional)</label>
-          <input type="tel" id="inputBackupPhone" value="{{ tag.backup_phone if tag.backup_phone else '' }}" placeholder="e.g. Family or Driver mobile" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 14px;">
+          <label style="display:block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #94a3b8;">Secondary / Backup Phone (Optional)</label>
+          <input type="tel" id="inputBackupPhone" value="{{ tag.backup_phone if tag.backup_phone else '' }}" placeholder="e.g. Family or Driver mobile" style="width: 100%; box-sizing: border-box; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: white; font-size: 14px;">
         </div>
 
-        <div style="margin-bottom: 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px;">
+        <div style="margin-bottom: 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px;">
           <label style="display:flex; align-items:center; gap: 8px; font-size: 13px; color: white; cursor: pointer;">
-            <input type="checkbox" id="inputDndEnabled" {% if tag.get('dnd_enabled') %}checked{% endif %} style="accent-color: #10b981; width: 16px; height: 16px;">
+            <input type="checkbox" id="inputDndEnabled" {% if tag.get('dnd_enabled') %}checked{% endif %} style="accent-color: #10b981; width: 17px; height: 17px;">
             <span>🌙 Enable Quiet Hours (11:00 PM – 7:00 AM)</span>
           </label>
-          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; padding-left: 24px;">
-            Non-urgent buzzer sound is muted during sleep hours. Emergency calls still ring.
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; padding-left: 25px;">
+            Non-urgent buzzer sound is muted during sleep hours.
           </div>
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <button type="button" id="btnCancelEmergency" class="alert-btn" style="flex: 1; justify-content: center; padding: 10px;">Cancel</button>
-          <button type="submit" id="btnSaveEmergency" class="btn-primary" style="flex: 1; padding: 10px;">Save Profile</button>
+          <button type="button" id="btnCancelEmergency" class="action-pill" style="flex: 1; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #cbd5e1; justify-content: center; padding: 11px;">Cancel</button>
+          <button type="submit" id="btnSaveEmergency" class="action-pill" style="flex: 1; background: #ef4444; border-color: #ef4444; color: white; justify-content: center; padding: 11px; font-weight: 800;">Save Profile</button>
         </div>
       </form>
     </div>
@@ -249,7 +545,15 @@
     const tagId = "{{ tag.tag_id }}";
     const vapidPublicKey = "{{ vapid_public_key }}";
 
-    // Dynamic Device Routing: Check if this user has their own unique registered tag
+    // Auto-dismiss radar intro after 1.2s
+    window.addEventListener('DOMContentLoaded', () => {
+      const radar = document.getElementById('radarIntro');
+      setTimeout(() => {
+        if (radar) radar.classList.add('fade-out');
+      }, 1200);
+    });
+
+    // Dynamic Device Routing
     const savedTag = localStorage.getItem('pb_active_tag');
     if (savedTag && savedTag !== tagId) {
       window.location.replace('/owner/' + savedTag);
@@ -268,7 +572,23 @@
       }
     }
 
-    const notifStatusBadge = document.getElementById('notifStatusBadge');
+    // Tab Switching Logic
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        const activePane = document.getElementById(targetTab);
+        if (activePane) activePane.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
     const toast = document.getElementById('statusToast');
     const incomingCallOverlay = document.getElementById('incomingCallOverlay');
     const ownerCallStatus = document.getElementById('ownerCallStatus');
@@ -279,8 +599,8 @@
     function showToast(text, isError = false) {
       toast.textContent = text;
       toast.style.display = 'block';
-      toast.style.background = isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)';
-      toast.style.color = isError ? '#f87171' : '#34d399';
+      toast.style.background = isError ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+      toast.style.color = '#fff';
       setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
@@ -292,67 +612,56 @@
     const editForm = document.getElementById('editForm');
     const headingVehicleName = document.getElementById('headingVehicleName');
 
-    // Auto-open mandatory setup modal if vehicle details are missing
-    const initialVehicleName = "{{ tag.vehicle_name if tag.vehicle_name else '' }}";
-    if (!initialVehicleName) {
-      editModal.style.display = 'flex';
-      btnCloseEdit.style.display = 'none';
-      btnCancelEdit.style.display = 'none';
+    if (btnOpenEdit) {
+      btnOpenEdit.addEventListener('click', () => {
+        editModal.style.display = 'flex';
+      });
     }
-
-    btnOpenEdit.addEventListener('click', () => {
-      editModal.style.display = 'flex';
-    });
 
     function closeEditModal() {
-      // Don't allow closing if vehicle details are still empty
-      if (!headingVehicleName.textContent || headingVehicleName.textContent === 'My Vehicle') {
-        alert('Vehicle details are required to activate your parking sticker!');
-        return;
-      }
-      editModal.style.display = 'none';
+      if (editModal) editModal.style.display = 'none';
     }
 
-    btnCloseEdit.addEventListener('click', closeEditModal);
-    btnCancelEdit.addEventListener('click', closeEditModal);
+    if (btnCloseEdit) btnCloseEdit.addEventListener('click', closeEditModal);
+    if (btnCancelEdit) btnCancelEdit.addEventListener('click', closeEditModal);
 
-    editForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const saveBtn = document.getElementById('btnSaveEdit');
-      saveBtn.textContent = 'Saving...';
-      saveBtn.disabled = true;
+    if (editForm) {
+      editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('btnSaveEdit');
+        saveBtn.textContent = 'Saving...';
+        saveBtn.disabled = true;
 
-      const vehicleName = document.getElementById('inputVehicleName').value.trim();
-      const ownerName = document.getElementById('inputOwnerName').value.trim();
-      const customNote = document.getElementById('inputCustomNote').value.trim();
+        const vehicleName = document.getElementById('inputVehicleName').value.trim();
+        const ownerName = document.getElementById('inputOwnerName').value.trim();
+        const customNote = document.getElementById('inputCustomNote').value.trim();
 
-      try {
-        const resp = await fetch(`/api/tag/${tagId}/update`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            vehicle_name: vehicleName,
-            owner_name: ownerName,
-            custom_note: customNote
-          })
-        });
+        try {
+          const resp = await fetch(`/api/tag/${tagId}/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vehicle_name: vehicleName,
+              owner_name: ownerName,
+              custom_note: customNote
+            })
+          });
 
-        if (resp.ok) {
-          headingVehicleName.textContent = vehicleName;
-          btnCloseEdit.style.display = 'inline-block';
-          btnCancelEdit.style.display = 'inline-block';
-          editModal.style.display = 'none';
-          showToast('✅ Vehicle & Contact details updated!');
-        } else {
-          alert('Failed to update details. Please try again.');
+          if (resp.ok) {
+            if (headingVehicleName) headingVehicleName.textContent = vehicleName;
+            closeEditModal();
+            showToast('✅ Vehicle & Contact details updated!');
+          } else {
+            alert('Failed to update details. Please try again.');
+          }
+        } catch (err) {
+          alert('Network error updating details: ' + err.message);
+        } finally {
+          saveBtn.textContent = 'Save Changes';
+          saveBtn.disabled = false;
         }
-      } catch (err) {
-        alert('Network error updating details: ' + err.message);
-      } finally {
-        saveBtn.textContent = 'Save Changes';
-        saveBtn.disabled = false;
-      }
-    });
+      });
+    }
 
     // Emergency Modal handlers
     const emergencyModal = document.getElementById('emergencyModal');
@@ -402,9 +711,9 @@
 
           if (resp.ok) {
             document.getElementById('cardBloodGroup').textContent = bloodGroup || 'Not set';
-            document.getElementById('cardEmergencyContact').textContent = emergencyContact || 'Not set';
-            document.getElementById('cardEmergencyPhone').textContent = emergencyPhone || 'Not set';
-            document.getElementById('cardDndStatus').textContent = dndEnabled ? 'Active (23:00-07:00)' : 'Disabled (Always Alert)';
+            document.getElementById('cardEmergencyContact').textContent = emergencyContact || 'Not configured';
+            document.getElementById('cardEmergencyPhone').textContent = emergencyPhone || 'Not configured';
+            document.getElementById('cardDndStatus').textContent = dndEnabled ? 'Active (23:00 – 07:00)' : 'Disabled (Always Alert)';
             closeEmergencyModal();
             showToast('✅ Emergency & Safety profile updated!');
           } else {
@@ -433,12 +742,14 @@
           if (data.is_active === 1) {
             activeDot.textContent = '●';
             activeDot.style.color = '#34d399';
-            activeStatusText.innerHTML = 'Status: <strong style="color: #34d399;">Active (Online)</strong>';
+            activeStatusText.textContent = 'Online';
+            activeStatusText.style.color = '#34d399';
             showToast('🟢 Connected: ParkingBuzz is active and receiving alerts!');
           } else {
             activeDot.textContent = '○';
             activeDot.style.color = '#94a3b8';
-            activeStatusText.innerHTML = 'Status: <strong style="color: #94a3b8;">Disconnected (Muted)</strong>';
+            activeStatusText.textContent = 'Muted';
+            activeStatusText.style.color = '#94a3b8';
             showToast('⚪ Disconnected: Alerts muted & Do Not Disturb enabled');
           }
         }
@@ -450,31 +761,29 @@
     });
 
     const btnSilence = document.getElementById('btnSilenceAlarm');
-    btnSilence.addEventListener('click', () => {
-      window.soundManager.stopAlarm();
-      window.soundManager.stopRingtone();
-      btnSilence.style.display = 'none';
-      showToast('🔕 Alarm silenced');
-    });
+    if (btnSilence) {
+      btnSilence.addEventListener('click', () => {
+        window.soundManager.stopAlarm();
+        window.soundManager.stopRingtone();
+        btnSilence.style.display = 'none';
+        showToast('🔕 Alarm silenced');
+      });
+    }
 
     const btnClearHistory = document.getElementById('btnClearHistory');
-    btnClearHistory.addEventListener('click', async () => {
-      if (!confirm('Clear all alerts history?')) return;
-      try {
-        const resp = await fetch(`/api/tag/${tagId}/clear-alerts`, { method: 'POST' });
-        if (resp.ok) {
-          document.getElementById('alertsHistory').innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 20px;">No alerts received yet. Your sticker is ready!</div>';
-          showToast('🗑️ Alerts history cleared!');
+    if (btnClearHistory) {
+      btnClearHistory.addEventListener('click', async () => {
+        if (!confirm('Clear all alerts history?')) return;
+        try {
+          const resp = await fetch(`/api/tag/${tagId}/clear-alerts`, { method: 'POST' });
+          if (resp.ok) {
+            document.getElementById('alertsHistory').innerHTML = '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 28px 16px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">🛡️ Alerts history cleared!</div>';
+            showToast('🗑️ Alerts history cleared!');
+          }
+        } catch (e) {
+          alert('Error clearing history: ' + e.message);
         }
-      } catch (e) {
-        alert('Error clearing history: ' + e.message);
-      }
-    });
-
-    // Auto ring if opened from notification click
-    if (window.location.search.includes('autoring=1')) {
-      window.soundManager.playAlertSound(6);
-      btnSilence.style.display = 'inline-flex';
+      });
     }
 
     // Voice Calling Setup for Owner
@@ -511,22 +820,21 @@
     callClient.connectSignaling();
 
     callClient.onAlertReceived = (msg) => {
-      // In native Android APK, the APK plays the chime natively! Do NOT play duplicate web sound!
       if (!window.ParkBuzzApp) {
         window.soundManager.playAlertSound(4);
       }
-      btnSilence.style.display = 'inline-flex';
+      if (btnSilence) btnSilence.style.display = 'inline-flex';
       showToast(`🚨 ${msg.alert_type.toUpperCase()}: ${msg.message}`);
       
       const history = document.getElementById('alertsHistory');
       const item = document.createElement('div');
-      item.style.cssText = 'background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 6px; animation: pulse 1s;';
+      item.style.cssText = 'background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 6px; animation: pulse 1s;';
       item.innerHTML = `
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
           <strong style="color: #f87171;">🚨 ${msg.alert_type.toUpperCase()} ALERT</strong>
-          <span style="color: var(--text-secondary); font-size: 11px;">Just now</span>
+          <span style="color: #94a3b8; font-size: 11px;">Just now</span>
         </div>
-        <div>${msg.message}</div>
+        <div style="color: #f1f5f9;">${msg.message}</div>
       `;
       history.prepend(item);
     };
@@ -542,17 +850,6 @@
     document.getElementById('btnHangupCall').addEventListener('click', () => {
       callClient.endCall();
     });
-
-    // Listen for Service Worker messages
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'TRIGGER_SOUND') {
-          if (!window.ParkBuzzApp) {
-            window.soundManager.playAlertSound();
-          }
-        }
-      });
-    }
   </script>
 </body>
 </html>

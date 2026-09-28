@@ -438,79 +438,94 @@ def get_sticker(tag_id: str, request: Request):
     metallic_path = os.path.join(os.path.dirname(__file__), "static/images/parking_card_dual_store.jpg")
     logo_path = os.path.join(os.path.dirname(__file__), "ParkBuzz_No_Disc_Transparent.png")
 
-    # QR placement region on the 896×1200 metallic card (leaves heading + bottom info visible)
-    QR_X1, QR_Y1 = 175, 290
-    QR_X2, QR_Y2 = 720, 755
-    qr_w = QR_X2 - QR_X1
-    qr_h = QR_Y2 - QR_Y1
-    qr_size = min(qr_w, qr_h)  # 465
-
-    # Generate QR with high error correction (allows logo overlay without breaking it)
-    qr = _qrcode.QRCode(
-        error_correction=_qrcode.constants.ERROR_CORRECT_H,
-        box_size=10,
-        border=2
-    )
-    qr.add_data(scan_url)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-    qr_img = qr_img.resize((qr_size, qr_size), Image.LANCZOS)
-
-    # Embed ParkingBuzz logo in the center of the QR
-    if os.path.exists(logo_path):
-        logo = Image.open(logo_path).convert("RGBA")
-        logo_size = int(qr_size * 0.20)
-        logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
-        logo_pos = ((qr_size - logo_size) // 2, (qr_size - logo_size) // 2)
-        circle_size = logo_size + 16
-        circle_bg = Image.new("RGBA", (circle_size, circle_size), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(circle_bg)
-        draw.ellipse([0, 0, circle_size - 1, circle_size - 1], fill=(255, 255, 255, 255))
-        qr_rgba = qr_img.convert("RGBA")
-        qr_rgba.paste(circle_bg, (logo_pos[0] - 8, logo_pos[1] - 8), circle_bg)
-        qr_rgba.paste(logo, logo_pos, logo)
-        qr_img = qr_rgba.convert("RGB")
-
-    # Overlay real QR onto the metallic card template
+    # Embed real scannable QR seamlessly into the brushed metallic card
     if os.path.exists(metallic_path):
+        import numpy as np
+
         card = Image.open(metallic_path).convert("RGB")
-        paste_x = QR_X1 + (qr_w - qr_size) // 2
-        paste_y = QR_Y1 + (qr_h - qr_size) // 2
-        card.paste(qr_img, (paste_x, paste_y))
+        arr = np.array(card)
 
-        # Dynamically erase static template ID and draw the actual tag_id
+        # 1. Cleanly erase the old template QR zone (x: 178..718, y: 254..776)
+        # Using horizontal gradient interpolation from the natural metallic borders
+        y1, y2 = 254, 776
+        x1, x2 = 178, 718
+        c_left = arr[y1:y2, x1:x1+1, :].astype(float)
+        c_right = arr[y1:y2, x2:x2+1, :].astype(float)
+        alphas = np.linspace(0, 1, x2 - x1).reshape(1, -1, 1)
+        arr[y1:y2, x1:x2, :] = ((1.0 - alphas) * c_left + alphas * c_right).astype(np.uint8)
+
+        # 2. Dynamically erase static template ID CAR-D3AEED
         if tag_id:
-            pixels = card.load()
-            for y in range(982, 1025):
-                alpha = (y - 982) / 42.0
-                for x in range(362, 560):
-                    t = pixels[x, 982]
-                    b = pixels[x, 1024]
-                    pixels[x, y] = (
-                        int((1.0 - alpha) * t[0] + alpha * b[0]),
-                        int((1.0 - alpha) * t[1] + alpha * b[1]),
-                        int((1.0 - alpha) * t[2] + alpha * b[2])
-                    )
+            ty1, ty2 = 982, 1025
+            tx1, tx2 = 362, 560
+            t_top = arr[ty1:ty1+1, tx1:tx2, :].astype(float)
+            t_bot = arr[ty2:ty2+1, tx1:tx2, :].astype(float)
+            t_alphas = np.linspace(0, 1, ty2 - ty1).reshape(-1, 1, 1)
+            arr[ty1:ty2, tx1:tx2, :] = ((1.0 - t_alphas) * t_top + t_alphas * t_bot).astype(np.uint8)
 
-            draw = ImageDraw.Draw(card)
-            font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")
-            font = None
-            if os.path.exists(font_path):
-                try:
-                    font = ImageFont.truetype(font_path, 30)
-                except Exception:
-                    font = None
-            if not font:
-                for sys_font in ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
-                    if os.path.exists(sys_font):
-                        try:
-                            font = ImageFont.truetype(sys_font, 30)
-                            break
-                        except Exception:
-                            pass
-            if not font:
-                font = ImageFont.load_default()
+        card = Image.fromarray(arr).convert("RGBA")
 
+        # 3. Generate QR code with transparent background (no white sticker box)
+        # Modules are printed directly onto the metallic brushed silver
+        qr_size = 485
+        qr = _qrcode.QRCode(
+            error_correction=_qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=1
+        )
+        qr.add_data(scan_url)
+        qr.make(fit=True)
+
+        qr_raw = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
+        arr_qr = np.array(qr_raw)
+        # Make white pixels transparent so the metallic silver shines through
+        is_white = (arr_qr[:, :, 0] > 180) & (arr_qr[:, :, 1] > 180) & (arr_qr[:, :, 2] > 180)
+        arr_qr[is_white, 3] = 0
+        # Dark modules use rich slate charcoal (20, 25, 35)
+        arr_qr[~is_white, 0] = 20
+        arr_qr[~is_white, 1] = 25
+        arr_qr[~is_white, 2] = 35
+
+        qr_transparent = Image.fromarray(arr_qr).resize((qr_size, qr_size), Image.Resampling.NEAREST)
+
+        # Embed ParkingBuzz logo in the center of the QR
+        if os.path.exists(logo_path):
+            logo = Image.open(logo_path).convert("RGBA")
+            logo_size = int(qr_size * 0.22)
+            logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+            circle_size = logo_size + 16
+            circle_bg = Image.new("RGBA", (circle_size, circle_size), (0, 0, 0, 0))
+            draw_circle = ImageDraw.Draw(circle_bg)
+            draw_circle.ellipse([0, 0, circle_size - 1, circle_size - 1], fill=(255, 255, 255, 255))
+            logo_pos = ((qr_size - logo_size) // 2, (qr_size - logo_size) // 2)
+            qr_transparent.paste(circle_bg, (logo_pos[0] - 8, logo_pos[1] - 8), circle_bg)
+            qr_transparent.paste(logo, logo_pos, logo)
+
+        paste_x = (896 - qr_size) // 2
+        paste_y = 265
+        card.paste(qr_transparent, (paste_x, paste_y), qr_transparent)
+
+        card = card.convert("RGB")
+        draw = ImageDraw.Draw(card)
+        font_path = os.path.join(os.path.dirname(__file__), "static/fonts/Arial-Bold.ttf")
+        font = None
+        if os.path.exists(font_path):
+            try:
+                font = ImageFont.truetype(font_path, 30)
+            except Exception:
+                font = None
+        if not font:
+            for sys_font in ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+                if os.path.exists(sys_font):
+                    try:
+                        font = ImageFont.truetype(sys_font, 30)
+                        break
+                    except Exception:
+                        pass
+        if not font:
+            font = ImageFont.load_default()
+
+        if tag_id:
             draw.text((366, 990), tag_id, fill=(25, 30, 40), font=font)
 
         buf = io.BytesIO()

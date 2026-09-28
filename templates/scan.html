@@ -6,387 +6,53 @@
   <title>Contact Vehicle Owner — ParkingBuzz</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #060913;
-      --card-bg: rgba(15, 23, 42, 0.72);
+      --bg-dark: #070b14;
+      --card-bg: rgba(15, 23, 42, 0.78);
       --card-border: rgba(255, 255, 255, 0.08);
       --cyan: #38bdf8;
-      --cyan-glow: rgba(56, 189, 248, 0.35);
       --emerald: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.35);
       --amber: #fbbf24;
-      --rose: #f43f5e;
-      --sapphire: #1d4ed8;
-      --sapphire-light: #60a5fa;
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
+      --rose: #f87171;
     }
 
     body {
-      background: 
-        radial-gradient(ellipse 90% 50% at 50% -10%, rgba(30, 58, 138, 0.28) 0%, transparent 70%),
-        radial-gradient(ellipse 70% 40% at 85% 30%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 70% 40% at 15% 75%, rgba(99, 102, 241, 0.10) 0%, transparent 60%),
-        #060913 !important;
+      background: radial-gradient(circle at top, #0f172a 0%, #070b14 100%) !important;
       color: #f1f5f9;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 0;
       display: block !important;
       width: 100% !important;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
     }
 
     .bystander-wrap {
       max-width: 440px;
       margin: 0 auto;
-      padding: 24px 18px 56px 18px;
+      padding: 20px 16px 44px 16px;
+      box-sizing: border-box;
     }
 
-    /* Ambient Header Glow */
-    .brand-glow-halo {
-      position: relative;
-      display: inline-block;
-      margin-bottom: 12px;
-    }
-    .brand-glow-halo::before {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, transparent 70%);
-      border-radius: 50%;
-      filter: blur(12px);
-      z-index: 0;
-    }
-    .brand-glow-halo img {
-      position: relative;
-      z-index: 1;
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      object-fit: contain;
-      border: 2px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    }
-
-    /* Top Brand Pill */
-    .brand-subpill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: 999px;
-      background: rgba(56, 189, 248, 0.08);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      color: #38bdf8;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1.6px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    /* Luxury Automotive License Plate Card */
-    .license-plate-hero {
-      background: linear-gradient(180deg, #1a2234 0%, #0d1322 100%);
-      border: 2px solid rgba(255, 255, 255, 0.16);
-      border-radius: 16px;
-      padding: 12px 14px;
-      box-shadow: 
-        0 14px 34px -6px rgba(0, 0, 0, 0.8),
-        inset 0 1px 1px rgba(255, 255, 255, 0.35),
-        inset 0 -1px 1px rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 12px 0 16px 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .license-plate-hero::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    }
-    .plate-flag-strip {
-      background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 6px 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-width: 32px;
-      line-height: 1;
-    }
-    .plate-flag-strip .flag-symbol {
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-    .plate-flag-strip .ind-code {
-      font-size: 9px;
-      font-weight: 900;
-      color: #93c5fd;
-      letter-spacing: 0.8px;
-    }
-    .plate-number-display {
-      flex: 1;
-      font-family: 'JetBrains Mono', monospace, -apple-system, sans-serif;
-      font-size: 21px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      color: #ffffff;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.6);
-      text-transform: uppercase;
-      text-align: left;
-    }
-    .plate-tag-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      color: #34d399;
-      white-space: nowrap;
-    }
-    .plate-tag-pill .radar-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulseRadar 2s infinite ease-in-out;
-    }
-
-    @keyframes pulseRadar {
-      0% { transform: scale(0.9); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px #34d399; }
-      100% { transform: scale(0.9); opacity: 0.8; }
-    }
-
-    /* Privacy Shield Banner */
-    .privacy-banner {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.05) 100%);
-      border: 1px solid rgba(16, 185, 129, 0.22);
-      border-radius: 14px;
-      padding: 11px 14px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .privacy-icon-shell {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    /* =========================================================
-       EXCLUSIVE ULTRA-PREMIUM OWNER RESPONSE BOX (STANDOUT COLOR)
-       Luminous Royal Sapphire & Midnight Cobalt Glass with
-       Electric Neon Cyan Rim & Shimmer Top Lightbar
-       ========================================================= */
-    .owner-response-container {
-      display: none;
-      margin-bottom: 20px;
-      animation: slideDownReply 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes slideDownReply {
-      from {
-        opacity: 0;
-        transform: translateY(-16px) scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    .owner-response-box {
-      background: linear-gradient(135deg, rgba(30, 58, 138, 0.92) 0%, rgba(15, 23, 42, 0.96) 55%, rgba(6, 9, 20, 0.99) 100%);
-      border: 1.5px solid rgba(56, 189, 248, 0.65);
+    .glass-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
       border-radius: 20px;
-      padding: 18px 20px;
-      box-shadow: 
-        0 20px 50px -10px rgba(37, 99, 235, 0.5),
-        0 0 28px rgba(56, 189, 248, 0.28),
-        inset 0 1px 2px rgba(255, 255, 255, 0.4),
-        inset 0 -1px 2px rgba(0, 0, 0, 0.6);
-      position: relative;
-      overflow: hidden;
-      backdrop-filter: blur(24px) saturate(200%);
-      -webkit-backdrop-filter: blur(24px) saturate(200%);
-      text-align: left;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     }
 
-    /* Ambient animated top lightbar */
-    .owner-response-lightbar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #38bdf8, #818cf8, #34d399, #38bdf8);
-      background-size: 200% 100%;
-      animation: shiftLightbar 3s linear infinite;
-    }
-
-    @keyframes shiftLightbar {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
-    }
-
-    .response-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .response-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .response-avatar-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
-      font-size: 15px;
-      flex-shrink: 0;
-      border: 1.5px solid rgba(255, 255, 255, 0.4);
-    }
-
-    .response-title-wrap {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .response-badge-label {
-      color: #e0f2fe;
-      font-size: 12px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .response-live-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #34d399;
-      box-shadow: 0 0 10px #34d399;
-      animation: pulseRadar 1.6s infinite ease-in-out;
-    }
-
-    .response-subtitle {
-      font-size: 10px;
-      color: #93c5fd;
-      font-weight: 600;
-    }
-
-    .response-confirmed-pill {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #bae6fd;
-      font-size: 10px;
-      font-weight: 800;
-      padding: 3px 10px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      letter-spacing: 0.5px;
-    }
-
-    /* Inner High-Contrast Quote Card */
-    .response-quote-bubble {
-      background: rgba(7, 13, 26, 0.88);
-      border: 1px solid rgba(96, 165, 250, 0.35);
-      border-left: 4px solid #38bdf8;
-      border-radius: 14px;
-      padding: 14px 16px;
-      position: relative;
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
-    }
-
-    .response-message-text {
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: 800;
-      line-height: 1.45;
-      letter-spacing: 0.1px;
-      word-break: break-word;
-    }
-
-    .response-footer-strip {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 11px;
-      color: #94a3b8;
-    }
-
-    .response-chime-tag {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #38bdf8;
-      font-weight: 700;
-    }
-
-    /* =========================================================
-       PRIMARY CALL BUTTON (EXECUTIVE LUXURY EMERALD)
-       ========================================================= */
-    .call-btn-wrap {
-      margin-bottom: 18px;
-      position: relative;
-    }
-
+    /* Primary Voice Call Button */
     .call-btn {
       width: 100%;
-      background: linear-gradient(135deg, #10b981 0%, #059669 45%, #047857 100%);
-      color: #ffffff;
-      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
       border-radius: 18px;
       padding: 16px 20px;
       font-size: 16px;
@@ -396,132 +62,13 @@
       justify-content: center;
       gap: 12px;
       cursor: pointer;
-      box-shadow: 
-        0 12px 30px -4px rgba(16, 185, 129, 0.45),
-        inset 0 1px 1px rgba(255, 255, 255, 0.4),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .call-btn::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 50%;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-      border-radius: 18px 18px 0 0;
-      pointer-events: none;
-    }
-
-    .call-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 
-        0 16px 36px -4px rgba(16, 185, 129, 0.55),
-        inset 0 1px 1px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .call-btn:active {
-      transform: translateY(1px) scale(0.985);
-      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
-    }
-
-    .call-btn-sub {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 8px;
-    }
-
-    /* Panels */
-    .glass-panel {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      padding: 16px 18px;
-      margin-bottom: 14px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-
-    .panel-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .panel-header-title {
-      font-size: 12px;
-      font-weight: 800;
-      color: #38bdf8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .panel-header-badge {
-      font-size: 10px;
-      color: #64748b;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    /* Location Toggle Card */
-    .loc-toggle-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 12px 16px;
-      margin-bottom: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .loc-toggle-card:active {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .switch-track {
-      width: 44px;
-      height: 26px;
-      background: rgba(255, 255, 255, 0.16);
-      border-radius: 999px;
-      position: relative;
-      transition: background 0.25s ease;
-      flex-shrink: 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .switch-track.active {
-      background: #10b981;
-      border-color: #10b981;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
-    }
-
-    .switch-thumb {
-      width: 20px;
-      height: 20px;
-      background: #ffffff;
-      border-radius: 50%;
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-    }
-
-    .switch-track.active .switch-thumb {
-      transform: translateX(18px);
+      transform: scale(0.98);
+      filter: brightness(0.92);
     }
 
     /* Alert Cards */
@@ -532,44 +79,41 @@
     }
 
     .alert-card {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.038) 0%, rgba(255, 255, 255, 0.015) 100%);
+      background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
+      border-radius: 14px;
       padding: 13px 15px;
       display: flex;
       align-items: center;
       gap: 14px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s ease;
       text-align: left;
       width: 100%;
       box-sizing: border-box;
-      position: relative;
-      overflow: hidden;
     }
 
     .alert-card:hover {
       background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(56, 189, 248, 0.35);
-      transform: translateY(-1px);
+      border-color: rgba(56, 189, 248, 0.3);
     }
 
     .alert-card:active {
       background: rgba(56, 189, 248, 0.12);
       border-color: rgba(56, 189, 248, 0.5);
-      transform: scale(0.985);
+      transform: scale(0.99);
     }
 
     .alert-card .icon-box {
-      width: 44px;
-      height: 44px;
-      border-radius: 13px;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 21px;
       flex-shrink: 0;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .alert-card .alert-content {
@@ -578,122 +122,87 @@
 
     .alert-card .alert-title {
       font-size: 14px;
-      font-weight: 800;
+      font-weight: 700;
       color: #f8fafc;
       margin-bottom: 2px;
-      letter-spacing: -0.1px;
     }
 
     .alert-card .alert-desc {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #94a3b8;
-      line-height: 1.35;
     }
 
     .alert-card .alert-arrow {
       color: #64748b;
-      font-size: 15px;
-      font-weight: 800;
-      transition: transform 0.2s ease, color 0.2s ease;
+      font-size: 14px;
+      font-weight: 700;
     }
 
-    .alert-card:hover .alert-arrow {
-      color: #38bdf8;
-      transform: translateX(3px);
+    /* Location Toggle Pill */
+    .loc-toggle-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 11px 15px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
-    /* Quick Chips */
+    .loc-toggle-card:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .switch-track {
+      width: 42px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .switch-track.active {
+      background: #10b981;
+    }
+
+    .switch-thumb {
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .switch-track.active .switch-thumb {
+      transform: translateX(18px);
+    }
+
+    /* Quick Note Chips */
     .quick-chip {
-      background: rgba(255, 255, 255, 0.045);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 20px;
       color: #cbd5e1;
-      padding: 6px 12px;
+      padding: 5px 11px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.18s ease;
-    }
-
-    .quick-chip:hover {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.35);
-      color: #e0f2fe;
+      transition: all 0.2s;
     }
 
     .quick-chip:active {
-      transform: scale(0.95);
-      background: rgba(56, 189, 248, 0.2);
-    }
-
-    /* Custom Input */
-    .custom-textarea {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px 14px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 13.5px;
-      margin-bottom: 12px;
-      resize: none;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .custom-textarea:focus {
-      border-color: rgba(56, 189, 248, 0.5);
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
-    }
-
-    .custom-textarea::placeholder {
-      color: #64748b;
-    }
-
-    .btn-send-custom {
-      width: 100%;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(37, 99, 235, 0.22) 100%);
-      border: 1.5px solid rgba(56, 189, 248, 0.45);
-      color: #e0f2fe;
-      font-weight: 800;
-      padding: 13px;
-      border-radius: 14px;
-      font-size: 13.5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    }
-
-    .btn-send-custom:hover {
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.26) 0%, rgba(37, 99, 235, 0.32) 100%);
-      border-color: rgba(56, 189, 248, 0.7);
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-
-    .btn-send-custom:active {
-      transform: translateY(1px) scale(0.985);
-    }
-
-    /* Cooldown notice */
-    .cooldown-pill {
-      display: none;
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-      font-size: 12px;
-      font-weight: 800;
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
       color: #38bdf8;
-      text-align: center;
-      letter-spacing: 0.2px;
     }
 
     /* Dedicated Call Overlay */
@@ -735,10 +244,10 @@
     }
 
     .btn-end {
-      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      background: #ef4444;
       color: white;
-      border: 1.5px solid rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
+      border: none;
+      border-radius: 14px;
       padding: 14px 36px;
       font-size: 15px;
       font-weight: 800;
@@ -748,13 +257,9 @@
       gap: 10px;
       box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
       margin-top: 30px;
-      transition: all 0.2s ease;
-    }
-    .btn-end:active {
-      transform: scale(0.97);
     }
 
-    /* Executive Dark Frosted HUD Toast */
+    /* Executive Dark Frosted HUD Toast (No Big Green Oval) */
     .toast-pill {
       position: fixed;
       top: 24px;
@@ -764,13 +269,13 @@
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       color: #f8fafc;
-      padding: 11px 22px;
-      border-radius: 14px;
+      padding: 10px 20px;
+      border-radius: 12px;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: 0.3px;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06);
       z-index: 10000;
       display: none;
       align-items: center;
@@ -787,74 +292,57 @@
       transform: translateX(-50%) translateY(0);
     }
     .toast-pill.error {
-      border-color: rgba(239, 68, 68, 0.6);
+      border-color: rgba(239, 68, 68, 0.5);
       color: #fca5a5;
     }
   </style>
-</head>
 <body>
   <div class="bystander-wrap">
 
-    <!-- Top Luxury Header with Illuminated Badge -->
-    <div style="text-align: center; margin-bottom: 16px;">
-      <div class="brand-glow-halo">
-        <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz">
+    <!-- Top Luxury Header -->
+    <div style="text-align: center; margin-bottom: 18px;">
+      <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 4px 18px rgba(56, 189, 248, 0.45)); margin-bottom: 8px;">
+      <div style="font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1.5px; text-transform: uppercase;">
+        PARKINGBUZZ CONNECT
       </div>
-      <div>
-        <div class="brand-subpill">
-          <span>PARKINGBUZZ CONNECT</span>
-        </div>
-      </div>
-      <h1 style="font-size: 24px; font-weight: 900; color: #f8fafc; margin: 4px 0 2px 0; letter-spacing: -0.5px;">
+      <h1 style="font-size: 22px; font-weight: 900; color: #f8fafc; margin: 4px 0 2px 0;">
         Contact Vehicle Owner
       </h1>
-      <p style="font-size: 12.5px; color: #94a3b8; margin: 0;">
-        Notify or call the driver securely without exposing personal numbers
-      </p>
-
-      <!-- High-End Luxury Vehicle Identification Plate -->
-      <div class="license-plate-hero">
-        <div class="plate-flag-strip">
-          <span class="flag-symbol">🇮🇳</span>
-          <span class="ind-code">IND</span>
-        </div>
-        <div class="plate-number-display">
-          {{ tag.vehicle_name if tag.vehicle_name else 'REGISTERED VEHICLE' }}
-        </div>
-        <div class="plate-tag-pill">
-          <span class="radar-dot"></span>
-          <span>{{ tag.tag_id }}</span>
-        </div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; background: rgba(255, 255, 255, 0.05); padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+        <strong style="color: #f1f5f9; font-size: 13px;">{{ tag.vehicle_name if tag.vehicle_name else 'Vehicle' }}</strong>
+        <span style="opacity: 0.3;">|</span>
+        <span style="color: #38bdf8; font-weight: 700; font-size: 12px;">{{ tag.tag_id }}</span>
       </div>
     </div>
 
     <!-- 100% Privacy Shield Banner -->
-    <div class="privacy-banner">
-      <div class="privacy-icon-shell">🛡️</div>
-      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.45; text-align: left;">
-        <strong style="color: #34d399; font-weight: 800;">100% Private & Masked Contact:</strong> Your phone number is strictly protected. Calls and notifications route securely to the vehicle owner.
+    <div style="background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 11px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 20px;">🛡️</span>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">
+        <strong style="color: #34d399;">100% Private Contact:</strong> Your phone number is never revealed. Calls and alerts route securely to the owner.
       </div>
     </div>
 
     <!-- Emergency Medical Info (if configured by owner) -->
     {% if tag.get('blood_group') or tag.get('emergency_contact') or tag.get('emergency_phone') %}
-    <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 16px; padding: 13px 15px; margin-bottom: 16px;">
+    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;">
       <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="const d = document.getElementById('medBox'); d.style.display = d.style.display === 'none' ? 'block' : 'none';">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 18px;">🚨</span>
-          <strong style="color: #f87171; font-size: 13px; letter-spacing: 0.2px;">Emergency / Medical ICE Profile</strong>
+          <span style="font-size: 18px;">🛡️</span>
+          <strong style="color: #f87171; font-size: 13px;">Emergency / Medical ICE Profile</strong>
         </div>
-        <span style="font-size: 10px; color: #f87171; font-weight: 800; background: rgba(239, 68, 68, 0.18); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">VIEW ▼</span>
+        <span style="font-size: 10px; color: #f87171; font-weight: 800; background: rgba(239, 68, 68, 0.15); padding: 3px 8px; border-radius: 6px;">VIEW ▼</span>
       </div>
-      <div id="medBox" style="display: none; margin-top: 12px; font-size: 13px; color: #f1f5f9; border-top: 1px dashed rgba(239, 68, 68, 0.35); padding-top: 12px; text-align: left;">
+      <div id="medBox" style="display: none; margin-top: 10px; font-size: 13px; color: #f1f5f9; border-top: 1px dashed rgba(239, 68, 68, 0.3); padding-top: 10px;">
         {% if tag.get('blood_group') %}
-        <div style="margin-bottom: 6px;">🩸 Blood Group: <strong style="color: #ef4444; font-size: 14px;">{{ tag.blood_group }}</strong></div>
+        <div style="margin-bottom: 6px;">🩸 Blood Group: <strong style="color: #ef4444;">{{ tag.blood_group }}</strong></div>
         {% endif %}
         {% if tag.get('emergency_contact') %}
         <div style="margin-bottom: 6px;">👤 ICE Contact: <strong>{{ tag.emergency_contact }}</strong></div>
         {% endif %}
         {% if tag.get('emergency_phone') %}
-        <a href="tel:{{ tag.emergency_phone }}" style="display: inline-flex; align-items: center; gap: 6px; background: #ef4444; color: white; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 800; margin-top: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);">
+        <a href="tel:{{ tag.emergency_phone }}" style="display: inline-flex; align-items: center; gap: 6px; background: #ef4444; color: white; padding: 9px 16px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 800; margin-top: 6px;">
           📞 Call Emergency ICE Contact
         </a>
         {% endif %}
@@ -862,71 +350,48 @@
     </div>
     {% endif %}
 
-    <!-- =========================================================
-         REAL-TIME OWNER RESPONSE BOX
-         Opulent Luminous Deep Sapphire & Electric Cobalt with Neon Glow
-         ========================================================= -->
-    <div id="ownerResponseBanner" class="owner-response-container">
-      <div class="owner-response-box">
-        <!-- Top neon animated lightbar -->
-        <div class="owner-response-lightbar"></div>
-
-        <div class="response-header-row">
-          <div class="response-header-left">
-            <div class="response-avatar-badge">💬</div>
-            <div class="response-title-wrap">
-              <div class="response-badge-label">
-                <span class="response-live-dot"></span>
-                <span>Vehicle Owner Replied</span>
-              </div>
-              <div class="response-subtitle">Live verified transmission</div>
-            </div>
+    <!-- Real-time Owner Response Card (Executive Metallic & Emerald Glow) -->
+    <div id="ownerResponseBanner" style="display: none; margin-bottom: 18px; animation: slideDownReply 0.35s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px; padding: 14px 18px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12); position: relative; overflow: hidden; text-align: left;">
+        <!-- Top ambient neon accent line -->
+        <div style="position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, transparent, #38bdf8, #10b981, transparent);"></div>
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399;"></span>
+            <span style="color: #38bdf8; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;">Owner Responded Live</span>
           </div>
-          <span class="response-confirmed-pill">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            LIVE
-          </span>
+          <span style="font-size: 10px; color: #94a3b8; font-weight: 600; background: rgba(255, 255, 255, 0.06); padding: 2px 8px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08);">LIVE</span>
         </div>
 
-        <!-- High-Contrast Speech Quote Bubble -->
-        <div class="response-quote-bubble">
-          <div id="ownerResponseText" class="response-message-text"></div>
-        </div>
-
-        <div class="response-footer-strip">
-          <div class="response-chime-tag">
-            <span>🔔</span>
-            <span>Audio Chime Played</span>
-          </div>
-          <div style="font-size: 10.5px; color: #94a3b8;">
-            Direct from driver's mobile
-          </div>
+        <div style="background: rgba(0, 0, 0, 0.35); border-left: 3px solid #34d399; border-radius: 8px; padding: 10px 14px;">
+          <div id="ownerResponseText" style="color: #ffffff; font-size: 15px; font-weight: 800; letter-spacing: 0.2px; line-height: 1.4;"></div>
         </div>
       </div>
     </div>
 
     <!-- Anti-Spam Cooldown Notice -->
-    <div id="cooldownNotice" class="cooldown-pill">
+    <div id="cooldownNotice" style="display: none; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; font-weight: 700; color: #38bdf8; text-align: center;">
       ⏳ Buttons temporarily locked (10s) to prevent spamming...
     </div>
 
     <!-- Primary Action: Free Private Voice Call (Always Open & Unrestricted) -->
-    <div class="call-btn-wrap">
+    <div style="margin-bottom: 16px;">
       <button class="call-btn" id="btnStartCall">
         <span style="font-size: 22px;">📞</span>
-        <span>Call Vehicle Owner (Private Voice Call)</span>
+        <span>Call Owner (Private Voice Call)</span>
       </button>
-      <div class="call-btn-sub">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11px; color: #64748b; margin-top: 8px;">
         <span>🔒</span> Masked WebRTC Call • Zero Phone Numbers Exchanged
       </div>
     </div>
 
     <!-- Location Toggle: DEFAULT OFF (User can tap to enable) -->
     <div class="loc-toggle-card" onclick="toggleLocationSwitch()">
-      <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-        <span style="font-size: 20px;">📍</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 18px;">📍</span>
         <div>
-          <div style="font-size: 13px; font-weight: 800; color: #f1f5f9;">Share Approximate Location</div>
+          <div style="font-size: 12px; font-weight: 700; color: #f1f5f9;">Share Approximate Location</div>
           <div id="locStatusText" style="font-size: 11px; color: #64748b;">Disabled (Tap to turn on)</div>
         </div>
       </div>
@@ -936,18 +401,16 @@
       <input type="checkbox" id="attachLocation" style="display: none;">
     </div>
 
-    <!-- Instant Vehicle Alerts Grid -->
+    <!-- Quick Alerts Grid -->
     <div class="glass-panel">
-      <div class="panel-header-row">
-        <div class="panel-header-title">
-          <span>⚡ Instant Vehicle Alerts</span>
-        </div>
-        <span class="panel-header-badge">TAP TO NOTIFY</span>
+      <div style="font-size: 12px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+        <span>⚡ Instant Vehicle Alerts</span>
+        <span style="font-size: 10px; color: #64748b; font-weight: 600;">TAP TO NOTIFY</span>
       </div>
 
       <div class="alerts-grid">
         <button type="button" class="alert-card" data-type="blocking" data-text="Car is blocking someone / driveway">
-          <div class="icon-box" style="background: rgba(244, 63, 94, 0.12); color: #fb7185; border-color: rgba(244, 63, 94, 0.25);">🚗</div>
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.12); color: #f87171;">🚗</div>
           <div class="alert-content">
             <div class="alert-title">Car is Blocking Driveway / Exit</div>
             <div class="alert-desc">Send immediate chime to move vehicle</div>
@@ -956,7 +419,7 @@
         </button>
 
         <button type="button" class="alert-card" data-type="lights" data-text="Headlights or hazard lights left ON">
-          <div class="icon-box" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25);">💡</div>
+          <div class="icon-box" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24;">💡</div>
           <div class="alert-content">
             <div class="alert-title">Headlights / Hazard Lights ON</div>
             <div class="alert-desc">Prevent car battery from draining</div>
@@ -965,7 +428,7 @@
         </button>
 
         <button type="button" class="alert-card" data-type="alarm" data-text="Car alarm is going off">
-          <div class="icon-box" style="background: rgba(239, 68, 68, 0.14); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">🚨</div>
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.12); color: #f87171;">🚨</div>
           <div class="alert-content">
             <div class="alert-title">Car Security Alarm Sounding</div>
             <div class="alert-desc">Notify owner of loud siren sounding</div>
@@ -974,7 +437,7 @@
         </button>
 
         <button type="button" class="alert-card" data-type="window" data-text="Window is left open / rolled down">
-          <div class="icon-box" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border-color: rgba(56, 189, 248, 0.25);">🪟</div>
+          <div class="icon-box" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">🪟</div>
           <div class="alert-content">
             <div class="alert-title">Window Left Open</div>
             <div class="alert-desc">Protect against sudden rain or theft</div>
@@ -983,7 +446,7 @@
         </button>
 
         <button type="button" class="alert-card" data-type="emergency" data-text="Towing warning / Emergency">
-          <div class="icon-box" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">⚠️</div>
+          <div class="icon-box" style="background: rgba(239, 68, 68, 0.18); color: #ef4444;">⚠️</div>
           <div class="alert-content">
             <div class="alert-title" style="color: #f87171;">Towing / Urgent Emergency</div>
             <div class="alert-desc">Critical warning to move immediately</div>
@@ -995,31 +458,27 @@
 
     <!-- Custom Message Box with Quick Chips -->
     <div class="glass-panel">
-      <div class="panel-header-row" style="margin-bottom: 8px;">
-        <div class="panel-header-title" style="color: #cbd5e1;">
-          <span>✉️ Custom Note to Owner</span>
-        </div>
-        <span class="panel-header-badge">DIRECT NOTE</span>
+      <div style="font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">
+        ✉️ Custom Note to Owner
       </div>
 
       <!-- Quick Note Suggestion Chips -->
-      <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
         <span class="quick-chip" onclick="fillCustomNote('Need to leave in 5 mins, please move.')">Need to leave in 5m</span>
         <span class="quick-chip" onclick="fillCustomNote('Parked too close, cannot open door.')">Cannot open door</span>
         <span class="quick-chip" onclick="fillCustomNote('Gate is being closed shortly.')">Gate closing soon</span>
       </div>
 
-      <textarea id="customMessage" rows="2" class="custom-textarea" placeholder="Type a specific message for the vehicle owner..."></textarea>
+      <textarea id="customMessage" rows="2" placeholder="Type a specific message for the vehicle owner..." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: white; font-size: 13px; margin-bottom: 10px; resize: none; outline: none;"></textarea>
       
-      <button type="button" id="btnSendCustom" class="btn-send-custom">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        <span>Send Note to Vehicle Owner</span>
+      <button type="button" id="btnSendCustom" style="width: 100%; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-weight: 800; padding: 12px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+        <span>✉️ Send Note to Owner</span>
       </button>
     </div>
 
     <!-- Footer -->
-    <div style="text-align: center; font-size: 11.5px; color: #475569; margin-top: 26px; line-height: 1.5;">
-      Protected by <strong>ParkingBuzz</strong> • Instant QR Vehicle Contact Network
+    <div style="text-align: center; font-size: 11px; color: #475569; margin-top: 22px;">
+      Protected by ParkingBuzz • Instant QR Vehicle Contact Network
     </div>
 
   </div>
@@ -1034,7 +493,7 @@
       Owner's phone is ringing. Please stay on this screen.
     </div>
 
-    <div id="callDuration" style="font-size: 17px; font-weight: 800; color: #34d399; margin-top: 14px; display: none; font-family: 'JetBrains Mono', monospace;">
+    <div id="callDuration" style="font-size: 16px; font-weight: 700; color: #34d399; margin-top: 14px; display: none;">
       00:00
     </div>
 
@@ -1043,7 +502,7 @@
     </button>
   </div>
 
-  <!-- Executive Frosted Dark HUD Toast -->
+  <!-- Status Toast Pill -->
   <div class="toast-pill" id="statusToast"></div>
 
   <audio id="remoteAudio" autoplay playsinline></audio>
@@ -1284,7 +743,7 @@
     document.getElementById('btnSendCustom').addEventListener('click', () => {
       const msg = document.getElementById('customMessage').value.trim();
       if (!msg) {
-        showToast('Please enter a note for the vehicle owner.', true);
+        alert('Please enter a note for the vehicle owner.');
         return;
       }
       sendAlert('custom', msg);

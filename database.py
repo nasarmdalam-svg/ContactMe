@@ -252,11 +252,15 @@ def save_fcm_token(tag_id: str, fcm_token: str, device_type: str = "android"):
         conn.commit()
 
 def get_fcm_tokens(tag_id: str) -> List[str]:
-    clean_id = tag_id.replace("BUZZ-", "")
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
     buzz_id = f"BUZZ-{clean_id}"
     with get_db() as conn:
-        cursor = conn.execute("SELECT fcm_token FROM fcm_tokens WHERE tag_id = ? OR tag_id = ? OR tag_id = ?", (tag_id, buzz_id, clean_id))
-        return [row["fcm_token"] for row in cursor.fetchall()]
+        cursor = conn.execute(
+            "SELECT DISTINCT fcm_token FROM fcm_tokens WHERE UPPER(tag_id) = ? OR UPPER(tag_id) = ? OR UPPER(tag_id) = ?",
+            (tag_id.strip().upper(), buzz_id, clean_id)
+        )
+        tokens = [row["fcm_token"] for row in cursor.fetchall() if row["fcm_token"]]
+        return list(dict.fromkeys(tokens))
 
 def delete_invalid_fcm_token(fcm_token: str):
     with get_db() as conn:

@@ -329,8 +329,16 @@ def api_clear_alerts(tag_id: str):
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)
 def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
     tag = database.get_tag(tag_id)
-    if not tag or not tag["activated"]:
-        return RedirectResponse(url=f"/activate/{tag_id}")
+    if not tag:
+        canonical_id = tag_id.strip().upper()
+        if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
+            canonical_id = f"BUZZ-{canonical_id}"
+        database.create_tag(canonical_id)
+        database.activate_tag(canonical_id, vehicle_name="My Vehicle", allow_create=True)
+        tag = database.get_tag(canonical_id)
+    elif not tag.get("activated", 0):
+        database.activate_tag(tag["tag_id"], vehicle_name=tag.get("vehicle_name") or "My Vehicle", allow_create=True)
+        tag = database.get_tag(tag["tag_id"])
 
     recent_alerts = database.get_recent_alerts(tag_id)
     return templates.TemplateResponse(

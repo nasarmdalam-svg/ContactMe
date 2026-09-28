@@ -59,7 +59,9 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
     if not init_firebase():
         return {"success": False, "error": "Firebase not initialized"}
 
-    if not fcm_tokens:
+    # Deduplicate tokens
+    unique_tokens = list(dict.fromkeys([t.strip() for t in fcm_tokens if t and isinstance(t, str) and t.strip()]))
+    if not unique_tokens:
         return {"success": False, "sent_count": 0, "detail": "No tokens provided"}
 
     title = f"🚨 ParkingBuzz: {alert_type.upper()} ALERT"
@@ -76,7 +78,7 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
     )
 
     multicast_message = messaging.MulticastMessage(
-        tokens=fcm_tokens,
+        tokens=unique_tokens,
         data={
             "tag_id": tag_id,
             "alert_type": alert_type,

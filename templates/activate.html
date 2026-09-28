@@ -11,7 +11,7 @@
   <div class="container">
     <!-- Top Action Bar with Back Button -->
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-      <button type="button" id="btnGoBack" onclick="if (localStorage.getItem('last_active_tag')) { window.location.href = '/owner/' + localStorage.getItem('last_active_tag'); } else if (history.length > 1) { history.back(); } else { window.location.href = '/'; }" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+      <button type="button" id="btnGoBack" onclick="const t = localStorage.getItem('pb_active_tag') || localStorage.getItem('last_active_tag'); if (t) { window.location.href = '/owner/' + t; } else if (history.length > 1) { history.back(); } else { window.location.href = '/'; }" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
         ← Back
       </button>
       <span style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">PARKINGBUZZ</span>

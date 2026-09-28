@@ -3,7 +3,7 @@ import json
 import io
 import time
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -437,6 +437,7 @@ async def send_alert(tag_id: str, alert: AlertRequest):
         if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
             canonical_id = f"BUZZ-{canonical_id}"
         database.create_tag(canonical_id)
+        tag = database.get_tag(canonical_id) or {"tag_id": canonical_id, "is_active": 1}
     if tag.get("is_active", 1) == 0:
         return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}
 

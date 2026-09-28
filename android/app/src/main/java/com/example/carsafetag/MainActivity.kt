@@ -28,6 +28,13 @@ import com.google.firebase.FirebaseApp
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,10 +42,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -48,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -230,6 +242,26 @@ class MainActivity : ComponentActivity() {
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "car_drive")
+                    val carOffset by infiniteTransition.animateFloat(
+                        initialValue = -70f,
+                        targetValue = 70f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1400, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "car_x"
+                    )
+                    val carBounce by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = -3f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(280, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "car_y"
+                    )
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -248,26 +280,49 @@ class MainActivity : ComponentActivity() {
                                     .size(92.dp)
                                     .clip(CircleShape)
                             )
-                            Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(18.dp))
                             Text(
                                 text = "ParkingBuzz",
                                 color = Color.White,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(28.dp))
-                            CircularProgressIndicator(
-                                color = Color(0xFF38BDF8),
-                                modifier = Modifier.size(36.dp),
-                                strokeWidth = 3.dp
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Please wait...",
-                                color = Color(0xFF94A3B8),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Spacer(modifier = Modifier.height(26.dp))
+
+                            // Animated Car Driving on Glowing Road Track
+                            Box(
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .height(54.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Road line track
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(3.dp)
+                                        .align(Alignment.BottomCenter)
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    Color(0xFF38BDF8),
+                                                    Color(0xFF2563EB),
+                                                    Color.Transparent
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                                // Gliding Car
+                                Text(
+                                    text = "🚗",
+                                    fontSize = 32.sp,
+                                    modifier = Modifier
+                                        .offset(x = carOffset.dp, y = carBounce.dp)
+                                        .align(Alignment.Center)
+                                )
+                            }
                         }
                     }
                 }

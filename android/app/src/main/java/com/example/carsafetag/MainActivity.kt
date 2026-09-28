@@ -207,9 +207,26 @@ class MainActivity : ComponentActivity() {
                                 @JavascriptInterface
                                 fun logout() {
                                     val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                    val oldTag = prefs.getString("ACTIVE_TAG_ID", null)
                                     prefs.edit().remove("ACTIVE_TAG_ID").apply()
+
+                                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            val token = task.result
+                                            if (!token.isNullOrBlank() && !oldTag.isNullOrBlank()) {
+                                                ParkBuzzFirebaseMessagingService.unregisterTokenWithServer(this@MainActivity, token, oldTag)
+                                            }
+                                        }
+                                        try {
+                                            FirebaseMessaging.getInstance().deleteToken()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Error deleting FCM token: ${e.message}")
+                                        }
+                                    }
+
                                     runOnUiThread {
                                         webViewInstance?.clearCache(true)
+                                        webViewInstance?.evaluateJavascript("try { localStorage.clear(); sessionStorage.clear(); } catch(e){}", null)
                                         webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register")
                                     }
                                 }

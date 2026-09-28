@@ -189,8 +189,10 @@ def save_subscription(tag_id: str, endpoint: str, p256dh: str, auth: str):
         conn.commit()
 
 def get_subscriptions(tag_id: str) -> List[Dict[str, Any]]:
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     with get_db() as conn:
-        cursor = conn.execute("SELECT * FROM subscriptions WHERE tag_id = ?", (tag_id,))
+        cursor = conn.execute("SELECT * FROM subscriptions WHERE tag_id = ? OR tag_id = ? OR tag_id = ?", (tag_id, buzz_id, clean_id))
         return [dict(row) for row in cursor.fetchall()]
 
 def save_fcm_token(tag_id: str, fcm_token: str, device_type: str = "android"):
@@ -209,8 +211,10 @@ def save_fcm_token(tag_id: str, fcm_token: str, device_type: str = "android"):
         conn.commit()
 
 def get_fcm_tokens(tag_id: str) -> List[str]:
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     with get_db() as conn:
-        cursor = conn.execute("SELECT fcm_token FROM fcm_tokens WHERE tag_id = ?", (tag_id,))
+        cursor = conn.execute("SELECT fcm_token FROM fcm_tokens WHERE tag_id = ? OR tag_id = ? OR tag_id = ?", (tag_id, buzz_id, clean_id))
         return [row["fcm_token"] for row in cursor.fetchall()]
 
 def delete_invalid_fcm_token(fcm_token: str):
@@ -227,10 +231,12 @@ def log_alert(tag_id: str, alert_type: str, message: str = ""):
         conn.commit()
 
 def get_recent_alerts(tag_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     with get_db() as conn:
         cursor = conn.execute(
-            "SELECT * FROM alerts WHERE tag_id = ? ORDER BY id DESC LIMIT ?",
-            (tag_id, limit)
+            "SELECT * FROM alerts WHERE tag_id = ? OR tag_id = ? OR tag_id = ? ORDER BY id DESC LIMIT ?",
+            (tag_id, buzz_id, clean_id, limit)
         )
         return [dict(row) for row in cursor.fetchall()]
 

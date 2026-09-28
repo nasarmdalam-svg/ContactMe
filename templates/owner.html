@@ -251,12 +251,11 @@
 
     // Dynamic Device Routing: Check if this user has their own unique registered tag
     const savedTag = localStorage.getItem('pb_active_tag');
-    if (savedTag && savedTag !== tagId && tagId === 'CAR-D3AEED') {
+    if (savedTag && savedTag !== tagId) {
       window.location.replace('/owner/' + savedTag);
     } else if (!savedTag && tagId === 'CAR-D3AEED') {
-      const promptEl = document.getElementById('newCarPrompt');
-      if (promptEl) promptEl.style.display = 'block';
-    } else if (tagId !== 'CAR-D3AEED') {
+      window.location.replace('/register');
+    } else if (tagId && tagId !== 'CAR-D3AEED') {
       localStorage.setItem('pb_active_tag', tagId);
     }
 

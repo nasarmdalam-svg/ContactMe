@@ -173,23 +173,7 @@ def test_push_endpoint(tag_id: str):
 # --- Routes ---
 @app.api_route("/", methods=["GET", "HEAD"])
 def home():
-    return HTMLResponse("""
-    <html>
-      <head><title>Car SafeTag</title><link rel='stylesheet' href='/static/css/style.css'></head>
-      <body>
-        <div class='container' style='text-align: center;'>
-          <div class='logo-badge'>🚗</div>
-          <h1>Car Contact SafeTag</h1>
-          <p style='margin: 14px 0; color: #94a3b8;'>Scan a QR code sticker on any vehicle or activate a new sticker below.</p>
-          <div style='margin-top: 24px;'>
-            <a href='/activate/CAR-SAMPLE' class='btn-primary' style='text-decoration:none; justify-content:center;'>
-              Activate a Sticker
-            </a>
-          </div>
-        </div>
-      </body>
-    </html>
-    """)
+    return RedirectResponse(url="/register", status_code=302)
 
 # Scan entrypoint for QR code: /c/{tag_id}
 @app.get("/c/{tag_id}", response_class=HTMLResponse)

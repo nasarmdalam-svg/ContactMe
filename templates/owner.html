@@ -717,21 +717,30 @@
     const tagId = "{{ tag.tag_id }}";
     const vapidPublicKey = "{{ vapid_public_key }}";
 
-    // Auto-dismiss radar intro after 1.2s
-    window.addEventListener('DOMContentLoaded', () => {
+    // Auto-dismiss radar intro immediately or after short smooth intro
+    function dismissRadarIntro() {
       const radar = document.getElementById('radarIntro');
-      setTimeout(() => {
-        if (radar) radar.classList.add('fade-out');
-      }, 1200);
-    });
+      if (radar) {
+        setTimeout(() => {
+          radar.classList.add('fade-out');
+        }, 500);
+      }
+    }
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', dismissRadarIntro);
+    } else {
+      dismissRadarIntro();
+    }
 
-    // Dynamic Device Routing
+    // Dynamic Device Routing (flexible tag matching to prevent reload loop)
     const savedTag = localStorage.getItem('pb_active_tag');
-    if (savedTag && savedTag !== tagId) {
+    const cleanSaved = (savedTag || '').replace('BUZZ-', '');
+    const cleanCurrent = (tagId || '').replace('BUZZ-', '');
+    if (cleanSaved && cleanCurrent && cleanSaved !== cleanCurrent) {
       window.location.replace('/owner/' + savedTag);
     } else if (!savedTag && tagId === 'CAR-D3AEED') {
       window.location.replace('/register');
-    } else if (tagId && tagId !== 'CAR-D3AEED') {
+    } else {
       localStorage.setItem('pb_active_tag', tagId);
     }
 

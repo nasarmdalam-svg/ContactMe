@@ -119,9 +119,11 @@ def get_tag(tag_id: str) -> Optional[Dict[str, Any]]:
                 return dict(row)
         return None
 
-def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "") -> Optional[str]:
+def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_create: bool = False) -> Optional[str]:
     tag = get_tag(tag_id)
     if not tag:
+        if not allow_create:
+            return None
         owner_token = secrets.token_urlsafe(16)
         with get_db() as conn:
             conn.execute(
@@ -131,11 +133,12 @@ def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "") -> Optio
             conn.commit()
         return owner_token
     else:
+        canonical_id = tag["tag_id"]
         owner_token = tag["owner_token"] or secrets.token_urlsafe(16)
         with get_db() as conn:
             conn.execute(
                 "UPDATE tags SET activated = 1, vehicle_name = ?, owner_token = ?, custom_note = ? WHERE tag_id = ?",
-                (vehicle_name, owner_token, custom_note, tag_id)
+                (vehicle_name, owner_token, custom_note, canonical_id)
             )
             conn.commit()
         return owner_token

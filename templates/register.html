@@ -148,19 +148,20 @@
           });
           const data = await resp.json();
           if (resp.ok) {
-            localStorage.setItem('pb_active_tag', inputTag);
+            const canonicalTag = data.tag_id || inputTag;
+            localStorage.setItem('pb_active_tag', canonicalTag);
             if (window.ParkBuzzApp && typeof window.ParkBuzzApp.onTagLoaded === 'function') {
-              window.ParkBuzzApp.onTagLoaded(inputTag);
+              window.ParkBuzzApp.onTagLoaded(canonicalTag);
             }
             toast.textContent = 'Sticker linked! Opening your dashboard...';
             toast.style.display = 'block';
             toast.style.background = 'rgba(16, 185, 129, 0.2)';
             toast.style.color = '#34d399';
             setTimeout(() => {
-              window.location.href = `/owner/${inputTag}`;
-            }, 800);
+              window.location.href = `/owner/${canonicalTag}`;
+            }, 600);
           } else {
-            toast.textContent = data.detail || 'Failed to link sticker';
+            toast.textContent = data.detail || 'Sticker ID not registered. Only official printed stickers can be linked.';
             toast.style.display = 'block';
             toast.style.background = 'rgba(239, 68, 68, 0.2)';
             toast.style.color = '#f87171';

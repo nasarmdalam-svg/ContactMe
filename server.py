@@ -232,16 +232,22 @@ def api_register_vehicle(data: RegisterVehicleRequest):
         tag_id = f"BUZZ-{random.randint(100000, 999999)}"
         if not database.get_tag(tag_id):
             break
-    owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note or "")
+    owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note or "", allow_create=True)
     if data.owner_name:
         database.update_tag_profile(tag_id, data.vehicle_name, data.owner_name, data.custom_note or "")
     return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
 
 @app.post("/api/activate/{tag_id}")
 def api_activate(tag_id: str, data: ActivateRequest):
-
-    owner_token = database.activate_tag(tag_id, data.vehicle_name, data.custom_note)
-    return {"status": "ok", "tag_id": tag_id, "owner_token": owner_token}
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(
+            status_code=404,
+            detail="Sticker ID not found. Only pre-registered or official printed stickers can be linked."
+        )
+    canonical_id = tag["tag_id"]
+    owner_token = database.activate_tag(canonical_id, data.vehicle_name, data.custom_note, allow_create=False)
+    return {"status": "ok", "tag_id": canonical_id, "owner_token": owner_token}
 
 @app.post("/api/tag/{tag_id}/update")
 def api_update_tag(tag_id: str, data: UpdateProfileRequest):

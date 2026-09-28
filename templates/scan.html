@@ -572,7 +572,39 @@
       }, 1000);
     }
 
-    function displayOwnerResponse(msg) {
+    // Audio chime for bystander when owner replies
+    function playBystanderReplySound() {
+      try {
+        const audio = new Audio('/static/audio/chime.wav');
+        audio.volume = 1.0;
+        audio.play().catch(() => {
+          // Fallback synthesized chime for browsers with strict media autoplay
+          try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+              const ctx = new AudioContext();
+              const now = ctx.currentTime;
+              [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + i * 0.09);
+                gain.gain.setValueAtTime(0.3, now + i * 0.09);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now + i * 0.09);
+                osc.stop(now + i * 0.09 + 0.35);
+              });
+            }
+          } catch (err) {}
+        });
+      } catch (e) {}
+    }
+
+    let lastKnownOwnerResponse = '';
+
+    function displayOwnerResponse(msg, playSound = true) {
       const banner = document.getElementById('ownerResponseBanner');
       const textEl = document.getElementById('ownerResponseText');
       if (banner && textEl) {
@@ -580,18 +612,34 @@
         banner.style.display = 'block';
         banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         showToast(`🟢 Owner replied: "${msg}"`);
+        if (playSound) {
+          playBystanderReplySound();
+        }
       }
     }
 
-    // Check for prior owner response on load
+    // Check for prior owner response on initial load (without playing sound on stale message)
     fetch(`/api/owner/response/${tagId}`)
       .then(r => r.json())
       .then(d => {
         if (d.has_response && d.message) {
-          displayOwnerResponse(d.message);
+          lastKnownOwnerResponse = d.message;
+          displayOwnerResponse(d.message, false);
         }
       })
       .catch(() => {});
+
+    // Active live polling so laptop/mobile bystanders receive owner reply with sound within 1.5s
+    setInterval(async () => {
+      try {
+        const r = await fetch(`/api/owner/response/${tagId}`);
+        const d = await r.json();
+        if (d.has_response && d.message && d.message !== lastKnownOwnerResponse) {
+          lastKnownOwnerResponse = d.message;
+          displayOwnerResponse(d.message, true);
+        }
+      } catch (e) {}
+    }, 1500);
 
     let isSendingAlert = false;
     async function sendAlert(type, message, cardEl = null) {

@@ -449,23 +449,32 @@ async def owner_respond(tag_id: str, req: OwnerResponseRequest):
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     now = time.time()
-    LATEST_OWNER_RESPONSES[tag_id] = {
+    resp_data = {
         "message": req.message,
         "timestamp": now
     }
+    LATEST_OWNER_RESPONSES[tag_id] = resp_data
+    LATEST_OWNER_RESPONSES[clean_id] = resp_data
+    LATEST_OWNER_RESPONSES[buzz_id] = resp_data
     
-    await manager.notify_bystanders(tag_id, {
-        "type": "owner_response",
-        "message": req.message,
-        "tag_id": tag_id
-    })
+    # Notify bystanders on all variations of the tag ID
+    for tid in set([tag_id, clean_id, buzz_id]):
+        await manager.notify_bystanders(tid, {
+            "type": "owner_response",
+            "message": req.message,
+            "tag_id": tid
+        })
     
     return {"status": "ok", "message": req.message}
 
 @app.get("/api/owner/response/{tag_id}")
 def get_owner_response(tag_id: str):
-    resp = LATEST_OWNER_RESPONSES.get(tag_id)
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
+    resp = LATEST_OWNER_RESPONSES.get(tag_id) or LATEST_OWNER_RESPONSES.get(clean_id) or LATEST_OWNER_RESPONSES.get(buzz_id)
     if not resp:
         return {"has_response": False}
     # Expire after 10 minutes
@@ -484,21 +493,30 @@ def snooze_owner_alerts(tag_id: str, req: Optional[SnoozeRequest] = None):
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     duration = (req.duration_minutes if req and req.duration_minutes else 60)
     until = time.time() + (duration * 60)
     OWNER_SNOOZE[tag_id] = until
+    OWNER_SNOOZE[clean_id] = until
+    OWNER_SNOOZE[buzz_id] = until
     return {"status": "snoozed", "duration_minutes": duration, "snooze_until": until}
 
 @app.post("/api/owner/unsnooze/{tag_id}")
 def unsnooze_owner_alerts(tag_id: str):
-    if tag_id in OWNER_SNOOZE:
-        del OWNER_SNOOZE[tag_id]
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
+    for tid in [tag_id, clean_id, buzz_id]:
+        if tid in OWNER_SNOOZE:
+            del OWNER_SNOOZE[tid]
     return {"status": "active"}
 
 @app.get("/api/owner/snooze-status/{tag_id}")
 def get_snooze_status(tag_id: str):
+    clean_id = tag_id.replace("BUZZ-", "")
+    buzz_id = f"BUZZ-{clean_id}"
     now = time.time()
-    snooze_until = OWNER_SNOOZE.get(tag_id, 0)
+    snooze_until = OWNER_SNOOZE.get(tag_id) or OWNER_SNOOZE.get(clean_id) or OWNER_SNOOZE.get(buzz_id) or 0
     is_snoozed = snooze_until > now
     mins_left = max(0, int((snooze_until - now) / 60)) if is_snoozed else 0
     return {"is_snoozed": is_snoozed, "minutes_left": mins_left}

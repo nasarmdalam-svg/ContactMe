@@ -37,7 +37,7 @@
       padding-bottom: 92px; /* Space for bottom tab bar */
     }
 
-    /* Radar Intro Overlay */
+    /* Radar Intro Overlay with Guaranteed Pure CSS Auto-Fadeout */
     #radarIntro {
       position: fixed;
       inset: 0;
@@ -47,12 +47,13 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.4s ease, visibility 0.4s ease;
-    }
-    #radarIntro.fade-out {
-      opacity: 0;
-      visibility: hidden;
+      animation: autoDismissRadar 0.4s ease 0.9s forwards;
       pointer-events: none;
+    }
+    @keyframes autoDismissRadar {
+      0% { opacity: 1; visibility: visible; }
+      99% { opacity: 0; visibility: visible; }
+      100% { opacity: 0; visibility: hidden; display: none; }
     }
 
     .radar-circle {

@@ -314,6 +314,12 @@
         <span style="opacity: 0.3;">|</span>
         <span style="color: #38bdf8; font-weight: 700; font-size: 12px;">{{ tag.tag_id }}</span>
       </div>
+      <div style="margin-top: 6px;">
+        <span id="sessionTimerBadge" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; background: rgba(15, 23, 42, 0.65); padding: 3px 12px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08);">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8;"></span>
+          <span>Session expires in <strong id="sessionCountdown" style="color: #f1f5f9; font-family: monospace;">15:00</strong></span>
+        </span>
+      </div>
     </div>
 
     <!-- 100% Privacy Shield Banner -->
@@ -502,6 +508,20 @@
     </button>
   </div>
 
+  <!-- 15-Minute Scan Session Expired Overlay -->
+  <div id="sessionExpiredOverlay" style="display: none; position: fixed; inset: 0; background: rgba(7, 11, 20, 0.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; box-sizing: border-box;">
+    <div style="background: rgba(15, 23, 42, 0.94); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; padding: 30px 22px; max-width: 360px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);">
+      <div style="font-size: 48px; margin-bottom: 12px;">⏱️</div>
+      <h2 style="font-size: 20px; font-weight: 800; color: #f8fafc; margin: 0 0 8px 0;">Scan Session Expired</h2>
+      <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 0 0 16px 0;">
+        For the vehicle owner's privacy and anti-spam security, contact sessions automatically expire after 15 minutes.
+      </p>
+      <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #38bdf8; font-weight: 700; line-height: 1.4;">
+        📸 Please scan the vehicle's physical QR code again to start a fresh contact session.
+      </div>
+    </div>
+  </div>
+
   <!-- Status Toast Pill -->
   <div class="toast-pill" id="statusToast"></div>
 
@@ -517,6 +537,54 @@
     const callSubText = document.getElementById('callSubText');
     const callDuration = document.getElementById('callDuration');
     const remoteAudio = document.getElementById('remoteAudio');
+    const sessionToken = "{{ session_token if session_token else '' }}";
+    const sessionExpiresAt = {{ session_expires_at if session_expires_at else 0 }};
+    let isSessionExpired = false;
+
+    function checkSessionExpiry() {
+      if (!sessionExpiresAt) return;
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = sessionExpiresAt - now;
+
+      const countdownEl = document.getElementById('sessionCountdown');
+      const badgeEl = document.getElementById('sessionTimerBadge');
+
+      if (remaining <= 0) {
+        expireSession();
+      } else {
+        if (countdownEl) {
+          const mins = Math.floor(remaining / 60);
+          const secs = remaining % 60;
+          countdownEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          if (remaining < 120 && badgeEl) {
+            badgeEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            countdownEl.style.color = '#f87171';
+          }
+        }
+      }
+    }
+
+    function expireSession() {
+      if (isSessionExpired) return;
+      isSessionExpired = true;
+      const overlay = document.getElementById('sessionExpiredOverlay');
+      if (overlay) {
+        overlay.style.display = 'flex';
+      }
+      const countdownEl = document.getElementById('sessionCountdown');
+      if (countdownEl) countdownEl.textContent = 'Expired';
+
+      // Lock buttons
+      document.querySelectorAll('.alert-card, #btnStartCall, #btnSendCustom').forEach(el => {
+        el.style.opacity = '0.35';
+        el.style.pointerEvents = 'none';
+      });
+    }
+
+    if (sessionExpiresAt) {
+      checkSessionExpiry();
+      setInterval(checkSessionExpiry, 1000);
+    }
 
     let toastTimer = null;
     function showToast(text, isError = false) {
@@ -672,6 +740,12 @@
 
     let isSendingAlert = false;
     async function sendAlert(type, message, cardEl = null) {
+      if (isSessionExpired) {
+        showToast('Scan session has expired. Please scan QR code again.', true);
+        expireSession();
+        return;
+      }
+
       if (isSendingAlert) return;
       isSendingAlert = true;
 
@@ -695,14 +769,19 @@
           body: JSON.stringify({
             alert_type: type,
             message: message,
-            location: locationUrl || ''
+            location: locationUrl || '',
+            session_token: sessionToken
           })
         });
 
         const data = await resp.json().catch(() => ({}));
 
         if (resp.ok) {
-          if (data.status === 'rate_limited') {
+          if (data.status === 'session_expired') {
+            showToast(data.message || 'Session expired (15m limit). Please scan QR code again.', true);
+            expireSession();
+            return;
+          } else if (data.status === 'rate_limited') {
             showToast(data.message || 'Maximum 3 alerts reached. Please wait for owner to respond.', true);
             startAlertCooldown(12);
           } else if (data.status === 'snoozed') {
@@ -815,6 +894,11 @@
     initCallClient();
 
     document.getElementById('btnStartCall').addEventListener('click', async () => {
+      if (isSessionExpired) {
+        showToast('Scan session has expired. Please scan QR code again.', true);
+        expireSession();
+        return;
+      }
       await sendAlert('incoming_call', 'Incoming Voice Call Request');
       if (callClient) {
         callClient.startCall();

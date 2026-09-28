@@ -11,6 +11,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import qrcode
 from pywebpush import webpush, WebPushException
+import hmac
+import hashlib
 
 import database
 import vapid_manager
@@ -18,6 +20,32 @@ import generate_stickers
 import fcm_manager
 
 app = FastAPI(title="ParkingBuzz System")
+
+SCAN_SESSION_SECRET = os.environ.get("SESSION_SECRET", "parkingbuzz_secure_session_key_2026")
+
+def generate_scan_token(tag_id: str, timestamp: int) -> str:
+    msg = f"{tag_id}:{timestamp}".encode()
+    sig = hmac.new(SCAN_SESSION_SECRET.encode(), msg, hashlib.sha256).hexdigest()[:16]
+    return f"{timestamp}:{sig}"
+
+def verify_scan_token(tag_id: str, scan_token: str, max_age_seconds: int = 900) -> bool:
+    if not scan_token or ":" not in scan_token:
+        return False
+    try:
+        ts_str, sig = scan_token.split(":", 1)
+        ts = int(ts_str)
+        now = int(time.time())
+        if (now - ts) > max_age_seconds:
+            return False
+        clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+        buzz_id = f"BUZZ-{clean_id}"
+        for t in [tag_id, clean_id, buzz_id]:
+            expected = hmac.new(SCAN_SESSION_SECRET.encode(), f"{t}:{ts}".encode(), hashlib.sha256).hexdigest()[:16]
+            if hmac.compare_digest(sig, expected):
+                return True
+        return False
+    except Exception:
+        return False
 
 BASE_DIR = os.path.dirname(__file__)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
@@ -115,6 +143,7 @@ class AlertRequest(BaseModel):
     alert_type: str
     message: Optional[str] = ""
     location: Optional[str] = ""
+    session_token: Optional[str] = ""
 
 class EmergencyProfileRequest(BaseModel):
     blood_group: Optional[str] = ""
@@ -209,10 +238,20 @@ def scan_qr(tag_id: str, request: Request):
         database.create_tag(canonical_id)
         tag = database.get_tag(canonical_id)
 
+    now_ts = int(time.time())
+    canonical_tag_id = tag["tag_id"] if tag else tag_id
+    session_token = generate_scan_token(canonical_tag_id, now_ts)
+    expires_at = now_ts + 900  # 15 minutes = 900 seconds
+
     return templates.TemplateResponse(
         request=request,
         name="scan.html",
-        context={"tag": tag}
+        context={
+            "tag": tag,
+            "session_token": session_token,
+            "session_expires_at": expires_at,
+            "session_duration_secs": 900
+        }
     )
 
 # Activation page
@@ -367,12 +406,18 @@ async def send_alert(tag_id: str, alert: AlertRequest):
         if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
             canonical_id = f"BUZZ-{canonical_id}"
         database.create_tag(canonical_id)
-        tag = database.get_tag(canonical_id)
-
     if tag.get("is_active", 1) == 0:
         return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}
 
     now = time.time()
+
+    # 15-minute Session Check: Requires fresh QR scan after 15 mins
+    if alert.session_token:
+        if not verify_scan_token(tag_id, alert.session_token, max_age_seconds=900):
+            return {
+                "status": "session_expired",
+                "message": "Scan session expired (15-minute limit). Please scan the vehicle's QR code again to notify the owner."
+            }
 
     # Check Temporary Snooze
     snooze_until = OWNER_SNOOZE.get(tag_id, 0)

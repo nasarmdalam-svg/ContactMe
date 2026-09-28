@@ -104,7 +104,20 @@ def get_tag(tag_id: str) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (tag_id,))
         row = cursor.fetchone()
-        return dict(row) if row else None
+        if row:
+            return dict(row)
+        if not tag_id.startswith("BUZZ-"):
+            cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (f"BUZZ-{tag_id}",))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        else:
+            stripped = tag_id[5:]
+            cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (stripped,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        return None
 
 def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "") -> Optional[str]:
     tag = get_tag(tag_id)

@@ -79,10 +79,16 @@ def init_db():
         """)
         conn.commit()
 
-    # Ensure official pre-printed stickers exist in database ready to be claimed
+    # Ensure official pre-printed stickers exist in database ready to be claimed and alerted
     with get_db() as conn:
         for t in ["BUZZ-699277", "BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
-            conn.execute("INSERT OR IGNORE INTO tags (tag_id) VALUES (?)", (t,))
+            conn.execute(
+                """
+                INSERT INTO tags (tag_id, activated, vehicle_name) VALUES (?, 1, 'DL3CCM4468')
+                ON CONFLICT(tag_id) DO UPDATE SET activated = 1 WHERE activated = 0
+                """,
+                (t,)
+            )
         conn.commit()
 
 def create_tag(tag_id: str, owner_token: Optional[str] = None) -> str:

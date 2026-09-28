@@ -202,9 +202,12 @@ def home():
 @app.get("/c/{tag_id}", response_class=HTMLResponse)
 def scan_qr(tag_id: str, request: Request):
     tag = database.get_tag(tag_id)
-    if not tag or not tag["activated"]:
-        # If tag doesn't exist or isn't claimed yet, prompt activation
-        return RedirectResponse(url=f"/activate/{tag_id}")
+    if not tag:
+        canonical_id = tag_id.strip().upper()
+        if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
+            canonical_id = f"BUZZ-{canonical_id}"
+        database.create_tag(canonical_id)
+        tag = database.get_tag(canonical_id)
 
     return templates.TemplateResponse(
         request=request,

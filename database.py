@@ -81,38 +81,36 @@ def init_db():
 
     # Ensure official pre-printed stickers exist in database ready to be claimed
     with get_db() as conn:
-        for t in ["BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
+        for t in ["BUZZ-699277", "BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
             conn.execute("INSERT OR IGNORE INTO tags (tag_id) VALUES (?)", (t,))
         conn.commit()
 
 def create_tag(tag_id: str, owner_token: Optional[str] = None) -> str:
+    clean_id = tag_id.strip().upper()
+    if not clean_id.startswith("BUZZ-") and not clean_id.startswith("CAR-"):
+        clean_id = f"BUZZ-{clean_id}"
     if not owner_token:
         owner_token = secrets.token_urlsafe(16)
     with get_db() as conn:
         conn.execute(
             "INSERT OR IGNORE INTO tags (tag_id, owner_token) VALUES (?, ?)",
-            (tag_id, owner_token)
+            (clean_id, owner_token)
         )
         conn.commit()
     return owner_token
 
 def get_tag(tag_id: str) -> Optional[Dict[str, Any]]:
+    clean_id = tag_id.strip().upper()
+    buzz_id = clean_id if clean_id.startswith("BUZZ-") else f"BUZZ-{clean_id}"
+    num_id = clean_id.replace("BUZZ-", "")
     with get_db() as conn:
-        cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (tag_id,))
+        cursor = conn.execute(
+            "SELECT * FROM tags WHERE UPPER(tag_id) = ? OR UPPER(tag_id) = ? OR UPPER(tag_id) = ?",
+            (clean_id, buzz_id, num_id)
+        )
         row = cursor.fetchone()
         if row:
             return dict(row)
-        if not tag_id.startswith("BUZZ-"):
-            cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (f"BUZZ-{tag_id}",))
-            row = cursor.fetchone()
-            if row:
-                return dict(row)
-        else:
-            stripped = tag_id[5:]
-            cursor = conn.execute("SELECT * FROM tags WHERE tag_id = ?", (stripped,))
-            row = cursor.fetchone()
-            if row:
-                return dict(row)
         return None
 
 def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_create: bool = False) -> Optional[str]:
@@ -120,11 +118,14 @@ def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_cr
     if not tag:
         if not allow_create:
             return None
+        clean_id = tag_id.strip().upper()
+        if not clean_id.startswith("BUZZ-") and not clean_id.startswith("CAR-"):
+            clean_id = f"BUZZ-{clean_id}"
         owner_token = secrets.token_urlsafe(16)
         with get_db() as conn:
             conn.execute(
                 "INSERT INTO tags (tag_id, activated, vehicle_name, owner_token, custom_note) VALUES (?, 1, ?, ?, ?)",
-                (tag_id, vehicle_name, owner_token, custom_note)
+                (clean_id, vehicle_name, owner_token, custom_note)
             )
             conn.commit()
         return owner_token

@@ -92,8 +92,10 @@ class MainActivity : ComponentActivity() {
                     val token = task.result
                     android.util.Log.d("ParkBuzzFCM", "Initial FCM token retrieved: $token")
                     val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
-                    val tagId = prefs.getString("ACTIVE_TAG_ID", "CAR-D3AEED") ?: "CAR-D3AEED"
-                    ParkBuzzFirebaseMessagingService.registerTokenWithServer(this, token, tagId)
+                    val tagId = prefs.getString("ACTIVE_TAG_ID", null)
+                    if (!tagId.isNullOrBlank()) {
+                        ParkBuzzFirebaseMessagingService.registerTokenWithServer(this, token, tagId)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -326,20 +328,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlertBackgroundService() {
-        try {
-            val serviceIntent = Intent(this, ParkBuzzAlertService::class.java).apply {
-                putExtra("TAG_ID", "CAR-D3AEED")
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     private fun createLoudNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

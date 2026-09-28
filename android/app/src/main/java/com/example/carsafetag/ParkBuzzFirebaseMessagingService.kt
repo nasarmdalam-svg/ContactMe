@@ -27,7 +27,8 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
         private const val TAG = "ParkBuzzFCM"
         const val ALERT_CHANNEL_ID = "parkbuzz_alert_horn_v10"
 
-        fun registerTokenWithServer(context: Context, token: String, tagId: String = "CAR-D3AEED") {
+        fun registerTokenWithServer(context: Context, token: String, tagId: String) {
+            if (tagId.isBlank()) return
             Thread {
                 try {
                     val client = OkHttpClient()
@@ -54,8 +55,10 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "New FCM Token received: $token")
         // Retrieve stored active tag ID
         val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
-        val tagId = prefs.getString("ACTIVE_TAG_ID", "CAR-D3AEED") ?: "CAR-D3AEED"
-        registerTokenWithServer(this, token, tagId)
+        val tagId = prefs.getString("ACTIVE_TAG_ID", null)
+        if (!tagId.isNullOrBlank()) {
+            registerTokenWithServer(this, token, tagId)
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {

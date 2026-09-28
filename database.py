@@ -79,13 +79,9 @@ def init_db():
         """)
         conn.commit()
 
-    # Ensure default tag exists without any hardcoded vehicle plate numbers
+    # Ensure official pre-printed stickers exist in database ready to be claimed
     with get_db() as conn:
-        conn.execute("""
-            INSERT OR IGNORE INTO tags (tag_id, activated, vehicle_name, owner_token) 
-            VALUES ('CAR-D3AEED', 1, '', 'owner_token_d3aeed')
-        """)
-        for t in ["CAR-2F5752", "CAR-14AD84", "CAR-CD7AA9", "CAR-EFEA7E", "CAR-DEMO1"]:
+        for t in ["BUZZ-653178", "BUZZ-970927", "BUZZ-563396", "BUZZ-100001", "CAR-D3AEED"]:
             conn.execute("INSERT OR IGNORE INTO tags (tag_id) VALUES (?)", (t,))
         conn.commit()
 

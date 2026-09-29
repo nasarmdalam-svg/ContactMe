@@ -114,6 +114,18 @@ class MainActivity : ComponentActivity() {
             android.util.Log.e("ParkBuzzFCM", "Failed to get FCM token: ${e.message}")
         }
 
+        // Trigger fast background HTTP pre-warm ping in parallel with UI init
+        Thread {
+            try {
+                val client = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(6, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(6, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                val req = okhttp3.Request.Builder().url("https://contactme-go9v.onrender.com/ping").build()
+                client.newCall(req).execute()
+            } catch (e: Exception) {}
+        }.start()
+
         setContent {
             var isLoading by remember { mutableStateOf(true) }
             var loadingStatus by remember { mutableStateOf("Securing vehicle connection...") }
@@ -139,15 +151,26 @@ class MainActivity : ComponentActivity() {
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
                                     val title = view?.title ?: ""
-                                    // If Render spin-up page is detected, keep showing splash and retry
-                                    if (title.contains("starting", ignoreCase = true) || 
-                                        title.contains("render", ignoreCase = true)) {
-                                        loadingStatus = "Starting cloud service... Ready in moments"
-                                        postDelayed({
-                                            view?.reload()
-                                        }, 4000)
-                                    } else {
-                                        isLoading = false
+                                    // Inspect title AND body text to catch Render free-tier spin-up screens
+                                    view?.evaluateJavascript("(function(){ return document.body ? (document.body.innerText || '') : ''; })()") { bodyContent ->
+                                        val body = (bodyContent ?: "").replace("\\n", " ").lowercase()
+                                        val isSpinningUp = title.contains("starting", ignoreCase = true) || 
+                                                           title.contains("render", ignoreCase = true) ||
+                                                           body.contains("spinning up") ||
+                                                           body.contains("please wait") ||
+                                                           body.contains("service is starting") ||
+                                                           body.contains("503 service") ||
+                                                           body.contains("502 bad gateway")
+
+                                        if (isSpinningUp) {
+                                            isLoading = true
+                                            loadingStatus = "Connecting to ParkingBuzz Cloud..."
+                                            view.postDelayed({
+                                                view.reload()
+                                            }, 2500)
+                                        } else {
+                                            isLoading = false
+                                        }
                                     }
                                 }
 
@@ -208,7 +231,8 @@ class MainActivity : ComponentActivity() {
                                 fun logout() {
                                     val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
                                     val oldTag = prefs.getString("ACTIVE_TAG_ID", null)
-                                    prefs.edit().remove("ACTIVE_TAG_ID").apply()
+                                    // Synchronous commit to ensure ACTIVE_TAG_ID is completely removed immediately
+                                    prefs.edit().remove("ACTIVE_TAG_ID").commit()
 
                                     FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
@@ -225,9 +249,15 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     runOnUiThread {
+                                        try {
+                                            android.webkit.WebStorage.getInstance().deleteAllData()
+                                            val cm = android.webkit.CookieManager.getInstance()
+                                            cm.removeAllCookies(null)
+                                            cm.flush()
+                                        } catch (e: Exception) {}
                                         webViewInstance?.clearCache(true)
-                                        webViewInstance?.evaluateJavascript("try { localStorage.clear(); sessionStorage.clear(); } catch(e){}", null)
-                                        webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register")
+                                        webViewInstance?.clearHistory()
+                                        webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register?mode=logged_out")
                                     }
                                 }
                             }, "ParkBuzzApp")
@@ -340,6 +370,13 @@ class MainActivity : ComponentActivity() {
                                         .align(Alignment.Center)
                                 )
                             }
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Text(
+                                text = loadingStatus,
+                                color = Color(0xFF94A3B8),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }

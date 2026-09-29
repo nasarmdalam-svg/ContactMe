@@ -235,8 +235,14 @@
     {% if stats.pending_approval_cars > 0 %}
     <div class="panel-card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(30, 25, 15, 0.8);">
       <div class="panel-title" style="color: #fbbf24;">
-        <span>⏳ Vehicles Awaiting Admin Approval ({{ stats.pending_approval_cars }})</span>
-        <span style="font-size: 12px; font-weight: 500; color: #fde68a;">Click Approve to instantly generate Buzz ID & activate user sticker</span>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span>⏳ Vehicles Awaiting Admin Approval ({{ stats.pending_approval_cars }})</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" onclick="bulkApproveAllPending()" class="btn-action btn-approve" style="padding: 7px 14px; font-size: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">
+            ⚡ Approve All Pending ({{ stats.pending_approval_cars }})
+          </button>
+        </div>
       </div>
 
       <div style="overflow-x: auto;">
@@ -253,7 +259,7 @@
           <tbody>
             {% for car in stats.cars %}
             {% if car.approval_status == 'pending' %}
-            <tr>
+            <tr data-pending-tag="{{ car.tag_id }}">
               <td><strong style="color: #f8fafc; font-size: 14px;">{{ car.vehicle_name }}</strong></td>
               <td>{{ car.owner_name if car.owner_name else 'Vehicle Owner' }}</td>
               <td><code>{{ car.tag_id }}</code></td>
@@ -282,14 +288,21 @@
     <!-- All Vehicles & Sticker Database -->
     <div class="panel-card">
       <div class="panel-title">
-        <span>🚗 Registered Vehicles & Sticker Fleet ({{ stats.cars|length }})</span>
-        <input type="text" id="vehicleSearch" placeholder="Search plate, owner, or Buzz ID..." onkeyup="filterVehicles()" style="padding: 8px 14px; border-radius: 10px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); color: white; font-size: 13px; width: 240px; outline: none;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span>🚗 Registered Vehicles & Sticker Fleet ({{ stats.cars|length }})</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <input type="text" id="vehicleSearch" placeholder="Search plate, owner, or Buzz ID..." onkeyup="filterVehicles()" style="padding: 8px 14px; border-radius: 10px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); color: white; font-size: 13px; width: 240px; outline: none;">
+        </div>
       </div>
 
       <div style="overflow-x: auto;">
         <table id="vehiclesTable">
           <thead>
             <tr>
+              <th style="width: 38px; text-align: center;">
+                <input type="checkbox" id="masterSelectAll" onchange="toggleMasterSelect(this)" title="Select / Deselect All visible" style="cursor: pointer; width: 16px; height: 16px; accent-color: #38bdf8;">
+              </th>
               <th>Vehicle / Owner</th>
               <th>Buzz ID</th>
               <th>Status</th>
@@ -301,6 +314,9 @@
           <tbody>
             {% for car in stats.cars %}
             <tr>
+              <td style="text-align: center;">
+                <input type="checkbox" class="vehicle-select-cb" value="{{ car.tag_id }}" data-plate="{{ car.vehicle_name if car.vehicle_name else car.tag_id }}" data-pending="{% if car.approval_status == 'pending' %}1{% else %}0{% endif %}" data-blocked="{{ car.is_blocked }}" onchange="updateBulkDock()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #38bdf8;">
+              </td>
               <td>
                 <div style="font-weight: 800; font-size: 14px; color: #f8fafc;">
                   {{ car.vehicle_name if car.vehicle_name else 'Unassigned' }}
@@ -454,6 +470,56 @@
 
   </div>
 
+  <!-- Floating Bulk Actions Dock -->
+  <div id="bulkDock" style="display: none; position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 9999; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(20px); border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9); padding: 12px 20px; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 95vw; animation: slideUp 0.25s ease-out;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-right: 4px;">
+      <span id="bulkBadge" style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color: white; padding: 4px 10px; border-radius: 999px; font-weight: 800; font-size: 12px; letter-spacing: 0.3px;">
+        0 Selected
+      </span>
+      <button type="button" onclick="deselectAll()" style="background: transparent; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; text-decoration: underline;">
+        Clear
+      </button>
+    </div>
+
+    <!-- Bulk Approve -->
+    <button type="button" class="btn-action btn-approve" onclick="performBulkAction('approve')" title="Approve and activate selected vehicles">
+      ✅ Approve
+    </button>
+
+    <!-- Bulk Snooze Dropdown & Apply -->
+    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 2px;">
+      <select id="bulkSnoozeMinutes" style="background: rgba(10, 16, 28, 0.95); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 5px 8px; font-size: 12px; font-weight: 700; outline: none;">
+        <option value="60">🌙 Snooze 1h</option>
+        <option value="120">🌙 Snooze 2h</option>
+        <option value="1440">🌙 Snooze 24h</option>
+        <option value="0">☀️ Unsnooze</option>
+      </select>
+      <button type="button" class="btn-action btn-snooze" onclick="performBulkAction('snooze')">
+        Apply
+      </button>
+    </div>
+
+    <!-- Bulk Block -->
+    <button type="button" class="btn-action btn-block" onclick="performBulkAction('block')" title="Suspend selected vehicles">
+      🛑 Block
+    </button>
+
+    <!-- Bulk Unblock -->
+    <button type="button" class="btn-action btn-unblock" onclick="performBulkAction('unblock')" title="Reactivate selected vehicles">
+      ✓ Unblock
+    </button>
+
+    <!-- Bulk Message -->
+    <button type="button" class="btn-action btn-msg" onclick="openBulkMessageModal()" title="Broadcast notice to selected vehicles">
+      ✉️ Message
+    </button>
+
+    <!-- Bulk Delete -->
+    <button type="button" class="btn-action btn-del" style="background: rgba(239, 68, 68, 0.22); color: #f87171; border-color: #ef4444; font-weight: 800;" onclick="performBulkAction('delete')" title="Delete selected vehicles">
+      🗑️ Delete
+    </button>
+  </div>
+
   <!-- Direct Message Modal -->
   <div id="messageModal" class="modal-overlay">
     <div class="modal-card">
@@ -475,6 +541,28 @@
     </div>
   </div>
 
+  <!-- Bulk Broadcast Message Modal -->
+  <div id="bulkMessageModal" class="modal-overlay">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 18px; color: white;">📢 Broadcast Notice to Selected Vehicles</h3>
+        <button type="button" onclick="closeBulkMessageModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+
+      <form id="bulkMsgForm" onsubmit="submitBulkBroadcastMessage(event)">
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 0; margin-bottom: 12px;">
+          This push notification will be delivered instantly to the mobile devices of all <span id="bulkMsgSelectedCount" style="color: #38bdf8; font-weight: 800;">0</span> selected vehicle owners.
+        </p>
+        <textarea id="bulkMsgContent" required rows="4" placeholder="e.g. Society Notice: Maintenance work scheduled tomorrow at 9 AM. Please keep parking aisles clear." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white; font-size: 14px; outline: none; margin-bottom: 18px; font-family: inherit;"></textarea>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" onclick="closeBulkMessageModal()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #94a3b8; font-weight: 700; cursor: pointer;">Cancel</button>
+          <button type="submit" id="btnSendBulkMsg" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); border: none; border-radius: 10px; color: #040812; font-weight: 800; cursor: pointer;">📢 Send Broadcast</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     function filterVehicles() {
       const q = document.getElementById('vehicleSearch').value.toLowerCase();
@@ -483,6 +571,196 @@
         const text = r.innerText.toLowerCase();
         r.style.display = text.includes(q) ? '' : 'none';
       });
+      updateBulkDock();
+    }
+
+    function getSelectedCheckboxes() {
+      return Array.from(document.querySelectorAll('.vehicle-select-cb:checked'));
+    }
+
+    function getSelectedTagIds() {
+      return getSelectedCheckboxes().map(cb => cb.value);
+    }
+
+    function updateBulkDock() {
+      const selected = getSelectedCheckboxes();
+      const count = selected.length;
+      const dock = document.getElementById('bulkDock');
+      const badge = document.getElementById('bulkBadge');
+      const master = document.getElementById('masterSelectAll');
+
+      if (count > 0) {
+        dock.style.display = 'flex';
+        badge.textContent = `${count} Selected`;
+      } else {
+        dock.style.display = 'none';
+      }
+
+      const allVisibleCbs = Array.from(document.querySelectorAll('#vehiclesTable tbody tr'))
+        .filter(r => r.style.display !== 'none')
+        .map(r => r.querySelector('.vehicle-select-cb'))
+        .filter(Boolean);
+
+      if (master) {
+        if (allVisibleCbs.length > 0 && selected.length === allVisibleCbs.length) {
+          master.checked = true;
+          master.indeterminate = false;
+        } else if (selected.length > 0) {
+          master.checked = false;
+          master.indeterminate = true;
+        } else {
+          master.checked = false;
+          master.indeterminate = false;
+        }
+      }
+    }
+
+    function toggleMasterSelect(masterEl) {
+      const checked = masterEl.checked;
+      const visibleRows = Array.from(document.querySelectorAll('#vehiclesTable tbody tr'))
+        .filter(r => r.style.display !== 'none');
+      visibleRows.forEach(r => {
+        const cb = r.querySelector('.vehicle-select-cb');
+        if (cb) cb.checked = checked;
+      });
+      updateBulkDock();
+    }
+
+    function deselectAll() {
+      document.querySelectorAll('.vehicle-select-cb').forEach(cb => cb.checked = false);
+      const master = document.getElementById('masterSelectAll');
+      if (master) {
+        master.checked = false;
+        master.indeterminate = false;
+      }
+      updateBulkDock();
+    }
+
+    async function performBulkAction(action) {
+      const tagIds = getSelectedTagIds();
+      if (tagIds.length === 0) {
+        alert('Please select at least one vehicle.');
+        return;
+      }
+
+      let confirmMsg = '';
+      let minutes = 60;
+
+      if (action === 'delete') {
+        confirmMsg = `⚠️ Are you sure you want to permanently delete ${tagIds.length} vehicle(s)?\nThis will remove their stickers, purge app tokens, and reset active sessions. This action CANNOT be undone.`;
+      } else if (action === 'block') {
+        confirmMsg = `🛑 Suspend ${tagIds.length} vehicle(s)? Their apps will lock down and QR scans will show a suspended warning.`;
+      } else if (action === 'unblock') {
+        confirmMsg = `✓ Reactivate ${tagIds.length} suspended vehicle(s)?`;
+      } else if (action === 'approve') {
+        confirmMsg = `✅ Approve and activate stickers for ${tagIds.length} vehicle(s)?`;
+      } else if (action === 'snooze') {
+        minutes = parseInt(document.getElementById('bulkSnoozeMinutes').value, 10);
+        const durationLabel = minutes === 0 ? 'Unsnooze' : `Snooze for ${minutes / 60} hour(s)`;
+        confirmMsg = `🌙 Apply '${durationLabel}' to ${tagIds.length} selected vehicle(s)?`;
+      }
+
+      if (confirmMsg && !confirm(confirmMsg)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: action,
+            tag_ids: tagIds,
+            minutes: minutes
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          window.location.reload();
+        } else {
+          alert('Error: ' + (data.message || 'Bulk operation failed'));
+        }
+      } catch (err) {
+        alert('Network error executing bulk action: ' + err.message);
+      }
+    }
+
+    async function bulkApproveAllPending() {
+      const pendingRows = document.querySelectorAll('tr[data-pending-tag]');
+      const tagIds = Array.from(pendingRows).map(r => r.getAttribute('data-pending-tag')).filter(Boolean);
+      if (tagIds.length === 0) {
+        alert('No pending vehicles awaiting approval.');
+        return;
+      }
+      if (!confirm(`✅ Approve and activate stickers for all ${tagIds.length} pending vehicle(s)?`)) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve', tag_ids: tagIds })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          window.location.reload();
+        } else {
+          alert('Error: ' + (data.message || 'Approval failed'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    function openBulkMessageModal() {
+      const tagIds = getSelectedTagIds();
+      if (tagIds.length === 0) {
+        alert('Please select at least one vehicle to message.');
+        return;
+      }
+      document.getElementById('bulkMsgSelectedCount').textContent = tagIds.length;
+      document.getElementById('bulkMsgContent').value = '';
+      document.getElementById('bulkMessageModal').classList.add('active');
+    }
+
+    function closeBulkMessageModal() {
+      document.getElementById('bulkMessageModal').classList.remove('active');
+    }
+
+    async function submitBulkBroadcastMessage(e) {
+      e.preventDefault();
+      const tagIds = getSelectedTagIds();
+      const msg = document.getElementById('bulkMsgContent').value.trim();
+      const btn = document.getElementById('btnSendBulkMsg');
+      if (!msg || tagIds.length === 0) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Broadcasting...';
+
+      try {
+        const res = await fetch('/api/admin/bulk-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'message',
+            tag_ids: tagIds,
+            message: msg
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          alert(`✅ Broadcast delivered to ${data.processed} vehicle owners!`);
+          closeBulkMessageModal();
+          deselectAll();
+        } else {
+          alert('Notice: ' + (data.message || 'Broadcast failed'));
+        }
+      } catch (err) {
+        alert('Network error broadcasting notice.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📢 Broadcast to All';
+      }
     }
 
     function openMessageModal(tagId, vehicleName) {

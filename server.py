@@ -528,10 +528,7 @@ def admin_toggle_auto_activation(request: Request):
     database.set_admin_setting("auto_activation", "0" if current else "1")
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.api_route("/api/admin/user/{tag_id}/approve", methods=["GET", "POST"])
-async def admin_approve_user(tag_id: str, request: Request):
-    if not is_authenticated_admin(request):
-        return RedirectResponse(url="/admin/login", status_code=303)
+async def execute_approve_user(tag_id: str):
     try:
         database.set_user_approval(tag_id, "approved")
     except Exception as e:
@@ -558,19 +555,8 @@ async def admin_approve_user(tag_id: str, request: Request):
         database.log_alert(tag_id, "SYSTEM_APPROVED", "Vehicle approved and activated by administrator.")
     except Exception as e:
         print(f"Log alert error: {e}")
-    return RedirectResponse(url="/admin", status_code=303)
 
-@app.api_route("/api/admin/user/{tag_id}/block", methods=["GET", "POST"])
-async def admin_block_user(tag_id: str, request: Request):
-    if not is_authenticated_admin(request):
-        return RedirectResponse(url="/admin/login", status_code=303)
-    is_blocked = 1
-    if request.method == "POST":
-        try:
-            form = await request.form()
-            is_blocked = int(form.get("is_blocked", 1))
-        except Exception:
-            is_blocked = 1
+async def execute_block_user(tag_id: str, is_blocked: int):
     database.set_user_blocked(tag_id, is_blocked)
     tag = database.get_tag(tag_id)
     v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
@@ -618,26 +604,10 @@ async def admin_block_user(tag_id: str, request: Request):
         except Exception as e:
             pass
 
-    return RedirectResponse(url="/admin", status_code=303)
-
-@app.api_route("/api/admin/user/{tag_id}/snooze", methods=["GET", "POST"])
-async def admin_snooze_user(tag_id: str, request: Request):
-    if not is_authenticated_admin(request):
-        return RedirectResponse(url="/admin/login", status_code=303)
-    minutes = 60
-    if request.method == "POST":
-        try:
-            form = await request.form()
-            minutes = int(form.get("minutes", 60))
-        except Exception:
-            minutes = 60
+async def execute_snooze_user(tag_id: str, minutes: int):
     database.set_user_snooze(tag_id, minutes)
-    return RedirectResponse(url="/admin", status_code=303)
 
-@app.api_route("/api/admin/user/{tag_id}/delete", methods=["GET", "POST"])
-async def admin_delete_user(tag_id: str, request: Request):
-    if not is_authenticated_admin(request):
-        return RedirectResponse(url="/admin/login", status_code=303)
+async def execute_delete_user(tag_id: str):
     tag = database.get_tag(tag_id)
     v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
     try:
@@ -660,6 +630,123 @@ async def admin_delete_user(tag_id: str, request: Request):
         database.delete_user(tag_id)
     except Exception as e:
         print(f"Delete user error: {e}")
+
+async def execute_message_user(tag_id: str, message: str):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        return
+    v_name = tag.get("vehicle_name", "Vehicle")
+    try:
+        fcm_manager.send_vehicle_alert(
+            tag_id=tag_id,
+            alert_type="ADMIN_NOTICE",
+            vehicle_name=v_name,
+            custom_message=f"📢 Notice from Administrator: {message}"
+        )
+    except Exception as e:
+        print(f"FCM admin message error: {e}")
+    try:
+        database.log_alert(tag_id, "ADMIN_NOTICE", message)
+    except Exception as e:
+        print(f"Log alert error: {e}")
+
+@app.api_route("/api/admin/user/{tag_id}/approve", methods=["GET", "POST"])
+async def admin_approve_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    await execute_approve_user(tag_id)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.api_route("/api/admin/user/{tag_id}/block", methods=["GET", "POST"])
+async def admin_block_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    is_blocked = 1
+    if request.method == "POST":
+        try:
+            form = await request.form()
+            is_blocked = int(form.get("is_blocked", 1))
+        except Exception:
+            is_blocked = 1
+    await execute_block_user(tag_id, is_blocked)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.api_route("/api/admin/user/{tag_id}/snooze", methods=["GET", "POST"])
+async def admin_snooze_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    minutes = 60
+    if request.method == "POST":
+        try:
+            form = await request.form()
+            minutes = int(form.get("minutes", 60))
+        except Exception:
+            minutes = 60
+    await execute_snooze_user(tag_id, minutes)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.api_route("/api/admin/user/{tag_id}/delete", methods=["GET", "POST"])
+async def admin_delete_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    await execute_delete_user(tag_id)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/api/admin/bulk-action")
+async def admin_bulk_action(request: Request):
+    if not is_authenticated_admin(request):
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        payload = await request.json()
+        action = payload.get("action", "")
+        tag_ids = payload.get("tag_ids", [])
+        minutes = int(payload.get("minutes", 60) or 60)
+        msg_text = payload.get("message", "")
+    else:
+        form = await request.form()
+        action = form.get("action", "")
+        tag_ids_raw = form.get("tag_ids", "")
+        if isinstance(tag_ids_raw, str):
+            tag_ids = [t.strip() for t in tag_ids_raw.split(",") if t.strip()]
+        else:
+            tag_ids = form.getlist("tag_ids")
+        minutes = int(form.get("minutes", 60) or 60)
+        msg_text = form.get("message", "")
+
+    processed = 0
+    for tid in tag_ids:
+        tid = tid.strip()
+        if not tid:
+            continue
+        if action == "approve":
+            await execute_approve_user(tid)
+            processed += 1
+        elif action == "block":
+            await execute_block_user(tid, 1)
+            processed += 1
+        elif action == "unblock":
+            await execute_block_user(tid, 0)
+            processed += 1
+        elif action == "snooze":
+            await execute_snooze_user(tid, minutes)
+            processed += 1
+        elif action == "unsnooze":
+            await execute_snooze_user(tid, 0)
+            processed += 1
+        elif action == "delete":
+            await execute_delete_user(tid)
+            processed += 1
+        elif action == "message" and msg_text:
+            await execute_message_user(tid, msg_text)
+            processed += 1
+
+    if "application/json" in content_type:
+        return {"status": "ok", "action": action, "processed": processed}
     return RedirectResponse(url="/admin", status_code=303)
 
 class AdminMessageModel(BaseModel):

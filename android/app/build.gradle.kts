@@ -12,8 +12,8 @@ android {
         applicationId = "com.parkingbuzz.alert"
         minSdk = 24
         targetSdk = 36
-        versionCode = 25
-        versionName = "3.4"
+        versionCode = 26
+        versionName = "3.5"
     }
 
     val keystoreFile = file("${rootDir}/parkbuzz.keystore")

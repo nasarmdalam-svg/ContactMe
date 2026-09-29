@@ -200,24 +200,36 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
 
-                                 override fun onReceivedError(
+                                private fun showOfflinePage(view: WebView?, failingUrl: String?) {
+                                    isLoading = false
+                                    val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                    val tag = prefs.getString("ACTIVE_TAG_ID", null)
+                                    val targetUrl = failingUrl ?: if (!tag.isNullOrBlank()) {
+                                        "https://contactme-go9v.onrender.com/owner/$tag"
+                                    } else {
+                                        "https://contactme-go9v.onrender.com/register"
+                                    }
+                                    val offlineHtml = getOfflineHtml(targetUrl)
+                                    view?.loadDataWithBaseURL("https://contactme-go9v.onrender.com/", offlineHtml, "text/html", "UTF-8", null)
+                                }
+
+                                override fun onReceivedError(
                                     view: WebView?,
                                     errorCode: Int,
                                     description: String?,
                                     failingUrl: String?
                                 ) {
-                                    super.onReceivedError(view, errorCode, description, failingUrl)
-                                    loadingStatus = "Reconnecting to ParkingBuzz network..."
-                                    postDelayed({
-                                        val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
-                                        val tag = prefs.getString("ACTIVE_TAG_ID", null)
-                                        val retryUrl = if (!tag.isNullOrBlank()) {
-                                            "https://contactme-go9v.onrender.com/owner/$tag"
-                                        } else {
-                                            "https://contactme-go9v.onrender.com/register"
-                                        }
-                                        view?.loadUrl(retryUrl)
-                                    }, 4000)
+                                    showOfflinePage(view, failingUrl)
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: android.webkit.WebResourceRequest?,
+                                    error: android.webkit.WebResourceError?
+                                ) {
+                                    if (request?.isForMainFrame == true) {
+                                        showOfflinePage(view, request.url.toString())
+                                    }
                                 }
                             }
                             webChromeClient = object : WebChromeClient() {
@@ -256,6 +268,22 @@ class MainActivity : ComponentActivity() {
                                 @JavascriptInterface
                                 fun logout() {
                                     performAppLogout()
+                                }
+
+                                @JavascriptInterface
+                                fun retryConnection() {
+                                    runOnUiThread {
+                                        isLoading = true
+                                        loadingStatus = "Reconnecting to ParkingBuzz..."
+                                        val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+                                        val tag = prefs.getString("ACTIVE_TAG_ID", null)
+                                        val retryUrl = if (!tag.isNullOrBlank()) {
+                                            "https://contactme-go9v.onrender.com/owner/$tag"
+                                        } else {
+                                            "https://contactme-go9v.onrender.com/register"
+                                        }
+                                        webViewInstance?.loadUrl(retryUrl)
+                                    }
                                 }
                             }, "ParkBuzzApp")
 
@@ -494,6 +522,192 @@ class MainActivity : ComponentActivity() {
             webViewInstance?.clearHistory()
             webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register?mode=logged_out")
         }
+    }
+
+    private fun getOfflineHtml(targetUrl: String): String {
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+              <title>Offline — ParkingBuzz</title>
+              <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                  background: radial-gradient(circle at 50% 18%, #172554 0%, #090e19 75%, #050811 100%);
+                  color: #f1f5f9;
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                  min-height: 100vh;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 30px 24px;
+                  text-align: center;
+                  -webkit-font-smoothing: antialiased;
+                  user-select: none;
+                }
+                .badge-wrap {
+                  position: relative;
+                  width: 100px;
+                  height: 100px;
+                  margin-bottom: 24px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+                .pulse-ring {
+                  position: absolute;
+                  inset: -12px;
+                  border-radius: 50%;
+                  border: 2px solid rgba(56, 189, 248, 0.4);
+                  animation: pulse 2.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+                }
+                .pulse-ring-2 {
+                  position: absolute;
+                  inset: -24px;
+                  border-radius: 50%;
+                  border: 1px solid rgba(56, 189, 248, 0.2);
+                  animation: pulse 2.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1) 0.8s;
+                }
+                @keyframes pulse {
+                  0% { transform: scale(0.85); opacity: 0.8; }
+                  50% { transform: scale(1.08); opacity: 0.3; }
+                  100% { transform: scale(1.25); opacity: 0; }
+                }
+                .logo-glow {
+                  width: 90px;
+                  height: 90px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                  border: 2px solid rgba(56, 189, 248, 0.5);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(56, 189, 248, 0.2);
+                  font-size: 40px;
+                  position: relative;
+                  z-index: 2;
+                }
+                .status-pill {
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                  padding: 6px 14px;
+                  border-radius: 999px;
+                  background: rgba(239, 68, 68, 0.15);
+                  border: 1px solid rgba(239, 68, 68, 0.35);
+                  color: #f87171;
+                  font-size: 11px;
+                  font-weight: 800;
+                  letter-spacing: 0.6px;
+                  text-transform: uppercase;
+                  margin-bottom: 16px;
+                }
+                .status-dot {
+                  width: 7px;
+                  height: 7px;
+                  border-radius: 50%;
+                  background: #ef4444;
+                  box-shadow: 0 0 8px #ef4444;
+                }
+                h1 {
+                  font-size: 23px;
+                  font-weight: 900;
+                  color: #ffffff;
+                  letter-spacing: -0.5px;
+                  margin-bottom: 10px;
+                }
+                p {
+                  font-size: 13.5px;
+                  color: #94a3b8;
+                  line-height: 1.6;
+                  max-width: 310px;
+                  margin-bottom: 28px;
+                }
+                .btn-retry {
+                  width: 100%;
+                  max-width: 290px;
+                  padding: 15px 24px;
+                  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+                  color: #040812;
+                  border: none;
+                  border-radius: 14px;
+                  font-size: 15px;
+                  font-weight: 800;
+                  letter-spacing: 0.3px;
+                  cursor: pointer;
+                  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+                  transition: all 0.2s ease;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 8px;
+                  text-decoration: none;
+                }
+                .btn-retry:active {
+                  transform: scale(0.97);
+                }
+                .tip-box {
+                  margin-top: 32px;
+                  padding: 14px 18px;
+                  border-radius: 14px;
+                  background: rgba(255, 255, 255, 0.03);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  font-size: 12px;
+                  color: #64748b;
+                  max-width: 290px;
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  text-align: left;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="badge-wrap">
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring-2"></div>
+                <div class="logo-glow">📡</div>
+              </div>
+
+              <div class="status-pill">
+                <span class="status-dot"></span>
+                Offline Mode
+              </div>
+
+              <h1>Connection Lost</h1>
+              <p>ParkingBuzz requires an active internet connection to protect your vehicle and synchronize real-time alerts.</p>
+
+              <button class="btn-retry" id="retryBtn" onclick="doRetry()">
+                <span>🔄</span>
+                <span id="retryBtnText">Retry Connection</span>
+              </button>
+
+              <div class="tip-box">
+                <span style="font-size: 18px;">💡</span>
+                <span>Check your Wi-Fi or mobile data settings. The app will automatically reconnect as soon as signal is detected.</span>
+              </div>
+
+              <script>
+                function doRetry() {
+                  const btn = document.getElementById('retryBtnText');
+                  btn.textContent = 'Connecting...';
+                  if (window.ParkBuzzApp && window.ParkBuzzApp.retryConnection) {
+                    window.ParkBuzzApp.retryConnection();
+                  } else {
+                    window.location.reload();
+                  }
+                }
+
+                window.addEventListener('online', function() {
+                  doRetry();
+                });
+              </script>
+            </body>
+            </html>
+        """.trimIndent()
     }
 
     override fun onDestroy() {

@@ -58,6 +58,27 @@ class VoiceCallClient {
         }
         break;
 
+      case 'account_approved':
+      case 'account_unblocked':
+      case 'account_blocked':
+        console.log('[Signaling] Account status update received:', msg.type);
+        setTimeout(() => { window.location.reload(); }, 400);
+        break;
+
+      case 'account_deleted':
+        console.log('[Signaling] Account deleted by admin');
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          if (window.ParkBuzzApp && typeof window.ParkBuzzApp.logout === 'function') {
+            window.ParkBuzzApp.logout();
+          } else {
+            window.location.replace('/register?mode=deleted');
+          }
+        } catch (e) {}
+        break;
+
+
       case 'owner_response':
         if (this.onOwnerResponse) {
           this.onOwnerResponse(msg);

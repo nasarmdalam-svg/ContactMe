@@ -410,20 +410,54 @@ def api_clear_alerts(tag_id: str):
     database.clear_alerts(tag_id)
     return {"status": "ok"}
 
+@app.get("/api/tag/{tag_id}/status")
+def api_tag_status(tag_id: str):
+    tag = database.get_tag(tag_id)
+    if not tag:
+        return {"status": "deleted", "exists": False}
+    return {
+        "status": "ok",
+        "exists": True,
+        "tag_id": tag.get("tag_id"),
+        "approval_status": tag.get("approval_status", "approved"),
+        "is_blocked": tag.get("is_blocked", 0),
+        "activated": tag.get("activated", 0),
+        "is_active": tag.get("is_active", 1)
+    }
+
 # Owner dashboard
 @app.get("/owner/{tag_id}", response_class=HTMLResponse)
 def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
     tag = database.get_tag(tag_id)
     if not tag:
-        canonical_id = tag_id.strip().upper()
-        if not canonical_id.startswith("BUZZ-") and not canonical_id.startswith("CAR-"):
-            canonical_id = f"BUZZ-{canonical_id}"
-        database.create_tag(canonical_id)
-        database.activate_tag(canonical_id, vehicle_name="My Vehicle", allow_create=True)
-        tag = database.get_tag(canonical_id)
-    elif not tag.get("activated", 0):
-        database.activate_tag(tag["tag_id"], vehicle_name=tag.get("vehicle_name") or "My Vehicle", allow_create=True)
-        tag = database.get_tag(tag["tag_id"])
+        return HTMLResponse(
+            """<!DOCTYPE html>
+            <html lang="en">
+            <head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Account Not Found - ParkingBuzz</title><link rel="stylesheet" href="/static/css/style.css"></head>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#080c14;color:#f8fafc;font-family:sans-serif;padding:16px;">
+              <div style="max-width:400px;text-align:center;background:#111827;border:1px solid rgba(239,68,68,0.35);border-radius:20px;padding:32px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.7);">
+                <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+                <h2 style="color:#f87171;margin-bottom:8px;font-size:20px;">Account Not Found</h2>
+                <p style="color:#94a3b8;font-size:14px;line-height:1.5;margin-bottom:20px;">
+                  This vehicle account has been removed or deleted by administrator.
+                </p>
+                <a href="/register?mode=logged_out" style="display:inline-block;padding:12px 24px;background:#38bdf8;color:#040812;font-weight:800;border-radius:12px;text-decoration:none;">
+                  Register New Vehicle
+                </a>
+              </div>
+              <script>
+                try {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  if (window.ParkBuzzApp && typeof window.ParkBuzzApp.logout === 'function') {
+                    window.ParkBuzzApp.logout();
+                  }
+                } catch(e) {}
+              </script>
+            </body>
+            </html>""",
+            status_code=404
+        )
 
     recent_alerts = database.get_recent_alerts(tag_id)
     return templates.TemplateResponse(
@@ -495,21 +529,28 @@ def admin_toggle_auto_activation(request: Request):
     return RedirectResponse(url="/admin", status_code=303)
 
 @app.api_route("/api/admin/user/{tag_id}/approve", methods=["GET", "POST"])
-def admin_approve_user(tag_id: str, request: Request):
+async def admin_approve_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
     try:
         database.set_user_approval(tag_id, "approved")
     except Exception as e:
         print(f"Database set_user_approval error: {e}")
+    tag = database.get_tag(tag_id)
+    v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
     try:
-        tag = database.get_tag(tag_id)
-        v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
+        await manager.notify_owner(tag_id, {
+            "type": "account_approved",
+            "message": "🎉 Your ParkingBuzz sticker has been approved and activated!"
+        })
+    except Exception as e:
+        print(f"WS notify on approve error: {e}")
+    try:
         fcm_manager.send_vehicle_alert(
             tag_id=tag_id,
             alert_type="APPROVED",
             vehicle_name=v_name,
-            custom_message="🎉 Your ParkingBuzz sticker has been approved! Your QR code and vehicle safety buzz are now active."
+            custom_message="🎉 Your ParkingBuzz sticker has been approved and activated! Tap to view your official windshield sticker."
         )
     except Exception as e:
         print(f"FCM approve notification error: {e}")
@@ -531,6 +572,52 @@ async def admin_block_user(tag_id: str, request: Request):
         except Exception:
             is_blocked = 1
     database.set_user_blocked(tag_id, is_blocked)
+    tag = database.get_tag(tag_id)
+    v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
+    
+    if is_blocked:
+        try:
+            await manager.notify_owner(tag_id, {
+                "type": "account_blocked",
+                "message": "🛑 Your vehicle sticker has been temporarily suspended by system administration."
+            })
+        except Exception as e:
+            print(f"WS notify block error: {e}")
+        try:
+            fcm_manager.send_vehicle_alert(
+                tag_id=tag_id,
+                alert_type="SUSPENDED",
+                vehicle_name=v_name,
+                custom_message="🛑 Your ParkingBuzz vehicle sticker has been temporarily suspended by administrator. Incoming alerts are disabled."
+            )
+        except Exception as e:
+            print(f"FCM block notification error: {e}")
+        try:
+            database.log_alert(tag_id, "SYSTEM_SUSPENDED", "Vehicle suspended by administrator.")
+        except Exception as e:
+            pass
+    else:
+        try:
+            await manager.notify_owner(tag_id, {
+                "type": "account_unblocked",
+                "message": "✅ Your vehicle sticker has been reactivated."
+            })
+        except Exception as e:
+            print(f"WS notify unblock error: {e}")
+        try:
+            fcm_manager.send_vehicle_alert(
+                tag_id=tag_id,
+                alert_type="UNBLOCKED",
+                vehicle_name=v_name,
+                custom_message="✅ Your ParkingBuzz sticker has been reactivated. 360° Smart Protection is active."
+            )
+        except Exception as e:
+            print(f"FCM unblock notification error: {e}")
+        try:
+            database.log_alert(tag_id, "SYSTEM_REACTIVATED", "Vehicle reactivated by administrator.")
+        except Exception as e:
+            pass
+
     return RedirectResponse(url="/admin", status_code=303)
 
 @app.api_route("/api/admin/user/{tag_id}/snooze", methods=["GET", "POST"])
@@ -548,9 +635,27 @@ async def admin_snooze_user(tag_id: str, request: Request):
     return RedirectResponse(url="/admin", status_code=303)
 
 @app.api_route("/api/admin/user/{tag_id}/delete", methods=["GET", "POST"])
-def admin_delete_user(tag_id: str, request: Request):
+async def admin_delete_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
+    tag = database.get_tag(tag_id)
+    v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
+    try:
+        await manager.notify_owner(tag_id, {
+            "type": "account_deleted",
+            "message": "⚠️ Your vehicle registration has been removed by administrator."
+        })
+    except Exception as e:
+        print(f"WS notify delete error: {e}")
+    try:
+        fcm_manager.send_vehicle_alert(
+            tag_id=tag_id,
+            alert_type="DELETED",
+            vehicle_name=v_name,
+            custom_message="⚠️ Your vehicle registration has been deleted by administrator."
+        )
+    except Exception as e:
+        print(f"FCM delete notification error: {e}")
     try:
         database.delete_user(tag_id)
     except Exception as e:

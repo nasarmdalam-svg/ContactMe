@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        activeInstance = this
 
         // Enforce dark status bar and navigation bar styling across all Android OS versions
         try {
@@ -254,36 +255,7 @@ class MainActivity : ComponentActivity() {
 
                                 @JavascriptInterface
                                 fun logout() {
-                                    val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
-                                    val oldTag = prefs.getString("ACTIVE_TAG_ID", null)
-                                    // Synchronous commit to ensure ACTIVE_TAG_ID is completely removed immediately
-                                    prefs.edit().remove("ACTIVE_TAG_ID").commit()
-
-                                    FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            val token = task.result
-                                            if (!token.isNullOrBlank() && !oldTag.isNullOrBlank()) {
-                                                ParkBuzzFirebaseMessagingService.unregisterTokenWithServer(this@MainActivity, token, oldTag)
-                                            }
-                                        }
-                                        try {
-                                            FirebaseMessaging.getInstance().deleteToken()
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("MainActivity", "Error deleting FCM token: ${e.message}")
-                                        }
-                                    }
-
-                                    runOnUiThread {
-                                        try {
-                                            android.webkit.WebStorage.getInstance().deleteAllData()
-                                            val cm = android.webkit.CookieManager.getInstance()
-                                            cm.removeAllCookies(null)
-                                            cm.flush()
-                                        } catch (e: Exception) {}
-                                        webViewInstance?.clearCache(true)
-                                        webViewInstance?.clearHistory()
-                                        webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register?mode=logged_out")
-                                    }
+                                    performAppLogout()
                                 }
                             }, "ParkBuzzApp")
 
@@ -492,16 +464,60 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestSilentPermissions() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+    fun performAppLogout() {
+        val prefs = getSharedPreferences("ParkBuzzPrefs", Context.MODE_PRIVATE)
+        val oldTag = prefs.getString("ACTIVE_TAG_ID", null)
+        prefs.edit().remove("ACTIVE_TAG_ID").commit()
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                if (!token.isNullOrBlank() && !oldTag.isNullOrBlank()) {
+                    ParkBuzzFirebaseMessagingService.unregisterTokenWithServer(this@MainActivity, token, oldTag)
+                }
+            }
+            try {
+                FirebaseMessaging.getInstance().deleteToken()
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Error deleting FCM token: ${e.message}")
+            }
         }
-        val needed = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+
+        runOnUiThread {
+            try {
+                android.webkit.WebStorage.getInstance().deleteAllData()
+                val cm = android.webkit.CookieManager.getInstance()
+                cm.removeAllCookies(null)
+                cm.flush()
+            } catch (e: Exception) {}
+            webViewInstance?.clearCache(true)
+            webViewInstance?.clearHistory()
+            webViewInstance?.loadUrl("https://contactme-go9v.onrender.com/register?mode=logged_out")
         }
-        if (needed.isNotEmpty()) {
-            requestPermissionLauncher.launch(needed.toTypedArray())
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (activeInstance == this) {
+            activeInstance = null
+        }
+    }
+
+    companion object {
+        var activeInstance: MainActivity? = null
+            private set
+
+        fun reloadActiveWebView() {
+            activeInstance?.runOnUiThread {
+                activeInstance?.webViewInstance?.reload()
+            }
+        }
+
+        fun triggerLogout() {
+            activeInstance?.runOnUiThread {
+                activeInstance?.performAppLogout()
+            }
         }
     }
 }
+

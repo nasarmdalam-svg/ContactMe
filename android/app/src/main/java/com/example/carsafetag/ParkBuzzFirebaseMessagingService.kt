@@ -26,6 +26,7 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
     companion object {
         private const val TAG = "ParkBuzzFCM"
         const val ALERT_CHANNEL_ID = "parkbuzz_alert_horn_v10"
+        const val STATUS_CHANNEL_ID = "parkbuzz_status_v11"
         private var lastAlertKey = ""
         private var lastAlertTimeMs = 0L
 
@@ -110,6 +111,18 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
 
         val alertType = data["alert_type"] ?: remoteMessage.notification?.title ?: "blocking"
         val message = data["message"] ?: remoteMessage.notification?.body ?: "Someone is alerting your vehicle!"
+
+        val isAdminOrStatus = alertType.equals("APPROVED", ignoreCase = true) ||
+                              alertType.equals("BLOCKED", ignoreCase = true) ||
+                              alertType.equals("SUSPENDED", ignoreCase = true) ||
+                              alertType.equals("UNBLOCKED", ignoreCase = true) ||
+                              alertType.equals("DELETED", ignoreCase = true) ||
+                              alertType.equals("ADMIN_NOTICE", ignoreCase = true)
+
+        if (isAdminOrStatus) {
+            fireAdminOrStatusNotification(alertType, message, tagId)
+            return
+        }
 
         val currentKey = "$tagId:$alertType:$message"
         val now = System.currentTimeMillis()
@@ -294,6 +307,90 @@ class ParkBuzzFirebaseMessagingService : FirebaseMessagingService() {
         val notif = notifBuilder.build()
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(notifId, notif)
+    }
+
+    private fun fireAdminOrStatusNotification(alertType: String, message: String, tagId: String) {
+        Log.d(TAG, "fireAdminOrStatusNotification: $alertType - $message (tag: $tagId)")
+        createStatusChannelIfNeeded()
+
+        val notifId = (System.currentTimeMillis() % 100000).toInt() + 2000
+        val isApproved = alertType.equals("APPROVED", ignoreCase = true)
+        val isBlocked = alertType.equals("BLOCKED", ignoreCase = true) || alertType.equals("SUSPENDED", ignoreCase = true)
+        val isUnblocked = alertType.equals("UNBLOCKED", ignoreCase = true)
+        val isDeleted = alertType.equals("DELETED", ignoreCase = true)
+
+        // 1. Instantly update live in-app WebView if app is currently visible/open
+        if (isApproved || isBlocked || isUnblocked) {
+            MainActivity.reloadActiveWebView()
+        } else if (isDeleted) {
+            MainActivity.triggerLogout()
+        }
+
+        // 2. Resolve Notification Title & Content
+        val notifTitle = when {
+            isApproved -> "🎉 ParkingBuzz Sticker Activated"
+            isBlocked -> "🛑 Account Suspended - ParkingBuzz"
+            isUnblocked -> "✅ Account Reactivated - ParkingBuzz"
+            isDeleted -> "⚠️ Account Removed - ParkingBuzz"
+            else -> "📢 Administrator Notice - ParkingBuzz"
+        }
+
+        val appLogo = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) { null }
+
+        // When user taps the notification, open MainActivity!
+        val openIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPendingIntent = PendingIntent.getActivity(
+            this, notifId, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+
+        val notifBuilder = NotificationCompat.Builder(this, STATUS_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_parkbuzz)
+            .setColor(if (isBlocked) 0xFFEF4444.toInt() else 0xFF38BDF8.toInt())
+            .setContentTitle(notifTitle)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setSound(soundUri)
+            .setAutoCancel(true)
+            .setContentIntent(contentPendingIntent)
+
+        if (appLogo != null) {
+            notifBuilder.setLargeIcon(appLogo)
+        }
+
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(notifId, notifBuilder.build())
+    }
+
+    private fun createStatusChannelIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val soundUri = Uri.parse("android.resource://$packageName/${R.raw.chime}")
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build()
+
+            val statusChannel = NotificationChannel(
+                STATUS_CHANNEL_ID,
+                "ParkingBuzz Account Updates",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Account verification, approval, and administrative status updates"
+                enableLights(true)
+                enableVibration(true)
+                setSound(soundUri, audioAttributes)
+            }
+            nm.createNotificationChannel(statusChannel)
+        }
     }
 
     private fun createAlertChannelIfNeeded() {

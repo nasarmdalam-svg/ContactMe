@@ -334,6 +334,11 @@
   </div>
 
   <div class="app-wrapper">
+    {% if tag.is_blocked %}
+    <div style="background: rgba(239, 68, 68, 0.2); border-bottom: 1px solid rgba(239, 68, 68, 0.5); padding: 12px 16px; color: #fca5a5; font-size: 13px; text-align: center; font-weight: 600;">
+      🛑 <strong>Account Suspended:</strong> This vehicle sticker has been temporarily suspended by administrator. For assistance, contact <a href="mailto:parkingbuzz+@gmail.com" style="color: #38bdf8; text-decoration: underline;">parkingbuzz+@gmail.com</a>.
+    </div>
+    {% endif %}
     <!-- Top Sticky Header: Brand + Vehicle Plate (Automatically Active) -->
     <header class="top-navbar">
       <div class="brand-section">
@@ -365,6 +370,21 @@
 
     <!-- ==================== TAB 1: STICKER & QR (DEFAULT ACTIVE) ==================== -->
     <main id="tab-sticker" class="tab-pane active">
+      {% if tag.approval_status == 'pending' %}
+      <div class="glass-card" style="text-align: center; padding: 28px 18px; border-color: rgba(245, 158, 11, 0.4); background: rgba(30, 24, 12, 0.9);">
+        <div style="font-size: 42px; margin-bottom: 12px;">⏳</div>
+        <div style="font-size: 18px; font-weight: 800; color: #fbbf24; margin-bottom: 8px;">
+          Sticker Under Activation
+        </div>
+        <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-bottom: 20px;">
+          Your vehicle registration has been submitted and is currently <strong>awaiting administrator approval</strong>. Once verified, your official Buzz ID and windshield QR sticker will be unlocked.
+        </div>
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 12px 14px; font-size: 12px; color: #fde68a;">
+          📩 For priority approval or fleet verification, contact admin:<br>
+          <a href="mailto:parkingbuzz+@gmail.com" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">parkingbuzz+@gmail.com</a>
+        </div>
+      </div>
+      {% else %}
       <div class="glass-card" style="text-align: center; padding: 20px 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
           <div style="font-weight: 800; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 6px;">
@@ -394,6 +414,7 @@
           </a>
         </div>
       </div>
+      {% endif %}
 
       <!-- Privacy Notice Card -->
       <div class="glass-card" style="padding: 14px 16px; background: rgba(56, 189, 248, 0.04); border-color: rgba(56, 189, 248, 0.2);">
@@ -541,10 +562,19 @@
           </div>
 
           <div style="background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-            <span style="color: #94a3b8; font-size: 11px; display: block;">Unique Tag ID</span>
-            <code style="color: #38bdf8; font-size: 14px; font-weight: 700; margin-top: 2px; display: block;">
-              {{ tag.tag_id }}
-            </code>
+            <span style="color: #94a3b8; font-size: 11px; display: block;">Unique Buzz ID</span>
+            {% if tag.approval_status == 'pending' %}
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;">
+                  ⏳ PENDING APPROVAL
+                </span>
+                <span style="font-size: 11px; color: #94a3b8;">(Activation in progress)</span>
+              </div>
+            {% else %}
+              <code style="color: #38bdf8; font-size: 15px; font-weight: 800; margin-top: 2px; display: block; letter-spacing: 0.5px;">
+                {{ tag.tag_id }}
+              </code>
+            {% endif %}
           </div>
         </div>
 

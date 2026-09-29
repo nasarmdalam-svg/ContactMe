@@ -3,143 +3,530 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - ParkingBuzz</title>
+  <title>Admin Dashboard — ParkingBuzz Control Center</title>
   <link rel="stylesheet" href="/static/css/style.css">
   <style>
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
+    body {
+      background: radial-gradient(circle at 50% 0%, #131d33 0%, #080c14 100%) !important;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px 14px 60px 14px;
+      margin: 0;
+    }
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
       margin-bottom: 24px;
+      background: rgba(18, 25, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 16px;
+      padding: 18px 22px;
+      backdrop-filter: blur(12px);
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
     }
     .stat-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 16px;
+      background: rgba(22, 30, 49, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 18px 16px;
       text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
     .stat-num {
-      font-size: 26px;
-      font-weight: 700;
-      color: #38bdf8;
+      font-size: 28px;
+      font-weight: 800;
       margin-bottom: 4px;
     }
     .stat-label {
-      font-size: 12px;
-      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
+    }
+    .panel-card {
+      background: rgba(22, 30, 49, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .panel-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-      margin-top: 10px;
     }
     th, td {
-      padding: 10px;
+      padding: 12px 14px;
       text-align: left;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
     th {
-      color: var(--text-secondary);
-      font-weight: 600;
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .badge-approved { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .badge-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-blocked { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-snoozed { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-action:active { transform: scale(0.96); }
+    .btn-approve { background: #10b981; color: #040812; }
+    .btn-msg { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; }
+    .btn-snooze { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; }
+    .btn-block { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; }
+    .btn-unblock { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); color: #4ade80; }
+    .btn-del { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #94a3b8; }
+    .btn-del:hover { background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: #ef4444; }
+
+    /* Modal Styling */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+      width: 100%;
+      max-width: 460px;
+      background: #111827;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
     }
   </style>
 </head>
 <body>
-  <div class="container" style="max-width: 650px;">
-    <div class="header">
-      <div class="logo-badge">⚡</div>
-      <h1>ParkingBuzz Manager</h1>
-      <p>Overview of all registered vehicles & sticker batches</p>
+
+  <div class="admin-container">
+    
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+      <div class="brand-title">
+        <img src="/static/images/official_chrome_p_badge.png" alt="ParkingBuzz" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.45));">
+        <div>
+          <div style="font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1px;">PARKINGBUZZ EXECUTIVE</div>
+          <div style="font-size: 18px; font-weight: 900; color: white;">Administrator Control Center</div>
+        </div>
+      </div>
+
+      <!-- Controls: Auto-Activation Toggle & Logout -->
+      <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        
+        <!-- Auto Activation Toggle Form -->
+        <form action="/api/admin/toggle-auto-activation" method="POST" style="margin: 0;">
+          <button type="submit" style="display: flex; align-items: center; gap: 8px; background: {% if stats.auto_activation %}rgba(34, 197, 94, 0.15){% else %}rgba(245, 158, 11, 0.15){% endif %}; border: 1px solid {% if stats.auto_activation %}rgba(34, 197, 94, 0.4){% else %}rgba(245, 158, 11, 0.4){% endif %}; color: {% if stats.auto_activation %}#4ade80{% else %}#fbbf24{% endif %}; padding: 8px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer;">
+            <span>{% if stats.auto_activation %}⚡ Auto-Activation: ON{% else %}🛡️ Approval Mode: MANUAL{% endif %}</span>
+            <span style="font-size: 10px; opacity: 0.8;">(Tap to Toggle)</span>
+          </button>
+        </form>
+
+        <a href="/admin/logout" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; text-decoration: none;">
+          🚪 Log Out
+        </a>
+      </div>
     </div>
 
-    <!-- Stat Cards -->
-    <div class="stats-row">
+    <!-- Alert Banner when Auto-Activation is disabled -->
+    {% if not stats.auto_activation %}
+    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; color: #fcd34d; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">🛡️</span>
+      <div>
+        <strong>Manual Verification Mode Active:</strong> Newly registered vehicles will remain in <em>Pending Approval</em> until an administrator clicks <strong>Approve & Activate</strong> below.
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- KPI Stats Counters -->
+    <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-num" style="color: #34d399;">{{ stats.activated_cars }}</div>
-        <div class="stat-label">Active Cars</div>
+        <div class="stat-num" style="color: #4ade80;">{{ stats.activated_cars }}</div>
+        <div class="stat-label">Active Vehicles</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num">{{ stats.total_stickers }}</div>
-        <div class="stat-label">Total Stickers</div>
+        <div class="stat-num" style="color: #fbbf24;">{{ stats.pending_approval_cars }}</div>
+        <div class="stat-label">Pending Approval</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" style="color: #f59e0b;">{{ stats.total_alerts }}</div>
+        <div class="stat-num" style="color: #f87171;">{{ stats.blocked_cars }}</div>
+        <div class="stat-label">Blocked / Suspended</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #38bdf8;">{{ stats.total_alerts }}</div>
         <div class="stat-label">Alerts Triggered</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #c084fc;">{{ stats.total_calls }}</div>
+        <div class="stat-label">Calls Initiated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #94a3b8;">{{ stats.total_stickers }}</div>
+        <div class="stat-label">Total Stickers</div>
+      </div>
     </div>
 
-    <!-- Generate New Stickers Section -->
-    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
-      <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-        <span>🖨️ Bulk Society Sticker Generator (Up to 200 Cars)</span>
+    <!-- Pending Approvals Section (Shown if any vehicle is waiting for admin activation) -->
+    {% if stats.pending_approval_cars > 0 %}
+    <div class="panel-card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(30, 25, 15, 0.8);">
+      <div class="panel-title" style="color: #fbbf24;">
+        <span>⏳ Vehicles Awaiting Admin Approval ({{ stats.pending_approval_cars }})</span>
+        <span style="font-size: 12px; font-weight: 500; color: #fde68a;">Click Approve to instantly generate Buzz ID & activate user sticker</span>
       </div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
-        Pre-print unassigned QR stickers for an entire residential society or office parking lot. Residents simply stick them on their windshield, scan to link their car plate, and install the ParkingBuzz app!
-      </p>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Vehicle Plate</th>
+              <th>Owner Name</th>
+              <th>Assigned Tag ID</th>
+              <th>Registered Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for car in stats.cars %}
+            {% if car.approval_status == 'pending' %}
+            <tr>
+              <td><strong style="color: #f8fafc; font-size: 14px;">{{ car.vehicle_name }}</strong></td>
+              <td>{{ car.owner_name if car.owner_name else 'Vehicle Owner' }}</td>
+              <td><code>{{ car.tag_id }}</code></td>
+              <td style="color: #94a3b8; font-size: 12px;">{{ car.created_at }}</td>
+              <td>
+                <form action="/api/admin/user/{{ car.tag_id }}/approve" method="POST" style="display: inline;">
+                  <button type="submit" class="btn-action btn-approve">
+                    ✅ Approve & Activate
+                  </button>
+                </form>
+                <form action="/api/admin/user/{{ car.tag_id }}/delete" method="POST" style="display: inline; margin-left: 6px;" onsubmit="return confirm('Reject and delete this registration?');">
+                  <button type="submit" class="btn-action btn-del">
+                    ✕ Reject
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- All Vehicles & Sticker Database -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>🚗 Registered Vehicles & Sticker Fleet ({{ stats.cars|length }})</span>
+        <input type="text" id="vehicleSearch" placeholder="Search plate, owner, or Buzz ID..." onkeyup="filterVehicles()" style="padding: 8px 14px; border-radius: 10px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); color: white; font-size: 13px; width: 240px; outline: none;">
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table id="vehiclesTable">
+          <thead>
+            <tr>
+              <th>Vehicle / Owner</th>
+              <th>Buzz ID</th>
+              <th>Status</th>
+              <th>Activity</th>
+              <th>Devices</th>
+              <th style="text-align: right;">Manage User</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for car in stats.cars %}
+            <tr>
+              <td>
+                <div style="font-weight: 800; font-size: 14px; color: #f8fafc;">
+                  {{ car.vehicle_name if car.vehicle_name else 'Unassigned' }}
+                </div>
+                {% if car.owner_name %}
+                <div style="font-size: 11px; color: #38bdf8;">{{ car.owner_name }}</div>
+                {% endif %}
+                {% if car.custom_note %}
+                <div style="font-size: 11px; color: #94a3b8;">{{ car.custom_note }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <code style="font-size: 13px; font-weight: 700; color: #38bdf8;">{{ car.tag_id }}</code>
+              </td>
+              <td>
+                {% if car.is_blocked %}
+                  <span class="badge badge-blocked">🛑 Blocked</span>
+                {% elif car.approval_status == 'pending' %}
+                  <span class="badge badge-pending">⏳ Pending</span>
+                {% elif car.snooze_until %}
+                  <span class="badge badge-snoozed">🌙 Snoozed</span>
+                {% elif car.activated %}
+                  <span class="badge badge-approved">✓ Active</span>
+                {% else %}
+                  <span class="badge badge-pending">Unclaimed</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-size: 12px; color: #cbd5e1;">⚡ <strong>{{ car.alert_count }}</strong> alerts</div>
+                <div style="font-size: 12px; color: #c084fc;">📞 <strong>{{ car.call_count }}</strong> calls</div>
+              </td>
+              <td>
+                {% if car.fcm_count > 0 %}
+                  <span style="font-size: 11px; color: #4ade80;">📱 {{ car.fcm_count }} Mobile</span>
+                {% else %}
+                  <span style="font-size: 11px; color: #64748b;">No App</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap;">
+                  
+                  <!-- Direct Push Message Button -->
+                  <button type="button" class="btn-action btn-msg" onclick="openMessageModal('{{ car.tag_id }}', '{{ car.vehicle_name }}')">
+                    ✉️ Message
+                  </button>
+
+                  <!-- Snooze Dropdown / Action -->
+                  <form action="/api/admin/user/{{ car.tag_id }}/snooze" method="POST" style="display: inline; margin: 0;">
+                    {% if car.snooze_until %}
+                      <input type="hidden" name="minutes" value="0">
+                      <button type="submit" class="btn-action btn-snooze" title="Remove Snooze">
+                        ☀️ Unsnooze
+                      </button>
+                    {% else %}
+                      <input type="hidden" name="minutes" value="60">
+                      <button type="submit" class="btn-action btn-snooze" title="Snooze for 1 hour">
+                        🌙 Snooze 1h
+                      </button>
+                    {% endif %}
+                  </form>
+
+                  <!-- Block / Unblock Toggle -->
+                  <form action="/api/admin/user/{{ car.tag_id }}/block" method="POST" style="display: inline; margin: 0;">
+                    {% if car.is_blocked %}
+                      <input type="hidden" name="is_blocked" value="0">
+                      <button type="submit" class="btn-action btn-unblock">
+                        ✓ Unblock
+                      </button>
+                    {% else %}
+                      <input type="hidden" name="is_blocked" value="1">
+                      <button type="submit" class="btn-action btn-block" onclick="return confirm('Block this vehicle? Bystanders scanning QR will see suspended warning.');">
+                        🛑 Block
+                      </button>
+                    {% endif %}
+                  </form>
+
+                  <!-- Delete User -->
+                  <form action="/api/admin/user/{{ car.tag_id }}/delete" method="POST" style="display: inline; margin: 0;" onsubmit="return confirm('Permanently delete vehicle {{ car.tag_id }}? This action cannot be undone.');">
+                    <button type="submit" class="btn-action btn-del" title="Delete vehicle">
+                      🗑️
+                    </button>
+                  </form>
+
+                  <!-- View Page / Sticker Links -->
+                  <a href="/owner/{{ car.tag_id }}" target="_blank" class="btn-action" style="background: rgba(255,255,255,0.06); color: #cbd5e1;" title="View Dashboard">
+                    ↗
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bulk Management Grid (Society Batch Generator + CSV Upload) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
       
-      <form action="/api/admin/generate-batch" method="POST" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
-        <select name="count" style="padding: 10px 14px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); color: white; border: 1px solid var(--border-color); font-size: 14px;">
-          <option value="6">6 Stickers (1 A4 Sheet)</option>
-          <option value="30">30 Stickers (5 Sheets)</option>
-          <option value="50">50 Stickers</option>
-          <option value="100">100 Stickers</option>
-          <option value="200" selected>200 Stickers (Society Pack)</option>
-        </select>
+      <!-- Box 1: Pre-Printed Society Sticker Generator -->
+      <div class="panel-card" style="margin-bottom: 0;">
+        <div class="panel-title">🖨️ Pre-Print Society Stickers (A4 PDF)</div>
+        <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">
+          Generate batches of luxury pre-printed QR stickers. Distribute to residents or employees; they stick them on their windshield and tap <em>"Link Printed Sticker"</em> in the app.
+        </p>
 
-        <button type="submit" name="format" value="pdf" class="btn-primary" style="padding: 10px 18px; font-size: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-          📄 Download Printable A4 PDF Sheet (300 DPI)
-        </button>
+        <form action="/api/admin/generate-batch" method="POST">
+          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <select name="count" style="flex: 1; padding: 10px 14px; border-radius: 10px; background: rgba(10, 16, 28, 0.9); color: white; border: 1px solid rgba(255,255,255,0.15); font-size: 13px;">
+              <option value="6">6 Stickers (1 A4 Sheet)</option>
+              <option value="30">30 Stickers (5 Sheets)</option>
+              <option value="50">50 Stickers</option>
+              <option value="100">100 Stickers</option>
+              <option value="200" selected>200 Stickers (Society Pack)</option>
+            </select>
+          </div>
 
-        <button type="submit" name="format" value="admin" class="btn-primary" style="padding: 10px 14px; font-size: 14px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border-color);">
-          + Generate to Database
-        </button>
+          <div style="display: flex; gap: 10px;">
+            <button type="submit" name="format" value="pdf" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #040812; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; font-size: 13px;">
+              📄 Download 300 DPI PDF
+            </button>
+            <button type="submit" name="format" value="admin" style="padding: 12px 16px; background: rgba(255,255,255,0.08); color: white; font-weight: 700; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; cursor: pointer; font-size: 13px;">
+              + Create in DB
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Box 2: Bulk CSV / Excel Upload -->
+      <div class="panel-card" style="margin-bottom: 0;">
+        <div class="panel-title">📂 Bulk Import Vehicles via CSV</div>
+        <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">
+          Import hundreds of vehicles from an Excel or CSV file. Automatically assigns Buzz IDs and prepares stickers in batch.
+        </p>
+
+        <form action="/api/admin/upload-csv" method="POST" enctype="multipart/form-data">
+          <input type="file" name="file" accept=".csv" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; font-size: 12px; margin-bottom: 12px;">
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button type="submit" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: #040812; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; font-size: 13px;">
+              ⚡ Upload & Import
+            </button>
+            <a href="/api/admin/sample-csv" download style="padding: 10px 14px; background: rgba(255,255,255,0.08); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56,189,248,0.3); border-radius: 10px; font-size: 12px; text-decoration: none;">
+              📥 Sample CSV
+            </a>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Direct Message Modal -->
+  <div id="messageModal" class="modal-overlay">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 18px; color: white;" id="msgModalTitle">Send Notice to Vehicle</h3>
+        <button type="button" onclick="closeMessageModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+
+      <form id="msgForm" onsubmit="sendAdminMessage(event)">
+        <input type="hidden" id="msgTagId">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">Message for Vehicle Owner</label>
+        <textarea id="msgContent" required rows="4" placeholder="e.g. Security Notice: Please move your vehicle from Tower A basement by 10 PM." style="width: 100%; box-sizing: border-box; padding: 12px; background: rgba(10, 16, 28, 0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white; font-size: 14px; outline: none; margin-bottom: 18px; font-family: inherit;"></textarea>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" onclick="closeMessageModal()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #94a3b8; font-weight: 700; cursor: pointer;">Cancel</button>
+          <button type="submit" id="btnSendMsg" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); border: none; border-radius: 10px; color: #040812; font-weight: 800; cursor: pointer;">🚀 Send Push Notice</button>
+        </div>
       </form>
     </div>
-
-    <!-- Registered Cars Table -->
-    <div class="section-title">All Vehicles & Stickers</div>
-    <div style="overflow-x: auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Vehicle / Plate</th>
-            <th>Tag ID</th>
-            <th>Status</th>
-            <th>Alerts</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for car in stats.cars %}
-          <tr>
-            <td>
-              <strong>{{ car.vehicle_name if car.vehicle_name else 'Unassigned' }}</strong>
-              {% if car.custom_note %}
-              <div style="font-size: 11px; color: var(--text-secondary);">{{ car.custom_note }}</div>
-              {% endif %}
-            </td>
-            <td><code>{{ car.tag_id }}</code></td>
-            <td>
-              {% if car.activated %}
-                <span class="badge badge-success">Registered</span>
-              {% else %}
-                <span class="badge badge-warning">Unclaimed</span>
-              {% endif %}
-            </td>
-            <td>{{ car.alert_count }}</td>
-            <td>
-              <a href="/c/{{ car.tag_id }}" target="_blank" style="color: #38bdf8; text-decoration: none; font-size: 12px; margin-right: 8px;">View</a>
-              <a href="/api/sticker/{{ car.tag_id }}" download style="color: #34d399; text-decoration: none; font-size: 12px;">Sticker</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
   </div>
+
+  <script>
+    function filterVehicles() {
+      const q = document.getElementById('vehicleSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        r.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function openMessageModal(tagId, vehicleName) {
+      document.getElementById('msgTagId').value = tagId;
+      document.getElementById('msgModalTitle').textContent = 'Send Notice to ' + (vehicleName || tagId);
+      document.getElementById('msgContent').value = '';
+      document.getElementById('messageModal').classList.add('active');
+    }
+
+    function closeMessageModal() {
+      document.getElementById('messageModal').classList.remove('active');
+    }
+
+    async function sendAdminMessage(e) {
+      e.preventDefault();
+      const tagId = document.getElementById('msgTagId').value;
+      const message = document.getElementById('msgContent').value.trim();
+      const btn = document.getElementById('btnSendMsg');
+
+      if (!message) return;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch(`/api/admin/user/${tagId}/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          alert('✅ Message sent to vehicle owner via push notification & alert log!');
+          closeMessageModal();
+        } else {
+          alert('Notice: ' + (data.message || 'Failed to deliver push.'));
+        }
+      } catch (err) {
+        alert('Network error sending message.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Send Push Notice';
+      }
+    }
+  </script>
+
 </body>
 </html>

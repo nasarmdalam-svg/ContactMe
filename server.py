@@ -4,7 +4,7 @@ import io
 import time
 import asyncio
 from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,11 +13,19 @@ import qrcode
 from pywebpush import webpush, WebPushException
 import hmac
 import hashlib
+import secrets
 
 import database
 import vapid_manager
 import generate_stickers
 import fcm_manager
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "ParkingBuzz@2026")
+ACTIVE_ADMIN_SESSIONS = set()
+
+def is_authenticated_admin(request: Request) -> bool:
+    token = request.cookies.get("pb_admin_token")
+    return bool(token and token in ACTIVE_ADMIN_SESSIONS)
 
 app = FastAPI(title="ParkingBuzz System")
 
@@ -264,6 +272,48 @@ def scan_qr(tag_id: str, request: Request):
         database.create_tag(canonical_id)
         tag = database.get_tag(canonical_id)
 
+    if tag and tag.get("is_blocked"):
+        return HTMLResponse(
+            """<!DOCTYPE html>
+            <html lang="en">
+            <head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Sticker Suspended - ParkingBuzz</title><link rel="stylesheet" href="/static/css/style.css"></head>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#080c14;color:#f8fafc;font-family:sans-serif;padding:16px;">
+              <div style="max-width:400px;text-align:center;background:#111827;border:1px solid rgba(239,68,68,0.35);border-radius:20px;padding:32px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.7);">
+                <div style="font-size:48px;margin-bottom:12px;">🛑</div>
+                <h2 style="color:#f87171;margin-bottom:8px;font-size:20px;">Sticker Suspended</h2>
+                <p style="color:#94a3b8;font-size:14px;line-height:1.5;margin-bottom:20px;">
+                  This ParkingBuzz vehicle sticker has been temporarily suspended by system administration. Notifications and calls are disabled.
+                </p>
+                <div style="font-size:12px;color:#64748b;">
+                  Need assistance? Contact admin at <a href="mailto:parkingbuzz+@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzz+@gmail.com</a>
+                </div>
+              </div>
+            </body>
+            </html>""",
+            status_code=403
+        )
+
+    if tag and tag.get("approval_status") == "pending":
+        return HTMLResponse(
+            """<!DOCTYPE html>
+            <html lang="en">
+            <head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Activation Pending - ParkingBuzz</title><link rel="stylesheet" href="/static/css/style.css"></head>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#080c14;color:#f8fafc;font-family:sans-serif;padding:16px;">
+              <div style="max-width:400px;text-align:center;background:#111827;border:1px solid rgba(245,158,11,0.35);border-radius:20px;padding:32px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.7);">
+                <div style="font-size:48px;margin-bottom:12px;">⏳</div>
+                <h2 style="color:#fbbf24;margin-bottom:8px;font-size:20px;">Activation Pending</h2>
+                <p style="color:#94a3b8;font-size:14px;line-height:1.5;margin-bottom:20px;">
+                  This vehicle sticker has been registered and is currently awaiting administrator verification.
+                </p>
+                <div style="font-size:12px;color:#64748b;">
+                  For priority activation, contact admin at <a href="mailto:parkingbuzz+@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzz+@gmail.com</a>
+                </div>
+              </div>
+            </body>
+            </html>""",
+            status_code=403
+        )
+
     now_ts = int(time.time())
     canonical_tag_id = tag["tag_id"] if tag else tag_id
     session_token = generate_scan_token(canonical_tag_id, now_ts)
@@ -386,9 +436,49 @@ def owner_dashboard(tag_id: str, request: Request, token: Optional[str] = None):
         }
     )
 
-# Admin Dashboard
+# Admin Authentication & Dashboard
+@app.get("/admin/login", response_class=HTMLResponse)
+def admin_login_page(request: Request, error: Optional[str] = None):
+    if is_authenticated_admin(request):
+        return RedirectResponse(url="/admin", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_login.html",
+        context={"error": error}
+    )
+
+@app.post("/admin/login")
+def admin_login_submit(request: Request, password: str = Form(...)):
+    entered_hash = hashlib.sha256(password.encode()).hexdigest()
+    expected_hash = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
+    if secrets.compare_digest(entered_hash, expected_hash):
+        session_token = secrets.token_hex(32)
+        ACTIVE_ADMIN_SESSIONS.add(session_token)
+        response = RedirectResponse(url="/admin", status_code=303)
+        response.set_cookie(
+            key="pb_admin_token",
+            value=session_token,
+            httponly=True,
+            samesite="lax",
+            max_age=86400 * 7
+        )
+        return response
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_login.html",
+        context={"error": "Invalid master administrator key. Access denied."}
+    )
+
+@app.get("/admin/logout")
+def admin_logout():
+    response = RedirectResponse(url="/admin/login", status_code=303)
+    response.delete_cookie(key="pb_admin_token")
+    return response
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_page(request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
     stats = database.get_admin_stats()
     return templates.TemplateResponse(
         request=request,
@@ -396,8 +486,110 @@ def admin_page(request: Request):
         context={"stats": stats}
     )
 
+@app.post("/api/admin/toggle-auto-activation")
+def admin_toggle_auto_activation(request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    current = database.is_auto_activation_enabled()
+    database.set_admin_setting("auto_activation", "0" if current else "1")
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/api/admin/user/{tag_id}/approve")
+def admin_approve_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    database.set_user_approval(tag_id, "approved")
+    tag = database.get_tag(tag_id)
+    v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
+    fcm_manager.send_vehicle_alert(
+        tag_id=tag_id,
+        alert_type="APPROVED",
+        vehicle_name=v_name,
+        custom_message="🎉 Your ParkingBuzz sticker has been approved! Your QR code and vehicle safety buzz are now active."
+    )
+    database.log_alert(tag_id, "SYSTEM_APPROVED", "Vehicle approved and activated by administrator.")
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/api/admin/user/{tag_id}/block")
+def admin_block_user(tag_id: str, request: Request, is_blocked: int = Form(1)):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    database.set_user_blocked(tag_id, is_blocked)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/api/admin/user/{tag_id}/snooze")
+def admin_snooze_user(tag_id: str, request: Request, minutes: int = Form(60)):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    database.set_user_snooze(tag_id, minutes)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/api/admin/user/{tag_id}/delete")
+def admin_delete_user(tag_id: str, request: Request):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    database.delete_user(tag_id)
+    return RedirectResponse(url="/admin", status_code=303)
+
+class AdminMessageModel(BaseModel):
+    message: str
+
+@app.post("/api/admin/user/{tag_id}/message")
+def admin_message_user(tag_id: str, data: AdminMessageModel, request: Request):
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    tag = database.get_tag(tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    v_name = tag.get("vehicle_name", "Vehicle")
+    fcm_manager.send_vehicle_alert(
+        tag_id=tag_id,
+        alert_type="ADMIN_NOTICE",
+        vehicle_name=v_name,
+        custom_message=f"📢 Notice from Administrator: {data.message}"
+    )
+    database.log_alert(tag_id, "ADMIN_NOTICE", data.message)
+    return {"status": "ok", "message": "Notice sent to vehicle owner"}
+
+@app.get("/api/admin/sample-csv")
+def admin_sample_csv():
+    sample_content = "Vehicle_Plate,Owner_Name,Custom_Note\nDL01AB1234,Rahul Sharma,Flat 402 - Tower A\nHR26CD5678,Priya Patel,Tower B-110\nMH02EF9012,Amit Verma,Villa 14\n"
+    return Response(
+        content=sample_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="parkingbuzz_sample_vehicles.csv"'}
+    )
+
+@app.post("/api/admin/upload-csv")
+async def admin_upload_csv(request: Request, file: UploadFile = File(...)):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    import csv
+    import random
+    content = await file.read()
+    text = content.decode("utf-8", errors="ignore")
+    reader = csv.DictReader(io.StringIO(text))
+    auto_active = database.is_auto_activation_enabled()
+    approval = "approved" if auto_active else "pending"
+    for row in reader:
+        plate = row.get("Vehicle_Plate") or row.get("vehicle_plate") or row.get("Plate") or row.get("plate")
+        if not plate or not plate.strip():
+            continue
+        owner = row.get("Owner_Name") or row.get("owner_name") or row.get("Name") or ""
+        note = row.get("Custom_Note") or row.get("custom_note") or row.get("Note") or ""
+        while True:
+            t_id = f"BUZZ-{random.randint(100000, 999999)}"
+            if not database.get_tag(t_id):
+                break
+        database.activate_tag(t_id, plate.strip(), note.strip(), allow_create=True, approval_status=approval)
+        if owner.strip():
+            database.update_tag_profile(t_id, plate.strip(), owner.strip(), note.strip())
+    return RedirectResponse(url="/admin", status_code=303)
+
 @app.post("/api/admin/generate-batch")
 def admin_generate_batch(request: Request, count: int = Form(5), format: str = Form("admin")):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
     base_url = str(request.base_url).rstrip("/")
     tag_ids, pdf_path = generate_stickers.generate_batch(count=min(count, 200), base_url=base_url)
     if format == "pdf":
@@ -410,6 +602,8 @@ def admin_generate_batch(request: Request, count: int = Form(5), format: str = F
 
 @app.get("/api/admin/download-batch-pdf")
 def admin_download_batch_pdf(request: Request, count: int = 50):
+    if not is_authenticated_admin(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
     base_url = str(request.base_url).rstrip("/")
     tag_ids, pdf_path = generate_stickers.generate_batch(count=min(count, 200), base_url=base_url)
     return FileResponse(
@@ -467,7 +661,26 @@ async def send_alert(tag_id: str, alert: AlertRequest):
     if tag.get("is_active", 1) == 0:
         return {"status": "snoozed", "message": "Vehicle owner is currently disconnected / away (Do Not Disturb). Alert was snoozed."}
 
+    if tag.get("is_blocked"):
+        return {"status": "blocked", "message": "This vehicle sticker is temporarily suspended by system administrator."}
+
+    if tag.get("approval_status") == "pending":
+        return {"status": "pending", "message": "This vehicle sticker is currently awaiting administrator approval."}
+
     now = time.time()
+
+    # Check Database / Admin Snooze
+    db_snooze = tag.get("snooze_until")
+    if db_snooze:
+        try:
+            if float(db_snooze) > now:
+                mins_left = max(1, int((float(db_snooze) - now) / 60))
+                return {
+                    "status": "snoozed",
+                    "message": f"Owner has temporarily snoozed alerts ({mins_left} min remaining). For urgent matters, please use Voice Call."
+                }
+        except Exception:
+            pass
 
     # 15-minute Session Check: Requires fresh QR scan after 15 mins
     if alert.session_token:
@@ -714,6 +927,11 @@ def redirect_app_download(request: Request):
 @app.websocket("/ws/{tag_id}/{role}")
 async def websocket_signaling(websocket: WebSocket, tag_id: str, role: str):
     await manager.connect(tag_id, role, websocket)
+    if role == "caller":
+        try:
+            database.increment_call_count(tag_id)
+        except Exception:
+            pass
     try:
         while True:
             text = await websocket.receive_text()

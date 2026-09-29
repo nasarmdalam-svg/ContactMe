@@ -40,11 +40,23 @@ def init_db():
             "ALTER TABLE tags ADD COLUMN dnd_enabled INTEGER DEFAULT 0",
             "ALTER TABLE tags ADD COLUMN dnd_start TEXT DEFAULT '23:00'",
             "ALTER TABLE tags ADD COLUMN dnd_end TEXT DEFAULT '07:00'",
+            "ALTER TABLE tags ADD COLUMN is_blocked INTEGER DEFAULT 0",
+            "ALTER TABLE tags ADD COLUMN approval_status TEXT DEFAULT 'approved'",
+            "ALTER TABLE tags ADD COLUMN snooze_until TEXT DEFAULT NULL",
+            "ALTER TABLE tags ADD COLUMN call_count INTEGER DEFAULT 0",
+            "ALTER TABLE tags ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         ]:
             try:
                 conn.execute(col_def)
             except Exception:
                 pass
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS admin_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            );
+        """)
+        conn.execute("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('auto_activation', '1')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +146,12 @@ def get_tag(tag_id: str) -> Optional[Dict[str, Any]]:
             return dict(row)
         return None
 
-def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_create: bool = False) -> Optional[str]:
+def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_create: bool = False, approval_status: Optional[str] = None) -> Optional[str]:
+    auto_active = is_auto_activation_enabled()
+    if approval_status is None:
+        approval_status = "approved" if auto_active else "pending"
+    is_activated_val = 1 if approval_status == "approved" else 0
+
     tag = get_tag(tag_id)
     if not tag:
         if not allow_create:
@@ -145,8 +162,11 @@ def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_cr
         owner_token = secrets.token_urlsafe(16)
         with get_db() as conn:
             conn.execute(
-                "INSERT INTO tags (tag_id, activated, vehicle_name, owner_token, custom_note) VALUES (?, 1, ?, ?, ?)",
-                (clean_id, vehicle_name, owner_token, custom_note)
+                """
+                INSERT INTO tags (tag_id, activated, approval_status, vehicle_name, owner_token, custom_note)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (clean_id, is_activated_val, approval_status, vehicle_name, owner_token, custom_note)
             )
             conn.commit()
         return owner_token
@@ -155,8 +175,12 @@ def activate_tag(tag_id: str, vehicle_name: str, custom_note: str = "", allow_cr
         owner_token = tag["owner_token"] or secrets.token_urlsafe(16)
         with get_db() as conn:
             conn.execute(
-                "UPDATE tags SET activated = 1, vehicle_name = ?, owner_token = ?, custom_note = ? WHERE tag_id = ?",
-                (vehicle_name, owner_token, custom_note, canonical_id)
+                """
+                UPDATE tags 
+                SET activated = ?, approval_status = ?, vehicle_name = ?, owner_token = ?, custom_note = ? 
+                WHERE tag_id = ?
+                """,
+                (is_activated_val, approval_status, vehicle_name, owner_token, custom_note, canonical_id)
             )
             conn.commit()
         return owner_token
@@ -308,24 +332,105 @@ def clear_alerts(tag_id: str) -> None:
         conn.execute("DELETE FROM alerts WHERE tag_id = ?", (tag_id,))
         conn.commit()
 
+def get_admin_setting(key: str, default: str = "") -> str:
+    with get_db() as conn:
+        row = conn.execute("SELECT value FROM admin_settings WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else default
+
+def set_admin_setting(key: str, value: str):
+    with get_db() as conn:
+        conn.execute("INSERT OR REPLACE INTO admin_settings (key, value) VALUES (?, ?)", (key, str(value)))
+        conn.commit()
+
+def is_auto_activation_enabled() -> bool:
+    return get_admin_setting("auto_activation", "1") == "1"
+
+def set_user_blocked(tag_id: str, is_blocked: int):
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+    buzz_id = f"BUZZ-{clean_id}"
+    with get_db() as conn:
+        for t in set([tag_id, buzz_id, clean_id]):
+            conn.execute("UPDATE tags SET is_blocked = ? WHERE UPPER(tag_id) = ?", (is_blocked, t))
+        conn.commit()
+
+def set_user_approval(tag_id: str, status: str):
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+    buzz_id = f"BUZZ-{clean_id}"
+    activated_val = 1 if status == "approved" else 0
+    with get_db() as conn:
+        for t in set([tag_id, buzz_id, clean_id]):
+            conn.execute("UPDATE tags SET approval_status = ?, activated = ? WHERE UPPER(tag_id) = ?", (status, activated_val, t))
+        conn.commit()
+
+def set_user_snooze(tag_id: str, minutes: int):
+    import time
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+    buzz_id = f"BUZZ-{clean_id}"
+    with get_db() as conn:
+        if minutes <= 0:
+            for t in set([tag_id, buzz_id, clean_id]):
+                conn.execute("UPDATE tags SET snooze_until = NULL WHERE UPPER(tag_id) = ?", (t,))
+        else:
+            snooze_ts = int(time.time()) + (minutes * 60)
+            for t in set([tag_id, buzz_id, clean_id]):
+                conn.execute("UPDATE tags SET snooze_until = ? WHERE UPPER(tag_id) = ?", (str(snooze_ts), t))
+        conn.commit()
+
+def increment_call_count(tag_id: str):
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+    buzz_id = f"BUZZ-{clean_id}"
+    with get_db() as conn:
+        for t in set([tag_id, buzz_id, clean_id]):
+            conn.execute("UPDATE tags SET call_count = COALESCE(call_count, 0) + 1 WHERE UPPER(tag_id) = ?", (t,))
+        conn.commit()
+
+def delete_user(tag_id: str):
+    clean_id = tag_id.replace("BUZZ-", "").strip().upper()
+    buzz_id = f"BUZZ-{clean_id}"
+    with get_db() as conn:
+        for t in set([tag_id, buzz_id, clean_id]):
+            conn.execute("DELETE FROM tags WHERE UPPER(tag_id) = ?", (t,))
+            conn.execute("DELETE FROM subscriptions WHERE UPPER(tag_id) = ?", (t,))
+            conn.execute("DELETE FROM fcm_tokens WHERE UPPER(tag_id) = ?", (t,))
+            conn.execute("DELETE FROM alerts WHERE UPPER(tag_id) = ?", (t,))
+        conn.commit()
+
 def get_admin_stats() -> Dict[str, Any]:
     with get_db() as conn:
         total_tags = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
         activated = conn.execute("SELECT COUNT(*) FROM tags WHERE activated = 1").fetchone()[0]
+        pending = conn.execute("SELECT COUNT(*) FROM tags WHERE approval_status = 'pending'").fetchone()[0]
+        blocked = conn.execute("SELECT COUNT(*) FROM tags WHERE is_blocked = 1").fetchone()[0]
         total_alerts = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
-        recent_cars = conn.execute(
+        total_calls = conn.execute("SELECT COALESCE(SUM(call_count), 0) FROM tags").fetchone()[0]
+
+        auto_act = conn.execute("SELECT value FROM admin_settings WHERE key = 'auto_activation'").fetchone()
+        auto_activation_enabled = (auto_act[0] == '1') if auto_act else True
+
+        cars = conn.execute(
             """
-            SELECT t.tag_id, t.vehicle_name, t.activated, t.created_at, t.custom_note,
-                   (SELECT COUNT(*) FROM alerts a WHERE a.tag_id = t.tag_id) as alert_count
+            SELECT t.tag_id, t.vehicle_name, t.owner_name, t.activated, t.created_at, t.custom_note,
+                   COALESCE(t.is_blocked, 0) as is_blocked,
+                   COALESCE(t.approval_status, 'approved') as approval_status,
+                   t.snooze_until,
+                   COALESCE(t.call_count, 0) as call_count,
+                   (SELECT COUNT(*) FROM alerts a WHERE a.tag_id = t.tag_id) as alert_count,
+                   (SELECT COUNT(DISTINCT fcm_token) FROM fcm_tokens f WHERE f.tag_id = t.tag_id) as fcm_count
             FROM tags t
-            ORDER BY t.activated DESC, t.created_at DESC
+            ORDER BY 
+               CASE WHEN t.approval_status = 'pending' THEN 0 ELSE 1 END,
+               t.created_at DESC
             """
         ).fetchall()
         return {
             "total_stickers": total_tags,
             "activated_cars": activated,
+            "pending_approval_cars": pending,
+            "blocked_cars": blocked,
             "total_alerts": total_alerts,
-            "cars": [dict(r) for r in recent_cars]
+            "total_calls": total_calls,
+            "auto_activation": auto_activation_enabled,
+            "cars": [dict(r) for r in cars]
         }
 
 # Initialize tables

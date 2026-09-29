@@ -111,3 +111,21 @@ def send_fcm_alert(fcm_tokens: List[str], tag_id: str, alert_type: str, message:
     except Exception as e:
         print(f"Exception during FCM send: {e}")
         return {"success": False, "error": str(e)}
+
+def send_vehicle_alert(tag_id: str, alert_type: str, vehicle_name: str = "", custom_message: str = "") -> Dict[str, Any]:
+    """Helper to fetch FCM tokens for a vehicle and dispatch push notification safely."""
+    try:
+        import database
+        fcm_tokens = database.get_fcm_tokens(tag_id)
+        if not fcm_tokens:
+            print(f"FCM: No registered tokens for vehicle {tag_id}")
+            return {"success": True, "sent_count": 0, "detail": "No registered devices"}
+        result = send_fcm_alert(fcm_tokens, tag_id, alert_type, custom_message, vehicle_name)
+        if result and result.get("invalid_tokens"):
+            for bad_tok in result["invalid_tokens"]:
+                database.delete_invalid_fcm_token(bad_tok)
+        return result
+    except Exception as e:
+        print(f"Error in send_vehicle_alert for {tag_id}: {e}")
+        return {"success": False, "error": str(e)}
+

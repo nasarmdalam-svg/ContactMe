@@ -285,7 +285,7 @@ def scan_qr(tag_id: str, request: Request):
                   This ParkingBuzz vehicle sticker has been temporarily suspended by system administration. Notifications and calls are disabled.
                 </p>
                 <div style="font-size:12px;color:#64748b;">
-                  Need assistance? Contact admin at <a href="mailto:parkingbuzz+@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzz+@gmail.com</a>
+                  Need assistance? Contact admin at <a href="mailto:parkingbuzzplus@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzzplus@gmail.com</a>
                 </div>
               </div>
             </body>
@@ -306,7 +306,7 @@ def scan_qr(tag_id: str, request: Request):
                   This vehicle sticker has been registered and is currently awaiting administrator verification.
                 </p>
                 <div style="font-size:12px;color:#64748b;">
-                  For priority activation, contact admin at <a href="mailto:parkingbuzz+@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzz+@gmail.com</a>
+                  For priority activation, contact admin at <a href="mailto:parkingbuzzplus@gmail.com" style="color:#38bdf8;font-weight:700;">parkingbuzzplus@gmail.com</a>
                 </div>
               </div>
             </body>
@@ -494,41 +494,67 @@ def admin_toggle_auto_activation(request: Request):
     database.set_admin_setting("auto_activation", "0" if current else "1")
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/api/admin/user/{tag_id}/approve")
+@app.api_route("/api/admin/user/{tag_id}/approve", methods=["GET", "POST"])
 def admin_approve_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
-    database.set_user_approval(tag_id, "approved")
-    tag = database.get_tag(tag_id)
-    v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
-    fcm_manager.send_vehicle_alert(
-        tag_id=tag_id,
-        alert_type="APPROVED",
-        vehicle_name=v_name,
-        custom_message="🎉 Your ParkingBuzz sticker has been approved! Your QR code and vehicle safety buzz are now active."
-    )
-    database.log_alert(tag_id, "SYSTEM_APPROVED", "Vehicle approved and activated by administrator.")
+    try:
+        database.set_user_approval(tag_id, "approved")
+    except Exception as e:
+        print(f"Database set_user_approval error: {e}")
+    try:
+        tag = database.get_tag(tag_id)
+        v_name = tag.get("vehicle_name", "Vehicle") if tag else "Vehicle"
+        fcm_manager.send_vehicle_alert(
+            tag_id=tag_id,
+            alert_type="APPROVED",
+            vehicle_name=v_name,
+            custom_message="🎉 Your ParkingBuzz sticker has been approved! Your QR code and vehicle safety buzz are now active."
+        )
+    except Exception as e:
+        print(f"FCM approve notification error: {e}")
+    try:
+        database.log_alert(tag_id, "SYSTEM_APPROVED", "Vehicle approved and activated by administrator.")
+    except Exception as e:
+        print(f"Log alert error: {e}")
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/api/admin/user/{tag_id}/block")
-def admin_block_user(tag_id: str, request: Request, is_blocked: int = Form(1)):
+@app.api_route("/api/admin/user/{tag_id}/block", methods=["GET", "POST"])
+async def admin_block_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
+    is_blocked = 1
+    if request.method == "POST":
+        try:
+            form = await request.form()
+            is_blocked = int(form.get("is_blocked", 1))
+        except Exception:
+            is_blocked = 1
     database.set_user_blocked(tag_id, is_blocked)
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/api/admin/user/{tag_id}/snooze")
-def admin_snooze_user(tag_id: str, request: Request, minutes: int = Form(60)):
+@app.api_route("/api/admin/user/{tag_id}/snooze", methods=["GET", "POST"])
+async def admin_snooze_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
+    minutes = 60
+    if request.method == "POST":
+        try:
+            form = await request.form()
+            minutes = int(form.get("minutes", 60))
+        except Exception:
+            minutes = 60
     database.set_user_snooze(tag_id, minutes)
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/api/admin/user/{tag_id}/delete")
+@app.api_route("/api/admin/user/{tag_id}/delete", methods=["GET", "POST"])
 def admin_delete_user(tag_id: str, request: Request):
     if not is_authenticated_admin(request):
         return RedirectResponse(url="/admin/login", status_code=303)
-    database.delete_user(tag_id)
+    try:
+        database.delete_user(tag_id)
+    except Exception as e:
+        print(f"Delete user error: {e}")
     return RedirectResponse(url="/admin", status_code=303)
 
 class AdminMessageModel(BaseModel):
@@ -542,13 +568,19 @@ def admin_message_user(tag_id: str, data: AdminMessageModel, request: Request):
     if not tag:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     v_name = tag.get("vehicle_name", "Vehicle")
-    fcm_manager.send_vehicle_alert(
-        tag_id=tag_id,
-        alert_type="ADMIN_NOTICE",
-        vehicle_name=v_name,
-        custom_message=f"📢 Notice from Administrator: {data.message}"
-    )
-    database.log_alert(tag_id, "ADMIN_NOTICE", data.message)
+    try:
+        fcm_manager.send_vehicle_alert(
+            tag_id=tag_id,
+            alert_type="ADMIN_NOTICE",
+            vehicle_name=v_name,
+            custom_message=f"📢 Notice from Administrator: {data.message}"
+        )
+    except Exception as e:
+        print(f"FCM admin message error: {e}")
+    try:
+        database.log_alert(tag_id, "ADMIN_NOTICE", data.message)
+    except Exception as e:
+        print(f"Log alert error: {e}")
     return {"status": "ok", "message": "Notice sent to vehicle owner"}
 
 @app.get("/api/admin/sample-csv")

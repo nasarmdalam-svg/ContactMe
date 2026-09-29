@@ -1180,33 +1180,39 @@
         }
       }).catch(() => {});
 
-    async function handleLogout() {
+    function handleLogout() {
+      // 1. Fire-and-forget push unsubscription in background (never blocks logout)
       try {
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-          const reg = await navigator.serviceWorker.getRegistration();
-          if (reg) {
-            const sub = await reg.pushManager.getSubscription();
-            if (sub) {
-              await sub.unsubscribe().catch(() => {});
-              await fetch(`/api/unsubscribe/${tagId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ endpoint: sub.endpoint })
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) {
+              reg.pushManager.getSubscription().then(sub => {
+                if (sub) {
+                  sub.unsubscribe().catch(() => {});
+                  fetch(`/api/unsubscribe/${tagId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: sub.endpoint })
+                  }).catch(() => {});
+                }
               }).catch(() => {});
             }
-          }
+          }).catch(() => {});
         }
       } catch (e) {}
 
+      // 2. Synchronously wipe localStorage so register page never auto-forwards
       try {
+        localStorage.removeItem('pb_active_tag');
         localStorage.clear();
         sessionStorage.clear();
       } catch (e) {}
 
+      // 3. Native app logout or direct web redirect with logged_out flag
       if (window.ParkBuzzApp && typeof window.ParkBuzzApp.logout === 'function') {
         window.ParkBuzzApp.logout();
       } else {
-        window.location.href = '/register';
+        window.location.replace('/register?mode=logged_out');
       }
     }
   </script>

@@ -113,12 +113,22 @@
 
     // If user is already logged in with an active vehicle sticker and not explicitly linking/creating, take them to their dashboard
     const urlParams = new URLSearchParams(window.location.search);
-    const existingActiveTag = (window.ParkBuzzApp && typeof window.ParkBuzzApp.getTagId === 'function' ? window.ParkBuzzApp.getTagId() : '') || localStorage.getItem('pb_active_tag');
-    if (!urlParams.get('mode') && existingActiveTag && existingActiveTag.trim()) {
-      window.location.replace('/owner/' + existingActiveTag.trim());
+    const mode = urlParams.get('mode');
+
+    if (mode === 'logged_out' || mode === 'link' || mode === 'new') {
+      try {
+        localStorage.removeItem('pb_active_tag');
+      } catch (e) {}
+    } else {
+      const nativeTag = (window.ParkBuzzApp && typeof window.ParkBuzzApp.getTagId === 'function') ? window.ParkBuzzApp.getTagId() : '';
+      const localTag = localStorage.getItem('pb_active_tag');
+      const existingActiveTag = nativeTag || localTag;
+      if (existingActiveTag && existingActiveTag.trim()) {
+        window.location.replace('/owner/' + existingActiveTag.trim());
+      }
     }
 
-    if (urlParams.get('mode') === 'link') {
+    if (mode === 'link') {
       tabExisting.click();
     }
 

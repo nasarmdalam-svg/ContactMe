@@ -21,6 +21,32 @@ import fcm_manager
 
 app = FastAPI(title="ParkingBuzz System")
 
+@app.get("/ping")
+def ping():
+    return {"status": "ok", "app": "ParkingBuzz", "time": time.time()}
+
+@app.on_event("startup")
+async def start_keepalive():
+    async def keep_alive_loop():
+        # Wait 45 seconds after startup before initiating self-pings
+        await asyncio.sleep(45)
+        while True:
+            try:
+                import urllib.request
+                req = urllib.request.Request(
+                    "https://contactme-go9v.onrender.com/ping",
+                    headers={"User-Agent": "ParkingBuzz-KeepAlive/1.0"}
+                )
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: urllib.request.urlopen(req, timeout=12))
+                print("Keep-alive self-ping sent to maintain Render instance warm.")
+            except Exception as e:
+                print(f"Keep-alive ping notice: {e}")
+            # Ping every 5 minutes (300 seconds) so Render 15-minute sleep timer never fires
+            await asyncio.sleep(300)
+
+    asyncio.create_task(keep_alive_loop())
+
 SCAN_SESSION_SECRET = os.environ.get("SESSION_SECRET", "parkingbuzz_secure_session_key_2026")
 
 def generate_scan_token(tag_id: str, timestamp: int) -> str:

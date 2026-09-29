@@ -28,7 +28,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 10px 10px 24px 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
 }
 
 .container {

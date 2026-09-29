@@ -24,6 +24,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import com.google.firebase.FirebaseApp
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -48,6 +50,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,6 +81,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Enforce dark status bar and navigation bar styling across all Android OS versions
+        try {
+            enableEdgeToEdge(
+                statusBarStyle = SystemBarStyle.dark(android.graphics.Color.parseColor("#090e19")),
+                navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.parseColor("#090e19"))
+            )
+        } catch (e: Exception) {}
+        try {
+            window.statusBarColor = android.graphics.Color.parseColor("#090e19")
+            window.navigationBarColor = android.graphics.Color.parseColor("#090e19")
+        } catch (e: Exception) {}
 
         // Firebase initialized via Application class
 
@@ -130,9 +147,17 @@ class MainActivity : ComponentActivity() {
             var isLoading by remember { mutableStateOf(true) }
             var loadingStatus by remember { mutableStateOf("Securing vehicle connection...") }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF090E19))
+            ) {
                 AndroidView(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .imePadding(),
                     factory = { context ->
                         WebView(context).apply {
                             layoutParams = ViewGroup.LayoutParams(
@@ -312,7 +337,9 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF0F172A)),
+                            .background(Color(0xFF0F172A))
+                            .statusBarsPadding()
+                            .navigationBarsPadding(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
